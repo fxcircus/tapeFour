@@ -617,6 +617,16 @@ export default class TapeFour {
   public stop() {
     console.log('⏹️ STOP button pressed');
     
+    // Add visual feedback to stop button
+    const stopBtn = document.getElementById('stop-btn');
+    if (stopBtn) {
+      stopBtn.classList.add('stopping');
+      // Remove the class after 200ms for brief flash effect
+      setTimeout(() => {
+        stopBtn.classList.remove('stopping');
+      }, 200);
+    }
+    
     // Stop recording if active
     if (this.state.isRecording) {
       console.log('🛑 Stopping active recording');

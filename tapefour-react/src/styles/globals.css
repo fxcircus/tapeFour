@@ -399,6 +399,12 @@ input[type="range"]::-moz-range-thumb {
   color: white;
 }
 
+#stop-btn.stopping {
+  background: #F59E0A;
+  color: white;
+  transition: background-color 0.05s ease;
+}
+
 .record-button {
   background: var(--paper);
   border: 1px solid var(--ink);
