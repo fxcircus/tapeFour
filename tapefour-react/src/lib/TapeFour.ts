@@ -35,13 +35,14 @@ export default class TapeFour {
     isArmed: boolean;
     isSolo: boolean;
     isMuted: boolean;
+    isManuallyMuted: boolean; // Visual state for mute button
     gainNode: GainNode | null;
     sourceNode: AudioBufferSourceNode | null;
   }> = [
-    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
-    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
-    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
-    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
+    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
+    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
+    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
+    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -200,25 +201,34 @@ export default class TapeFour {
     const track = this.tracks.find((t) => t.id === trackId)!;
     const el = document.getElementById(`solo-${trackId}`) as HTMLInputElement;
 
+    // Check if any track is currently soloed
+    const currentlySoloedTrack = this.tracks.find(t => t.isSolo);
+
     // Exclusive solo: only one track can be soloed at a time
     if (track.isSolo) {
       // Unsolo this track - restore previous mute states
       track.isSolo = false;
       if (el) el.checked = false;
       
-      // Restore previous mute states
+      // Restore previous mute states (from before any solo was active)
       this.tracks.forEach((t, index) => {
         t.isMuted = this.previousMuteStates[index];
+        t.isManuallyMuted = this.previousMuteStates[index];
+        // Update mute button visual state to match manual mute state
         const muteEl = document.getElementById(`mute-${t.id}`) as HTMLInputElement;
-        if (muteEl) muteEl.checked = t.isMuted;
+        if (muteEl) muteEl.checked = t.isManuallyMuted;
       });
       
-      console.log(`[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states`);
+      console.log(`[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states:`, this.previousMuteStates);
     } else {
-      // Store current mute states before soloing
-      this.tracks.forEach((t, index) => {
-        this.previousMuteStates[index] = t.isMuted;
-      });
+      // Only store current manual mute states if no track is currently soloed
+      // This prevents overwriting the original states when switching between solo tracks
+      if (!currentlySoloedTrack) {
+        this.tracks.forEach((t, index) => {
+          this.previousMuteStates[index] = t.isManuallyMuted;
+        });
+        console.log(`[TAPEFOUR] 💾 Stored original manual mute states before first solo:`, this.previousMuteStates);
+      }
       
       // Unsolo all other tracks first
       this.tracks.forEach((t) => {
@@ -229,11 +239,10 @@ export default class TapeFour {
         }
       });
       
-      // Solo this track - unmute all tracks first, then mute all except this one
+      // Solo this track - mute all tracks except this one
       this.tracks.forEach((t) => {
         t.isMuted = t.id !== trackId; // Mute all tracks except the soloed one
-        const muteEl = document.getElementById(`mute-${t.id}`) as HTMLInputElement;
-        if (muteEl) muteEl.checked = t.isMuted;
+        // Don't update mute button visual state when soloing - only when manually clicked
       });
       
       // Set solo state
@@ -255,16 +264,17 @@ export default class TapeFour {
     const hasSoloedTrack = this.tracks.some(t => t.isSolo);
     if (hasSoloedTrack) {
       console.log(`[TAPEFOUR] ⚠️ Cannot manually mute/unmute while a track is soloed`);
-      // Reset the checkbox to current state
-      if (el) el.checked = track.isMuted;
+      // Reset the checkbox to current manual mute state
+      if (el) el.checked = track.isManuallyMuted;
       return;
     }
 
-    // Toggle mute state
-    track.isMuted = !track.isMuted;
-    if (el) el.checked = track.isMuted;
+    // Toggle manual mute state
+    track.isManuallyMuted = !track.isManuallyMuted;
+    track.isMuted = track.isManuallyMuted; // Sync internal state with manual state
+    if (el) el.checked = track.isManuallyMuted;
     
-    console.log(`[TAPEFOUR] ${track.isMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isMuted ? 'muted' : 'unmuted'}`);
+    console.log(`[TAPEFOUR] ${track.isManuallyMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isManuallyMuted ? 'manually muted' : 'manually unmuted'}`);
     
     // Update audio routing
     this.updateAudioRouting();
