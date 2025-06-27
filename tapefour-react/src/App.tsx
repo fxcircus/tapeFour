@@ -34,8 +34,17 @@ function App() {
         <div className="display-section">
           <div className="display-row">
             <div className="timecode" id="timecode">00:00</div>
-            <div className="volume-meter">
-              <div className="volume-meter-fill" id="volume-meter-bar"></div>
+            <div className="volume-meter" id="volume-meter">
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-segment"></div>
             </div>
           </div>
         </div>
@@ -70,9 +79,7 @@ function App() {
                   defaultValue={75}
                 />
                 <div className="track-label">{id}</div>
-                <button className="arm-button" id={`track-${id}`} data-track={id}>
-                  ARM
-                </button>
+                <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
               </div>
             )
           })}

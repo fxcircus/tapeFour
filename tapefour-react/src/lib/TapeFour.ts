@@ -136,26 +136,26 @@ export default class TapeFour {
 
   private toggleTrackArm(trackId: number) {
     const track = this.tracks.find((t) => t.id === trackId)!;
-    const el = document.getElementById(`track-${trackId}`);
+    const el = document.getElementById(`track-${trackId}`) as HTMLInputElement;
 
     // Exclusive arming: only one track can be armed at a time
     if (track.isArmed) {
       // Disarm this track
       track.isArmed = false;
-      el?.classList.remove('armed');
+      if (el) el.checked = false;
     } else {
       // Disarm all other tracks first
       this.tracks.forEach((t) => {
         if (t.id !== trackId) {
           t.isArmed = false;
-          const otherEl = document.getElementById(`track-${t.id}`);
-          otherEl?.classList.remove('armed');
+          const otherEl = document.getElementById(`track-${t.id}`) as HTMLInputElement;
+          if (otherEl) otherEl.checked = false;
         }
       });
       
       // Arm this track
       track.isArmed = true;
-      el?.classList.add('armed');
+      if (el) el.checked = true;
     }
     
     // Start/stop volume meter monitoring when tracks are armed/disarmed
@@ -548,12 +548,20 @@ export default class TapeFour {
   }
 
   private updateVolumeMeter(level: number) {
-    // Convert level (0-1) to percentage for the meter bar
-    const percentage = Math.max(5, Math.min(level * 100, 100)); // Always show at least 5%
-    const meterBar = document.getElementById('volume-meter-bar') as HTMLElement | null;
-    if (meterBar) {
-      meterBar.style.width = `${percentage}%`;
-      console.log(`📊 Volume meter updated: ${percentage.toFixed(1)}%`);
+    // Convert level (0-1) to number of segments (0-10)
+    const segmentCount = Math.floor(level * 10);
+    const volumeMeter = document.getElementById('volume-meter') as HTMLElement | null;
+    
+    if (volumeMeter) {
+      const segments = volumeMeter.querySelectorAll('.volume-meter-segment');
+      segments.forEach((segment, index) => {
+        if (index < segmentCount) {
+          segment.classList.add('lit');
+        } else {
+          segment.classList.remove('lit');
+        }
+      });
+      console.log(`📊 Volume meter updated: ${segmentCount}/10 segments lit (${(level * 100).toFixed(1)}%)`);
     }
   }
 
