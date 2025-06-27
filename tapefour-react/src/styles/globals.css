@@ -1476,6 +1476,16 @@ body {
 /* Tips section styling */
 .tips-content {
   padding: 12px 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.tips-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
 }
 
 .tip-item {

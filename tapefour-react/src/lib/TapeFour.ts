@@ -316,6 +316,32 @@ export default class TapeFour {
       }
     });
 
+    // Tips toggle - same logic as other toggles
+    document.getElementById('tips-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const options = document.getElementById('tips-options');
+      const arrow = document.getElementById('tips-arrow');
+      
+      if (options && arrow) {
+        const isCollapsed = options.classList.contains('collapsed');
+        console.log(`[TAPEFOUR] 💡 Tips toggle clicked, currently collapsed: ${isCollapsed}`);
+        
+        if (isCollapsed) {
+          options.classList.remove('collapsed');
+          arrow.classList.add('rotated');
+          console.log('[TAPEFOUR] 💡 Tips expanded');
+        } else {
+          options.classList.add('collapsed');
+          arrow.classList.remove('rotated');
+          console.log('[TAPEFOUR] 💡 Tips collapsed');
+        }
+      } else {
+        console.warn('[TAPEFOUR] ⚠️ Tips toggle elements not found');
+      }
+    });
+
     // Audio processing settings checkboxes
     document.getElementById('echo-cancellation-checkbox')?.addEventListener('change', (e) => {
       this.state.echoCancellation = (e.target as HTMLInputElement).checked;

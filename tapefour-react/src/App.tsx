@@ -299,8 +299,15 @@ function App() {
           </div>
           
           <div className="settings-group">
-            <h4 className="settings-subtitle">💡 Tips</h4>
-            <div className="tips-content">
+            <div className="settings-toggle-header" id="tips-toggle">
+              <h4 className="settings-subtitle">💡 Tips</h4>
+              <div className="toggle-arrow" id="tips-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="tips-content collapsed" id="tips-options">
               <p className="tip-item">Double-click pan knobs or faders to reset to default values</p>
             </div>
           </div>
