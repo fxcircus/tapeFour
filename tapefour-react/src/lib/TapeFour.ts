@@ -43,11 +43,13 @@ export default class TapeFour {
     isManuallyMuted: boolean; // Visual state for mute button
     gainNode: GainNode | null;
     sourceNode: AudioBufferSourceNode | null;
+    panNode: StereoPannerNode | null;
+    panValue: number; // 0 = fully left, 50 = center, 100 = fully right
   }> = [
-    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
-    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
-    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
-    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null },
+    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -87,11 +89,17 @@ export default class TapeFour {
       this.masterGainNode.connect(this.monitoringGainNode);
       this.monitoringGainNode.connect(this.audioContext.destination);
 
-      // track gain nodes
+      // track gain and pan nodes
       this.tracks.forEach((track) => {
         track.gainNode = this.audioContext!.createGain();
         track.gainNode.gain.value = 0.75;
-        track.gainNode.connect(this.masterGainNode!);
+        
+        track.panNode = this.audioContext!.createStereoPanner();
+        track.panNode.pan.value = 0; // Start at center (0 = center, -1 = left, 1 = right)
+        
+        // Connect: gain -> pan -> master
+        track.gainNode.connect(track.panNode);
+        track.panNode.connect(this.masterGainNode!);
       });
     }
 
@@ -105,6 +113,9 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
       if (fader) fader.value = '75';
+      
+      const panKnob = document.getElementById(`pan-${track.id}`) as HTMLInputElement | null;
+      if (panKnob) panKnob.value = '50'; // Center position
     });
     (document.getElementById('master-fader') as HTMLInputElement | null)?.setAttribute('value', '75');
   }
@@ -142,6 +153,78 @@ export default class TapeFour {
       fader?.addEventListener('input', (e) => this.updateTrackGain(track.id, +(e.target as HTMLInputElement).value));
       // Double-click to reset to default value (75)
       fader?.addEventListener('dblclick', (e) => this.resetTrackFader(track.id));
+    });
+
+    // Pan knobs
+    this.tracks.forEach((track) => {
+      const panKnob = document.getElementById(`pan-${track.id}`) as HTMLInputElement | null;
+      const panContainer = panKnob?.parentElement;
+      
+      if (panKnob && panContainer) {
+        // Handle mouse events for vertical drag behavior
+        let isDragging = false;
+        let startY = 0;
+        let startValue = 0;
+
+        const updateKnobRotation = (value: number) => {
+          // Convert 0-100 to -135deg to +135deg (270 degree total range)
+          const rotation = (value - 50) * 2.7; // 270 degrees / 100 = 2.7
+          panContainer.style.setProperty('--rotation', `${rotation}deg`);
+        };
+
+        // Initialize rotation
+        updateKnobRotation(parseInt(panKnob.value));
+
+        panContainer.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startY = e.clientY;
+          startValue = parseInt(panKnob.value);
+          e.preventDefault();
+          e.stopPropagation(); // Prevent click-through to mute button
+          e.stopImmediatePropagation(); // Stop all event propagation
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (isDragging) {
+            const deltaY = startY - e.clientY; // Inverted: up = positive
+            const sensitivity = 0.5; // Adjust sensitivity
+            const newValue = Math.max(0, Math.min(100, startValue + deltaY * sensitivity));
+            panKnob.value = newValue.toString();
+            updateKnobRotation(newValue);
+            this.updateTrackPan(track.id, newValue);
+            e.preventDefault();
+          }
+        });
+
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+        });
+
+        // Handle regular input events (for keyboard, touch, etc.)
+        panKnob.addEventListener('input', (e) => {
+          if (!isDragging) {
+            const value = +(e.target as HTMLInputElement).value;
+            updateKnobRotation(value);
+            this.updateTrackPan(track.id, value);
+          }
+        });
+
+        // Add click event to prevent click-through
+        panContainer.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        });
+
+        // Double-click to reset to center (50)
+        panContainer.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          e.stopPropagation(); // Prevent click-through to mute button
+          e.stopImmediatePropagation(); // Stop all event propagation
+          this.resetTrackPan(track.id);
+          updateKnobRotation(50);
+        });
+      }
     });
 
     // Master fader
@@ -505,6 +588,29 @@ export default class TapeFour {
       masterFader.value = '75'; // Reset to default value
       this.updateMasterGain(75); // Update the gain
       console.log(`🎚️ Master fader reset to default (75%)`);
+    }
+  }
+
+  private updateTrackPan(trackId: number, value: number) {
+    const track = this.tracks.find((t) => t.id === trackId)!;
+    if (track.panNode) {
+      // Convert 0-100 range to -1 to 1 range for StereoPannerNode
+      // 0 = fully left (-1), 50 = center (0), 100 = fully right (1)
+      const panValue = (value - 50) / 50;
+      track.panNode.pan.value = panValue;
+      track.panValue = value;
+      console.log(`🎛️ Track ${trackId} pan set to ${value} (${panValue.toFixed(2)})`);
+    } else {
+      console.warn(`⚠️ No pan node found for track ${trackId}`);
+    }
+  }
+
+  private resetTrackPan(trackId: number) {
+    const panKnob = document.getElementById(`pan-${trackId}`) as HTMLInputElement | null;
+    if (panKnob) {
+      panKnob.value = '50'; // Reset to center
+      this.updateTrackPan(trackId, 50); // Update the pan
+      console.log(`🎛️ Track ${trackId} pan reset to center (50)`);
     }
   }
 

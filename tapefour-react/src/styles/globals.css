@@ -356,6 +356,91 @@ input[type="range"]::-moz-range-thumb {
   background: var(--accent);
 }
 
+/* Pan Knob Styling */
+
+.pan-knob-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0;
+  position: relative;
+  width: 50px;
+  height: 50px;
+  z-index: 100; /* Much higher z-index to ensure it's above mute buttons */
+}
+
+.pan-knob {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 40px;
+  height: 40px;
+  background: var(--track);
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 11;
+}
+
+/* Hide the default slider track and thumb */
+.pan-knob::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  width: 40px;
+  height: 40px;
+}
+
+.pan-knob::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.pan-knob::-moz-range-track {
+  background: transparent;
+  border: none;
+  width: 40px;
+  height: 40px;
+}
+
+.pan-knob::-moz-range-thumb {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Custom rotating indicator */
+.pan-knob-container::before {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 12px;
+  background: #DCCDB7;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  top: 6px;
+  left: 50%;
+  transform-origin: 50% 19px; /* Distance from top of indicator to center of knob */
+  transform: translateX(-50%) rotate(var(--rotation, 0deg));
+  pointer-events: none;
+  z-index: 12;
+  transition: background 0.2s ease;
+}
+
+.pan-knob-container:hover::before {
+  background: var(--accent);
+}
+
+
+
 .transport-controls {
   display: flex;
   justify-content: center;

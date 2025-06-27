@@ -78,6 +78,16 @@ function App() {
                   max={100}
                   defaultValue={75}
                 />
+                <div className="pan-knob-container">
+                  <input
+                    type="range"
+                    className="pan-knob"
+                    id={`pan-${id}`}
+                    min={0}
+                    max={100}
+                    defaultValue={50}
+                  />
+                </div>
                 <div className="mute-button-container">
                   <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
                   <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
