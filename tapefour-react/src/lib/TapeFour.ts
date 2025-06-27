@@ -27,6 +27,10 @@ export default class TapeFour {
     selectedInputDeviceId: null as string | null,
     maxRecordingTime: 60000, // 60 seconds
     inputMuted: false,
+    // Audio processing settings - default to false for more raw recording
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
   };
 
   private tracks: Array<{
@@ -49,8 +53,9 @@ export default class TapeFour {
   private previousMuteStates: boolean[] = [false, false, false, false];
 
   constructor() {
-    // Load previously selected audio device from localStorage
+    // Load previously selected audio device and processing settings from localStorage
     this.loadSavedAudioDevice();
+    this.loadSavedAudioProcessingSettings();
     this.initializeAudio();
     this.initializeUI();
     this.setupEventListeners();
@@ -150,6 +155,42 @@ export default class TapeFour {
 
     // Scan devices button (refresh the list without closing modal)
     document.getElementById('scan-devices-btn')?.addEventListener('click', () => this.populateAudioInputSelect());
+
+    // Audio processing toggle
+    document.getElementById('audio-processing-toggle')?.addEventListener('click', () => {
+      const options = document.getElementById('audio-processing-options');
+      const arrow = document.getElementById('audio-processing-arrow');
+      
+      if (options && arrow) {
+        const isCollapsed = options.classList.contains('collapsed');
+        if (isCollapsed) {
+          options.classList.remove('collapsed');
+          arrow.classList.add('rotated');
+        } else {
+          options.classList.add('collapsed');
+          arrow.classList.remove('rotated');
+        }
+      }
+    });
+
+    // Audio processing settings checkboxes
+    document.getElementById('echo-cancellation-checkbox')?.addEventListener('change', (e) => {
+      this.state.echoCancellation = (e.target as HTMLInputElement).checked;
+      this.saveAudioProcessingSettings();
+      console.log(`[TAPEFOUR] 🔧 Echo cancellation ${this.state.echoCancellation ? 'enabled' : 'disabled'}`);
+    });
+
+    document.getElementById('noise-suppression-checkbox')?.addEventListener('change', (e) => {
+      this.state.noiseSuppression = (e.target as HTMLInputElement).checked;
+      this.saveAudioProcessingSettings();
+      console.log(`[TAPEFOUR] 🔧 Noise suppression ${this.state.noiseSuppression ? 'enabled' : 'disabled'}`);
+    });
+
+    document.getElementById('auto-gain-control-checkbox')?.addEventListener('change', (e) => {
+      this.state.autoGainControl = (e.target as HTMLInputElement).checked;
+      this.saveAudioProcessingSettings();
+      console.log(`[TAPEFOUR] 🔧 Auto gain control ${this.state.autoGainControl ? 'enabled' : 'disabled'}`);
+    });
 
     // Dismiss modal on backdrop click
     document.getElementById('settings-modal')?.addEventListener('click', (e) => {
@@ -543,14 +584,14 @@ export default class TapeFour {
         audio: this.state.selectedInputDeviceId 
           ? { 
               deviceId: { exact: this.state.selectedInputDeviceId },
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
+              echoCancellation: this.state.echoCancellation,
+              noiseSuppression: this.state.noiseSuppression,
+              autoGainControl: this.state.autoGainControl
             } 
           : {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
+              echoCancellation: this.state.echoCancellation,
+              noiseSuppression: this.state.noiseSuppression,
+              autoGainControl: this.state.autoGainControl
             },
       };
 
@@ -764,6 +805,16 @@ export default class TapeFour {
   public async openSettings() {
     const modal = document.getElementById('settings-modal') as HTMLElement | null;
     await this.populateAudioInputSelect();
+    
+    // Populate audio processing checkboxes with current state
+    const echoCancellationCheckbox = document.getElementById('echo-cancellation-checkbox') as HTMLInputElement | null;
+    const noiseSuppressionCheckbox = document.getElementById('noise-suppression-checkbox') as HTMLInputElement | null;
+    const autoGainControlCheckbox = document.getElementById('auto-gain-control-checkbox') as HTMLInputElement | null;
+    
+    if (echoCancellationCheckbox) echoCancellationCheckbox.checked = this.state.echoCancellation;
+    if (noiseSuppressionCheckbox) noiseSuppressionCheckbox.checked = this.state.noiseSuppression;
+    if (autoGainControlCheckbox) autoGainControlCheckbox.checked = this.state.autoGainControl;
+    
     modal && (modal.style.display = 'flex');
   }
 
@@ -796,6 +847,39 @@ export default class TapeFour {
       }
     } catch (err) {
       console.warn('[TAPEFOUR] ⚠️ Could not save audio device:', err);
+    }
+  }
+
+  private loadSavedAudioProcessingSettings() {
+    try {
+      const echoCancellation = localStorage.getItem('tapefour-echo-cancellation');
+      const noiseSuppression = localStorage.getItem('tapefour-noise-suppression');
+      const autoGainControl = localStorage.getItem('tapefour-auto-gain-control');
+      
+      if (echoCancellation !== null) {
+        this.state.echoCancellation = echoCancellation === 'true';
+      }
+      if (noiseSuppression !== null) {
+        this.state.noiseSuppression = noiseSuppression === 'true';
+      }
+      if (autoGainControl !== null) {
+        this.state.autoGainControl = autoGainControl === 'true';
+      }
+      
+      console.log(`[TAPEFOUR] 💾 Loaded audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not load audio processing settings:', err);
+    }
+  }
+
+  private saveAudioProcessingSettings() {
+    try {
+      localStorage.setItem('tapefour-echo-cancellation', this.state.echoCancellation.toString());
+      localStorage.setItem('tapefour-noise-suppression', this.state.noiseSuppression.toString());
+      localStorage.setItem('tapefour-auto-gain-control', this.state.autoGainControl.toString());
+      console.log(`[TAPEFOUR] 💾 Saved audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not save audio processing settings:', err);
     }
   }
 

@@ -668,6 +668,15 @@ input[type="range"]::-moz-range-thumb {
   text-align: center;
 }
 
+.settings-subtitle {
+  font-size: 16px;
+  font-weight: 500;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 1px;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+
 .settings-group {
   margin-bottom: 24px;
 }
@@ -740,6 +749,82 @@ input[type="range"]::-moz-range-thumb {
 .close-settings-btn:active {
   background: color-mix(in srgb, var(--track) 96%, black 4%);
   transform: translateY(1px);
+}
+
+.settings-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--paper);
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.settings-toggle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.settings-toggle-header:hover {
+  background-color: color-mix(in srgb, var(--paper) 95%, var(--ink) 5%);
+}
+
+.toggle-arrow {
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 200px;
+  opacity: 1;
+}
+
+.checkbox-group.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.settings-checkbox {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--paper);
+  cursor: pointer;
+  position: relative;
+}
+
+.settings-checkbox:checked {
+  background: var(--track);
 }
 
 .display-row {

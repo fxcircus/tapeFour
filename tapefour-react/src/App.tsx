@@ -141,8 +141,12 @@ function App() {
 
       <div id="settings-modal" className="settings-modal" style={{ display: 'none' }}>
         <div className="settings-content">
-          <h3 className="settings-title">Audio Input Settings</h3>
+          <h3 className="settings-title">Settings</h3>
           <div className="settings-group">
+            <label className="settings-label" htmlFor="audio-input-select">Audio Input</label>
+            <select id="audio-input-select" className="settings-select">
+              <option value="">Select Audio Input Device...</option>
+            </select>
             <button className="scan-devices-btn" id="scan-devices-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
@@ -152,11 +156,33 @@ function App() {
               </svg>
               Scan Devices
             </button>
-            <label className="settings-label" htmlFor="audio-input-select">Audio Input</label>
-            <select id="audio-input-select" className="settings-select">
-              <option value="">Select Audio Input Device...</option>
-            </select>
           </div>
+          
+          <div className="settings-group">
+            <div className="settings-toggle-header" id="audio-processing-toggle">
+              <h4 className="settings-subtitle">Audio Processing</h4>
+              <div className="toggle-arrow" id="audio-processing-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="checkbox-group collapsed" id="audio-processing-options">
+              <label className="checkbox-label">
+                <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
+                Echo Cancellation
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
+                Noise Suppression
+              </label>
+              <label className="checkbox-label">
+                <input type="checkbox" id="auto-gain-control-checkbox" className="settings-checkbox" />
+                Auto Gain Control
+              </label>
+            </div>
+          </div>
+          
           <button className="close-settings-btn" id="cancel-settings">Close</button>
         </div>
       </div>
