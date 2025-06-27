@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TapeFour - 4-Track Tape Recorder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #D3B897;
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0);
+            background-size: 3px 3px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .recorder-container {
+            background: #C3A686;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.3),
+                inset 0 2px 5px rgba(255,255,255,0.2),
+                inset 0 -2px 5px rgba(0,0,0,0.1);
+            border: 3px solid #A07C5B;
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .header {
+            text-align: center;
+            font-weight: 700;
+            font-size: 24px;
+            color: #5D4A37;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+        }
+
+        .cassette-display {
+            background: #A07C5B;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 
+                inset 0 3px 8px rgba(0,0,0,0.3),
+                0 2px 4px rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 120px;
+        }
+
+        .cassette {
+            background: #F0D8B9;
+            border-radius: 8px;
+            width: 200px;
+            height: 80px;
+            position: relative;
+            box-shadow: 
+                0 2px 5px rgba(0,0,0,0.2),
+                inset 0 1px 2px rgba(255,255,255,0.3);
+            border: 2px solid #8B6F47;
+        }
+
+        .cassette::before,
+        .cassette::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            width: 25px;
+            height: 25px;
+            background: #8B6F47;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 3px rgba(0,0,0,0.3);
+        }
+
+        .cassette::before {
+            left: 20px;
+        }
+
+        .cassette::after {
+            right: 20px;
+        }
+
+        .cassette-window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 15px;
+            background: #8B6F47;
+            border-radius: 2px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .mixer-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            padding: 0 10px;
+        }
+
+        .fader-section {
+            display: flex;
+            gap: 15px;
+        }
+
+        .fader-channel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fader {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 30px;
+            height: 120px;
+            background: #8B6F47;
+            border-radius: 15px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .fader::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 35px;
+            height: 20px;
+            background: #F0D8B9;
+            border-radius: 5px;
+            border: 2px solid #5D4A37;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .track-number {
+            font-weight: 600;
+            font-size: 18px;
+            color: #5D4A37;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #F0D8B9;
+            box-shadow: 
+                0 2px 4px rgba(0,0,0,0.2),
+                inset 0 1px 2px rgba(255,255,255,0.3);
+            transition: all 0.2s ease;
+            min-width: 35px;
+            text-align: center;
+        }
+
+        .track-number.armed {
+            background: #FF6B6B;
+            color: white;
+            box-shadow: 
+                0 0 15px rgba(255, 107, 107, 0.6),
+                0 2px 4px rgba(0,0,0,0.2),
+                inset 0 1px 2px rgba(255,255,255,0.2);
+        }
+
+        .knob-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .knob-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .knob {
+            -webkit-appearance: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #F0D8B9;
+            border: 3px solid #5D4A37;
+            outline: none;
+            cursor: pointer;
+            box-shadow: 
+                0 3px 6px rgba(0,0,0,0.3),
+                inset 0 2px 4px rgba(255,255,255,0.2);
+            position: relative;
+        }
+
+        .knob::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 4px;
+            height: 20px;
+            background: #5D4A37;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .knob-label {
+            font-weight: 600;
+            font-size: 12px;
+            color: #5D4A37;
+            text-align: center;
+        }
+
+        .transport-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .transport-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 15px;
+            background: #F0D8B9;
+            color: #5D4A37;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 
+                0 4px 8px rgba(0,0,0,0.2),
+                inset 0 2px 4px rgba(255,255,255,0.3);
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .transport-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 12px rgba(0,0,0,0.25),
+                inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+
+        .transport-btn:active {
+            transform: translateY(1px);
+            box-shadow: 
+                0 2px 4px rgba(0,0,0,0.2),
+                inset 0 -2px 4px rgba(0,0,0,0.1);
+        }
+
+        .transport-btn.recording {
+            background: #FF6B6B;
+            color: white;
+            box-shadow: 
+                0 0 20px rgba(255, 107, 107, 0.6),
+                0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .transport-btn.playing {
+            background: #4ECDC4;
+            color: white;
+        }
+
+        .settings-btn {
+            width: 80px;
+            font-size: 16px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #F0D8B9;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 3px solid #5D4A37;
+            min-width: 300px;
+        }
+
+        .modal h3 {
+            color: #5D4A37;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 20px;
+        }
+
+        .modal select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #5D4A37;
+            border-radius: 8px;
+            background: white;
+            font-family: 'Nunito', sans-serif;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .modal-btn.primary {
+            background: #4ECDC4;
+            color: white;
+        }
+
+        .modal-btn.secondary {
+            background: #ddd;
+            color: #333;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .playhead {
+            position: absolute;
+            top: 45px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background: rgba(255, 107, 107, 0.8);
+            display: none;
+            border-radius: 1px;
+        }
+
+        .playhead-indicator {
+            position: absolute;
+            left: 0;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.8);
+            transition: left 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+    <div class="recorder-container">
+        <div class="header">4-TRACK TAPE RECORDER</div>
+        
+        <div class="cassette-display">
+            <div class="cassette">
+                <div class="cassette-window"></div>
+                <div class="playhead" id="playhead">
+                    <div class="playhead-indicator" id="playhead-indicator"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mixer-controls">
+            <div class="fader-section">
+                <div class="fader-channel">
+                    <input type="range" class="fader" id="fader-1" min="0" max="100" value="75" orient="vertical">
+                    <div class="track-number" id="track-1" data-track="1">1</div>
+                </div>
+                <div class="fader-channel">
+                    <input type="range" class="fader" id="fader-2" min="0" max="100" value="75" orient="vertical">
+                    <div class="track-number" id="track-2" data-track="2">2</div>
+                </div>
+                <div class="fader-channel">
+                    <input type="range" class="fader" id="fader-3" min="0" max="100" value="75" orient="vertical">
+                    <div class="track-number" id="track-3" data-track="3">3</div>
+                </div>
+                <div class="fader-channel">
+                    <input type="range" class="fader" id="fader-4" min="0" max="100" value="75" orient="vertical">
+                    <div class="track-number" id="track-4" data-track="4">4</div>
+                </div>
+            </div>
+            
+            <div class="knob-section">
+                <div class="knob-group">
+                    <input type="range" class="knob" id="eq-knob" min="200" max="8000" value="4000">
+                    <div class="knob-label">EQ</div>
+                </div>
+                <div class="knob-group">
+                    <input type="range" class="knob" id="master-knob" min="0" max="100" value="75">
+                    <div class="knob-label">MASTER</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="transport-controls">
+            <button class="transport-btn" id="stop-btn">◼</button>
+            <button class="transport-btn" id="play-btn">▶</button>
+            <button class="transport-btn" id="pause-btn">⏸</button>
+            <button class="transport-btn" id="record-btn">●</button>
+            <button class="transport-btn" id="export-btn">💾</button>
+            <button class="transport-btn settings-btn" id="settings-btn">⚙️</button>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h3>Audio Input Settings</h3>
+            <select id="audio-input-select">
+                <option value="">Select Audio Input Device...</option>
+            </select>
+            <div class="modal-buttons">
+                <button class="modal-btn primary" id="save-settings">Save</button>
+                <button class="modal-btn secondary" id="cancel-settings">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TapeFour {
+            constructor() {
+                this.audioContext = null;
+                this.mediaRecorder = null;
+                this.mediaStream = null;
+                this.masterGainNode = null;
+                this.eqFilterNode = null;
+                this.recordingBuffer = [];
+                
+                this.state = {
+                    isPlaying: false,
+                    isRecording: false,
+                    isPaused: false,
+                    playheadPosition: 0,
+                    selectedInputDeviceId: null,
+                    maxRecordingTime: 60000 // 60 seconds
+                };
+
+                this.tracks = [
+                    { id: 1, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
+                    { id: 2, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
+                    { id: 3, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
+                    { id: 4, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null }
+                ];
+
+                this.playheadTimer = null;
+                this.playStartTime = 0;
+
+                this.initializeUI();
+                this.setupEventListeners();
+            }
+
+            async initializeAudio() {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // Create master chain
+                    this.eqFilterNode = this.audioContext.createBiquadFilter();
+                    this.eqFilterNode.type = 'lowpass';
+                    this.eqFilterNode.frequency.value = 4000;
+                    
+                    this.masterGainNode = this.audioContext.createGain();
+                    this.masterGainNode.gain.value = 0.75;
+                    
+                    this.eqFilterNode.connect(this.masterGainNode);
+                    this.masterGainNode.connect(this.audioContext.destination);
+
+                    // Create gain nodes for each track
+                    this.tracks.forEach(track => {
+                        track.gainNode = this.audioContext.createGain();
+                        track.gainNode.gain.value = 0.75;
+                        track.gainNode.connect(this.eqFilterNode);
+                    });
+                }
+                
+                if (this.audioContext.state === 'suspended') {
+                    await this.audioContext.resume();
+                }
+            }
+
+            initializeUI() {
+                // Initialize fader values
+                this.tracks.forEach((track, index) => {
+                    const fader = document.getElementById(`fader-${track.id}`);
+                    fader.value = 75;
+                });
+
+                document.getElementById('eq-knob').value = 4000;
+                document.getElementById('master-knob').value = 75;
+            }
+
+            setupEventListeners() {
+                // Track arming
+                this.tracks.forEach(track => {
+                    const trackElement = document.getElementById(`track-${track.id}`);
+                    trackElement.addEventListener('click', () => this.toggleTrackArm(track.id));
+                });
+
+                // Faders
+                this.tracks.forEach(track => {
+                    const fader = document.getElementById(`fader-${track.id}`);
+                    fader.addEventListener('input', (e) => this.updateTrackGain(track.id, e.target.value));
+                });
+
+                // Knobs
+                document.getElementById('eq-knob').addEventListener('input', (e) => this.updateEQ(e.target.value));
+                document.getElementById('master-knob').addEventListener('input', (e) => this.updateMasterGain(e.target.value));
+
+                // Transport controls
+                document.getElementById('play-btn').addEventListener('click', () => this.play());
+                document.getElementById('stop-btn').addEventListener('click', () => this.stop());
+                document.getElementById('pause-btn').addEventListener('click', () => this.pause());
+                document.getElementById('record-btn').addEventListener('click', () => this.record());
+                document.getElementById('export-btn').addEventListener('click', () => this.export());
+                document.getElementById('settings-btn').addEventListener('click', () => this.openSettings());
+
+                // Settings modal
+                document.getElementById('save-settings').addEventListener('click', () => this.saveSettings());
+                document.getElementById('cancel-settings').addEventListener('click', () => this.closeSettings());
+                
+                // Close modal when clicking outside
+                document.getElementById('settings-modal').addEventListener('click', (e) => {
+                    if (e.target.id === 'settings-modal') {
+                        this.closeSettings();
+                    }
+                });
+            }
+
+            toggleTrackArm(trackId) {
+                const track = this.tracks.find(t => t.id === trackId);
+                const trackElement = document.getElementById(`track-${trackId}`);
+                
+                track.isArmed = !track.isArmed;
+                
+                if (track.isArmed) {
+                    trackElement.classList.add('armed');
+                } else {
+                    trackElement.classList.remove('armed');
+                }
+            }
+
+            updateTrackGain(trackId, value) {
+                const track = this.tracks.find(t => t.id === trackId);
+                if (track && track.gainNode) {
+                    track.gainNode.gain.value = value / 100;
+                }
+            }
+
+            updateEQ(value) {
+                if (this.eqFilterNode) {
+                    this.eqFilterNode.frequency.value = parseFloat(value);
+                }
+            }
+
+            updateMasterGain(value) {
+                if (this.masterGainNode) {
+                    this.masterGainNode.gain.value = value / 100;
+                }
+            }
+
+            async play() {
+                await this.initializeAudio();
+                
+                if (this.state.isPaused) {
+                    await this.audioContext.resume();
+                    this.state.isPaused = false;
+                    this.startPlayheadTimer();
+                    document.getElementById('play-btn').classList.add('playing');
+                    return;
+                }
+
+                this.state.isPlaying = true;
+                this.state.playheadPosition = 0;
+                this.playStartTime = this.audioContext.currentTime;
+                
+                // Start playback for tracks with audio buffers
+                this.tracks.forEach(track => {
+                    if (track.audioBuffer) {
+                        this.playTrack(track);
+                    }
+                });
+
+                this.startPlayheadTimer();
+                document.getElementById('play-btn').classList.add('playing');
+                document.getElementById('playhead').style.display = 'block';
+            }
+
+            playTrack(track) {
+                if (track.sourceNode) {
+                    track.sourceNode.stop();
+                }
+
+                track.sourceNode = this.audioContext.createBufferSource();
+                track.sourceNode.buffer = track.audioBuffer;
+                track.sourceNode.connect(track.gainNode);
+                
+                track.sourceNode.onended = () => {
+                    track.sourceNode = null;
+                };
+
+                track.sourceNode.start(0, this.state.playheadPosition / 1000);
+            }
+
+            stop() {
+                this.state.isPlaying = false;
+                this.state.isRecording = false;
+                this.state.isPaused = false;
+                this.state.playheadPosition = 0;
+
+                // Stop all source nodes
+                this.tracks.forEach(track => {
+                    if (track.sourceNode) {
+                        track.sourceNode.stop();
+                        track.sourceNode = null;
+                    }
+                });
+
+                // Stop recording if active
+                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                    this.mediaRecorder.stop();
+                }
+
+                this.stopPlayheadTimer();
+                
+                // Update UI
+                document.getElementById('play-btn').classList.remove('playing');
+                document.getElementById('record-btn').classList.remove('recording');
+                document.getElementById('playhead').style.display = 'none';
+                
+                // Reset playhead
+                document.getElementById('playhead-indicator').style.left = '0px';
+            }
+
+            pause() {
+                if (this.state.isPlaying && !this.state.isPaused) {
+                    this.audioContext.suspend();
+                    this.state.isPaused = true;
+                    this.stopPlayheadTimer();
+                    document.getElementById('play-btn').classList.remove('playing');
+                } else if (this.state.isPaused) {
+                    this.play();
+                }
+            }
+
+            async record() {
+                if (this.state.isRecording) {
+                    this.stopRecording();
+                    return;
+                }
+
+                const armedTracks = this.tracks.filter(track => track.isArmed);
+                if (armedTracks.length === 0) {
+                    alert('Please arm at least one track before recording.');
+                    return;
+                }
+
+                await this.initializeAudio();
+                await this.setupRecording();
+
+                this.state.isRecording = true;
+                document.getElementById('record-btn').classList.add('recording');
+                
+                // Start playback of unarmed tracks
+                this.tracks.forEach(track => {
+                    if (!track.isArmed && track.audioBuffer) {
+                        this.playTrack(track);
+                    }
+                });
+
+                // Start recording
+                this.recordingBuffer = [];
+                this.mediaRecorder.start();
+                this.startPlayheadTimer();
+                document.getElementById('playhead').style.display = 'block';
+
+                // Auto-stop recording after max time
+                setTimeout(() => {
+                    if (this.state.isRecording) {
+                        this.stopRecording();
+                    }
+                }, this.state.maxRecordingTime);
+            }
+
+            async setupRecording() {
+                try {
+                    const constraints = {
+                        audio: this.state.selectedInputDeviceId ? 
+                            { deviceId: { exact: this.state.selectedInputDeviceId } } : 
+                            true
+                    };
+
+                    this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.mediaRecorder = new MediaRecorder(this.mediaStream);
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.recordingBuffer.push(event.data);
+                        }
+                    };
+
+                    this.mediaRecorder.onstop = () => {
+                        this.processRecording();
+                    };
+
+                } catch (error) {
+                    console.error('Error setting up recording:', error);
+                    alert('Could not access microphone. Please check permissions and settings.');
+                }
+            }
+
+            stopRecording() {
+                this.state.isRecording = false;
+                document.getElementById('record-btn').classList.remove('recording');
+                
+                if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+                    this.mediaRecorder.stop();
+                }
+
+                // Stop playback
+                this.tracks.forEach(track => {
+                    if (track.sourceNode) {
+                        track.sourceNode.stop();
+                        track.sourceNode = null;
+                    }
+                });
+
+                this.stopPlayheadTimer();
+            }
+
+            async processRecording() {
+                if (this.recordingBuffer.length === 0) return;
+
+                const audioBlob = new Blob(this.recordingBuffer, { type: 'audio/wav' });
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                
+                try {
+                    const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                    
+                    // Store the recording in all armed tracks
+                    this.tracks.forEach(track => {
+                        if (track.isArmed) {
+                            track.audioBuffer = audioBuffer;
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Error processing recording:', error);
+                }
+
+                // Clean up
+                if (this.mediaStream) {
+                    this.mediaStream.getTracks().forEach(track => track.stop());
+                }
+            }
+
+            startPlayheadTimer() {
+                this.playStartTime = Date.now() - this.state.playheadPosition;
+                
+                this.playheadTimer = setInterval(() => {
+                    this.state.playheadPosition = Date.now() - this.playStartTime;
+                    this.updatePlayheadUI();
+                    
+                    // Stop at max recording time
+                    if (this.state.playheadPosition >= this.state.maxRecordingTime) {
+                        this.stop();
+                    }
+                }, 50);
+            }
+
+            stopPlayheadTimer() {
+                if (this.playheadTimer) {
+                    clearInterval(this.playheadTimer);
+                    this.playheadTimer = null;
+                }
+            }
+
+            updatePlayheadUI() {
+                const progress = this.state.playheadPosition / this.state.maxRecordingTime;
+                const maxWidth = 120; // Approximate width of playhead area
+                const position = Math.min(progress * maxWidth, maxWidth);
+                
+                document.getElementById('playhead-indicator').style.left = `${position}px`;
+            }
+
+            async openSettings() {
+                const modal = document.getElementById('settings-modal');
+                const select = document.getElementById('audio-input-select');
+                
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    
+                    select.innerHTML = '<option value="">Default Audio Input</option>';
+                    
+                    audioInputs.forEach(device => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.textContent = device.label || `Audio Input ${device.deviceId.slice(0, 8)}`;
+                        if (device.deviceId === this.state.selectedInputDeviceId) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    
+                } catch (error) {
+                    console.error('Error enumerating devices:', error);
+                }
+                
+                modal.style.display = 'block';
+            }
+
+            closeSettings() {
+                document.getElementById('settings-modal').style.display = 'none';
+            }
+
+            saveSettings() {
+                const select = document.getElementById('audio-input-select');
+                this.state.selectedInputDeviceId = select.value || null;
+                this.closeSettings();
+            }
+
+            async export() {
+                if (!this.audioContext) {
+                    alert('No audio to export. Please record something first.');
+                    return;
+                }
+
+                const tracksWithAudio = this.tracks.filter(track => track.audioBuffer);
+                if (tracksWithAudio.length === 0) {
+                    alert('No recorded tracks to export.');
+                    return;
+                }
+
+                try {
+                    // Create offline context
+                    const offlineContext = new OfflineAudioContext(
+                        2, // stereo
+                        this.audioContext.sampleRate * (this.state.maxRecordingTime / 1000),
+                        this.audioContext.sampleRate
+                    );
+
+                    // Create offline master chain
+                    const offlineEQ = offlineContext.createBiquadFilter();
+                    offlineEQ.type = 'lowpass';
+                    offlineEQ.frequency.value = this.eqFilterNode.frequency.value;
+
+                    const offlineMaster = offlineContext.createGain();
+                    offlineMaster.gain.value = this.masterGainNode.gain.value;
+
+                    offlineEQ.connect(offlineMaster);
+                    offlineMaster.connect(offlineContext.destination);
+
+                    // Add each track with audio
+                    tracksWithAudio.forEach(track => {
+                        const source = offlineContext.createBufferSource();
+                        const gain = offlineContext.createGain();
+                        
+                        source.buffer = track.audioBuffer;
+                        gain.gain.value = track.gainNode.gain.value;
+                        
+                        source.connect(gain);
+                        gain.connect(offlineEQ);
+                        source.start(0);
+                    });
+
+                    // Render and download
+                    const renderedBuffer = await offlineContext.startRendering();
+                    this.downloadWAV(renderedBuffer);
+
+                } catch (error) {
+                    console.error('Error exporting audio:', error);
+                    alert('Error exporting audio. Please try again.');
+                }
+            }
+
+            downloadWAV(audioBuffer) {
+                const wavBuffer = this.audioBufferToWav(audioBuffer);
+                const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `tapefour-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            audioBufferToWav(buffer) {
+                const length = buffer.length;
+                const numberOfChannels = buffer.numberOfChannels;
+                const sampleRate = buffer.sampleRate;
+                const bitsPerSample = 16;
+                const bytesPerSample = bitsPerSample / 8;
+                const blockAlign = numberOfChannels * bytesPerSample;
+                const byteRate = sampleRate * blockAlign;
+                const dataSize = length * blockAlign;
+                const bufferSize = 44 + dataSize;
+
+                const arrayBuffer = new ArrayBuffer(bufferSize);
+                const view = new DataView(arrayBuffer);
+
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+
+                let offset = 0;
+                writeString(offset, 'RIFF'); offset += 4;
+                view.setUint32(offset, bufferSize - 8, true); offset += 4;
+                writeString(offset, 'WAVE'); offset += 4;
+                writeString(offset, 'fmt '); offset += 4;
+                view.setUint32(offset, 16, true); offset += 4;
+                view.setUint16(offset, 1, true); offset += 2;
+                view.setUint16(offset, numberOfChannels, true); offset += 2;
+                view.setUint32(offset, sampleRate, true); offset += 4;
+                view.setUint32(offset, byteRate, true); offset += 4;
+                view.setUint16(offset, blockAlign, true); offset += 2;
+                view.setUint16(offset, bitsPerSample, true); offset += 2;
+                writeString(offset, 'data'); offset += 4;
+                view.setUint32(offset, dataSize, true); offset += 4;
+
+                // Convert audio data
+                const channels = [];
+                for (let i = 0; i < numberOfChannels; i++) {
+                    channels.push(buffer.getChannelData(i));
+                }
+
+                let sampleOffset = offset;
+                for (let i = 0; i < length; i++) {
+                    for (let channel = 0; channel < numberOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+                        view.setInt16(sampleOffset, sample * 0x7FFF, true);
+                        sampleOffset += 2;
+                    }
+                }
+
+                return arrayBuffer;
+            }
+        }
+
+        // Initialize the app
+        const tapeFour = new TapeFour();
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+import { useEffect, useRef } from 'react'
+import TapeFour from './lib/TapeFour'
+
+function App() {
+  const tapeFourRef = useRef<TapeFour | null>(null)
+
+  useEffect(() => {
+    tapeFourRef.current = new TapeFour()
+    return () => {
+      tapeFourRef.current = null
+    }
+  }, [])
+
+  const handleOpenSettings = () => {
+    tapeFourRef.current?.openSettings()
+  }
+
+  return (
+    <div className="recorder-container">
+      <div className="header">TapeFour</div>
+
+      <div className="cassette-display">
+        <div className="tape-reel left-reel" id="left-reel">
+          <div className="reel-center"></div>
+          <div className="reel-holes">
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+          </div>
+        </div>
+        <div className="display-section">
+          <div className="display-row">
+            <div className="timecode" id="timecode">00:00</div>
+            <div className="volume-meter">
+              <div className="volume-meter-fill" id="volume-meter-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div className="tape-reel right-reel" id="right-reel">
+          <div className="reel-center"></div>
+          <div className="reel-holes">
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+            <div className="hole"></div>
+          </div>
+        </div>
+        <div className="playhead" id="playhead">
+          <div className="playhead-indicator" id="playhead-indicator" />
+        </div>
+      </div>
+
+      <div className="mixer-section">
+        <div className="tracks-container">
+          {Array.from({ length: 4 }, (_, i) => {
+            const id = i + 1
+            return (
+              <div className="track" key={id}>
+                <input
+                  type="range"
+                  className="fader"
+                  id={`fader-${id}`}
+                  min={0}
+                  max={100}
+                  defaultValue={75}
+                />
+                <div className="track-label">{id}</div>
+                <button className="arm-button" id={`track-${id}`} data-track={id}>
+                  ARM
+                </button>
+              </div>
+            )
+          })}
+          <div className="master-section">
+            <input
+              type="range"
+              className="master-fader"
+              id="master-fader"
+              min={0}
+              max={100}
+              defaultValue={75}
+            />
+            <div className="master-label">MAIN</div>
+            <div className="master-spacer"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="transport-controls">
+        <button className="transport-button" id="stop-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="6" width="12" height="12" />
+          </svg>
+        </button>
+        <button className="transport-button play-button" id="play-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="5,3 19,12 5,21" />
+          </svg>
+        </button>
+        <button className="transport-button" id="pause-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        </button>
+        <button className="transport-button record-button" id="record-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        </button>
+        <button className="transport-button" id="export-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7,10 12,15 17,10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
+        <button className="transport-button settings-button" id="settings-btn" onClick={handleOpenSettings}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </div>
+
+      <div id="settings-modal" className="settings-modal" style={{ display: 'none' }}>
+        <div className="settings-content">
+          <h3 className="settings-title">Audio Input Settings</h3>
+          <div className="settings-group">
+            <button className="scan-devices-btn" id="scan-devices-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+              Scan Devices
+            </button>
+            <label className="settings-label" htmlFor="audio-input-select">Audio Input</label>
+            <select id="audio-input-select" className="settings-select">
+              <option value="">Select Audio Input Device...</option>
+            </select>
+          </div>
+          <button className="close-settings-btn" id="cancel-settings">Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App
