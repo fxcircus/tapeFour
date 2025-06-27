@@ -12,6 +12,7 @@ export default class TapeFour {
   private masterGainNode: GainNode | null = null;
   private monitoringGainNode: GainNode | null = null;
   private recordingBuffer: Blob[] = [];
+  private eventListenersInitialized = false;
 
   private playheadTimer: number | null = null;
   private playStartTime = 0;
@@ -109,6 +110,14 @@ export default class TapeFour {
   }
 
   private setupEventListeners() {
+    // Prevent duplicate event listener initialization
+    if (this.eventListenersInitialized) {
+      console.log('[TAPEFOUR] ⚠️ Event listeners already initialized, skipping...');
+      return;
+    }
+    
+    console.log('[TAPEFOUR] 🎧 Setting up event listeners...');
+    
     // Arming toggles
     this.tracks.forEach((track) => {
       const el = document.getElementById(`track-${track.id}`);
@@ -161,20 +170,55 @@ export default class TapeFour {
     // Scan devices button (refresh the list without closing modal)
     document.getElementById('scan-devices-btn')?.addEventListener('click', () => this.populateAudioInputSelect());
 
-    // Audio processing toggle
-    document.getElementById('audio-processing-toggle')?.addEventListener('click', () => {
+    // Audio processing toggle - improved reliability
+    document.getElementById('audio-processing-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       const options = document.getElementById('audio-processing-options');
       const arrow = document.getElementById('audio-processing-arrow');
       
       if (options && arrow) {
         const isCollapsed = options.classList.contains('collapsed');
+        console.log(`[TAPEFOUR] 🔧 Audio processing toggle clicked, currently collapsed: ${isCollapsed}`);
+        
         if (isCollapsed) {
           options.classList.remove('collapsed');
           arrow.classList.add('rotated');
+          console.log('[TAPEFOUR] 🔧 Audio processing expanded');
         } else {
           options.classList.add('collapsed');
           arrow.classList.remove('rotated');
+          console.log('[TAPEFOUR] 🔧 Audio processing collapsed');
         }
+      } else {
+        console.warn('[TAPEFOUR] ⚠️ Audio processing toggle elements not found');
+      }
+    });
+
+    // Keyboard shortcuts toggle - improved reliability
+    document.getElementById('keyboard-shortcuts-toggle')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const options = document.getElementById('keyboard-shortcuts-options');
+      const arrow = document.getElementById('keyboard-shortcuts-arrow');
+      
+      if (options && arrow) {
+        const isCollapsed = options.classList.contains('collapsed');
+        console.log(`[TAPEFOUR] ⌨️ Keyboard shortcuts toggle clicked, currently collapsed: ${isCollapsed}`);
+        
+        if (isCollapsed) {
+          options.classList.remove('collapsed');
+          arrow.classList.add('rotated');
+          console.log('[TAPEFOUR] ⌨️ Keyboard shortcuts expanded');
+        } else {
+          options.classList.add('collapsed');
+          arrow.classList.remove('rotated');
+          console.log('[TAPEFOUR] ⌨️ Keyboard shortcuts collapsed');
+        }
+      } else {
+        console.warn('[TAPEFOUR] ⚠️ Keyboard shortcuts toggle elements not found');
       }
     });
 
@@ -201,6 +245,88 @@ export default class TapeFour {
     document.getElementById('settings-modal')?.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).id === 'settings-modal') this.closeSettings();
     });
+
+    // Keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only trigger if not typing in an input field
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
+        return;
+      }
+
+      // Prevent key repeat for all shortcuts
+      if (e.repeat) return;
+
+      switch (e.code) {
+        case 'Space':
+          // Space key for play
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ Space key pressed - triggering play');
+          this.play();
+          break;
+        
+        case 'KeyQ':
+          // Q key for record
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ Q key pressed - triggering record');
+          this.record();
+          break;
+        
+        case 'KeyS':
+          // S key for stop
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ S key pressed - triggering stop');
+          this.stop();
+          break;
+        
+        case 'KeyE':
+          // E key for export
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ E key pressed - triggering export');
+          this.export();
+          break;
+        
+        case 'Digit1':
+          // 1 key for track 1
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ 1 key pressed - toggling track 1 arm');
+          this.toggleTrackArm(1);
+          break;
+        
+        case 'Digit2':
+          // 2 key for track 2
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ 2 key pressed - toggling track 2 arm');
+          this.toggleTrackArm(2);
+          break;
+        
+        case 'Digit3':
+          // 3 key for track 3
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ 3 key pressed - toggling track 3 arm');
+          this.toggleTrackArm(3);
+          break;
+        
+        case 'Digit4':
+          // 4 key for track 4
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ 4 key pressed - toggling track 4 arm');
+          this.toggleTrackArm(4);
+          break;
+        
+        case 'Comma':
+          // Comma key for settings (both , and < which is shift+comma)
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ Comma key pressed - toggling settings');
+          this.toggleSettings();
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Mark event listeners as initialized
+    this.eventListenersInitialized = true;
+    console.log('[TAPEFOUR] ✅ Event listeners setup complete');
   }
 
   /* ---------- UI helpers ---------- */
@@ -869,6 +995,20 @@ export default class TapeFour {
 
   private closeSettings() {
     (document.getElementById('settings-modal') as HTMLElement | null)?.style.setProperty('display', 'none');
+  }
+
+  private toggleSettings() {
+    const modal = document.getElementById('settings-modal') as HTMLElement | null;
+    if (modal) {
+      // Check computed style instead of inline style for more reliable detection
+      const computedStyle = window.getComputedStyle(modal);
+      const isVisible = computedStyle.display !== 'none';
+      if (isVisible) {
+        this.closeSettings();
+      } else {
+        this.openSettings();
+      }
+    }
   }
 
   private loadSavedAudioDevice() {

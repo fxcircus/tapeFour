@@ -182,6 +182,65 @@ function App() {
               </label>
             </div>
           </div>
+
+          <div className="settings-group">
+            <div className="settings-toggle-header" id="keyboard-shortcuts-toggle">
+              <h4 className="settings-subtitle">Keyboard Shortcuts</h4>
+              <div className="toggle-arrow" id="keyboard-shortcuts-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="keyboard-shortcuts-table collapsed" id="keyboard-shortcuts-options">
+              <table className="shortcuts-table">
+                <thead>
+                  <tr>
+                    <th>Key</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><kbd>Space</kbd></td>
+                    <td>Play</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>Q</kbd></td>
+                    <td>Record</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>S</kbd></td>
+                    <td>Stop</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>E</kbd></td>
+                    <td>Export</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>,</kbd></td>
+                    <td>Settings</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>1</kbd></td>
+                    <td>Arm Track 1</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>2</kbd></td>
+                    <td>Arm Track 2</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>3</kbd></td>
+                    <td>Arm Track 3</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>4</kbd></td>
+                    <td>Arm Track 4</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
           
           <button className="close-settings-btn" id="cancel-settings">Close</button>
         </div>
