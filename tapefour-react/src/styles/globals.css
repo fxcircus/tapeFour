@@ -1,18 +1,19 @@
-/* Ported styles from the vanilla prototype */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;500;600;700&display=swap');
-
+/* Updated slider thumbs to paper color - v2.0 */
 :root {
   --paper: #DCCDB7;
   --panel: #C1A889;
   --track: #6B4F33;
-  --accent: #d23219;
+  --accent: #D18C33;
   --ink: #322819;
-  --sky: #87CEEB;
   --green: #22C55E;
   --orange: #F59E0B;
   --red: #d23219;
+  --sky: #2175FF;
 }
+
+/* Ported styles from the vanilla prototype */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;500;600;700&display=swap');
 
 * {
   margin: 0;
@@ -34,21 +35,19 @@ body {
   font-family: 'Space Mono', monospace;
   font-weight: 400;
   color: var(--ink);
-  background: transparent;
+  background: var(--paper);
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 40px 20px;
+  position: relative;
 }
 
 /* The rest of the styles are unchanged from the original index.html */
 
 .recorder-container {
   background: var(--panel);
-  background-image: url('/img/noise.png');
-  background-blend-mode: multiply;
-  opacity: 0.96;
   border-radius: 8px;
   border: 1px solid var(--ink);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
@@ -59,6 +58,38 @@ body {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Enhanced grain texture for the recorder */
+.recorder-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, rgba(50, 40, 25, 0.015) 1px, transparent 2px),
+    repeating-linear-gradient(90deg, transparent, rgba(50, 40, 25, 0.015) 1px, transparent 2px),
+    repeating-linear-gradient(45deg, transparent, rgba(50, 40, 25, 0.01) 1px, transparent 2px),
+    repeating-linear-gradient(-45deg, transparent, rgba(50, 40, 25, 0.01) 1px, transparent 2px),
+    radial-gradient(circle at 25% 25%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
+    radial-gradient(circle at 75% 25%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
+    radial-gradient(circle at 25% 75%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
+    radial-gradient(circle at 75% 75%, transparent 60%, rgba(107, 79, 51, 0.03) 100%);
+  background-size: 2px 2px, 2px 2px, 3px 3px, 3px 3px, 100px 100px, 100px 100px, 100px 100px, 100px 100px;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* Ensure content is above the grain */
+.recorder-container > * {
+  position: relative;
+  z-index: 2;
 }
 
 .header {
@@ -215,12 +246,24 @@ body {
   width: 16px;
 }
 
+/* Force slider thumb colors - override all browser defaults */
+input[type="range"]::-webkit-slider-thumb {
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+}
+
 .fader::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
   width: 8px;
   height: 8px;
-  background: var(--sky);
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
   border: 1px solid var(--ink);
   border-radius: 50%;
   cursor: pointer;
@@ -235,7 +278,8 @@ body {
 .fader::-moz-range-thumb {
   width: 8px;
   height: 8px;
-  background: var(--sky);
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
   border: 1px solid var(--ink);
   border-radius: 50%;
   cursor: pointer;
@@ -276,7 +320,8 @@ body {
   -webkit-appearance: none;
   width: 8px;
   height: 8px;
-  background: var(--sky);
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
   border: 1px solid var(--ink);
   border-radius: 50%;
   cursor: pointer;
@@ -299,7 +344,8 @@ body {
 .master-fader::-moz-range-thumb {
   width: 8px;
   height: 8px;
-  background: var(--sky);
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
   border: 1px solid var(--ink);
   cursor: pointer;
   transition: background 0.2s ease;
@@ -465,7 +511,7 @@ body {
 }
 
 .arm-button:checked {
-  background: var(--accent);
+  background: var(--red);
 }
 
 .arm-button:hover {
@@ -745,7 +791,7 @@ body {
 }
 
 .master-spacer {
-  height: 8px; /* Small gap to align MAIN label with track mute buttons */
+  height: 1px;
 }
 
 /* Remove any remaining gradients and shadows */
