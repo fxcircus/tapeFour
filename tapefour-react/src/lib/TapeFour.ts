@@ -120,8 +120,13 @@ export default class TapeFour {
     document.getElementById('settings-btn')?.addEventListener('click', () => this.openSettings());
 
     // Settings modal buttons
-    document.getElementById('save-settings')?.addEventListener('click', () => this.saveSettings());
     document.getElementById('cancel-settings')?.addEventListener('click', () => this.closeSettings());
+
+    // Audio input device selection - change immediately when selected
+    document.getElementById('audio-input-select')?.addEventListener('change', async (e) => {
+      const select = e.target as HTMLSelectElement;
+      await this.changeAudioInputDevice(select.value || null);
+    });
 
     // Scan devices button (refresh the list without closing modal)
     document.getElementById('scan-devices-btn')?.addEventListener('click', () => this.populateAudioInputSelect());
@@ -561,7 +566,6 @@ export default class TapeFour {
           segment.classList.remove('lit');
         }
       });
-      console.log(`📊 Volume meter updated: ${segmentCount}/10 segments lit (${(level * 100).toFixed(1)}%)`);
     }
   }
 
@@ -632,10 +636,28 @@ export default class TapeFour {
     (document.getElementById('settings-modal') as HTMLElement | null)?.style.setProperty('display', 'none');
   }
 
-  private saveSettings() {
-    const select = document.getElementById('audio-input-select') as HTMLSelectElement | null;
-    if (select) this.state.selectedInputDeviceId = select.value || null;
-    this.closeSettings();
+  private async changeAudioInputDevice(newDeviceId: string | null) {
+    // If device changed, we need to refresh the media stream
+    if (newDeviceId !== this.state.selectedInputDeviceId) {
+      console.log(`[TAPEFOUR] 🔄 Audio input device changed from ${this.state.selectedInputDeviceId || 'default'} to ${newDeviceId || 'default'}`);
+      
+      this.state.selectedInputDeviceId = newDeviceId;
+      
+      // Stop existing media stream if it exists
+      if (this.mediaStream) {
+        console.log('[TAPEFOUR] 🛑 Stopping existing media stream');
+        this.mediaStream.getTracks().forEach(track => track.stop());
+        this.mediaStream = null;
+        this.mediaRecorder = null;
+      }
+      
+      // If we have armed tracks, restart the input stream with new device
+      const hasArmedTracks = this.tracks.some(t => t.isArmed);
+      if (hasArmedTracks) {
+        console.log('[TAPEFOUR] 🎤 Restarting input stream with new device');
+        await this.ensureInputStream();
+      }
+    }
   }
 
   /* ---------- Export ---------- */
