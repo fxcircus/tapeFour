@@ -22,6 +22,17 @@
   --color-active-overlay: hsla(0, 0%, 0%, 0.04);
   --color-shadow-inset: hsla(0, 0%, 0%, 0.12);
   
+  /* Divider color */
+  --divider: #8a7156; /* one shade darker than the chassis brown */
+  
+  /* Reel colors */
+  --reel-light: hsl(35,15%,80%);
+  --reel-mid: hsl(35,15%,68%);
+  --reel-dark: hsl(35,15%,55%);
+  --reel-hub: var(--divider);   /* bronze-brown */
+  --reel-screw: var(--divider);
+  --tape: hsl(30,25%,30%);
+  
   /* Legacy compatibility */
   --paper: var(--color-chassis);
   --panel: var(--color-control-surface);
@@ -312,6 +323,43 @@ body {
 .tape-reel.stopping {
   animation: spinSmoothDecelerate 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
   transition: none;
+}
+
+/* SVG Reel Styles */
+.reel-shadow {
+  opacity: 0.3;
+}
+
+.tape-ring {
+  fill: none;
+  stroke: #4e3924;
+  stroke-width: 8;
+  filter: blur(0.8px);
+  opacity: 0.8;
+}
+
+.reel-rim {
+  fill: none;
+  stroke: #8a7156;
+  stroke-width: 2;
+}
+
+.hub-rim {
+  fill: none;
+  stroke: #5a4936;
+  stroke-width: 1;
+}
+
+.reel-highlight {
+  fill: none;
+  stroke: #ffffff40;
+  stroke-width: 1.5;
+}
+
+.screw {
+  fill: #5a4936;
+  stroke: #3d2e1f;
+  stroke-width: 0.5;
 }
 
 /* Fader Controls with Depth and Reset Animation */
@@ -1370,7 +1418,7 @@ body {
 .master-divider {
   width: 2px;
   height: 100%;
-  background: var(--color-track-well);
+  background: var(--divider);
   border: none;
   font-size: 0;
   writing-mode: horizontal-tb;

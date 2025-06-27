@@ -20,17 +20,22 @@ function App() {
       <div className="header">TapeFour</div>
 
       <div className="cassette-display">
-        <div className="tape-reel left-reel" id="left-reel">
-          <div className="reel-center"></div>
-          <div className="reel-holes">
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-          </div>
-        </div>
+        <svg className="tape-reel left-reel" id="left-reel" width="104" height="104" viewBox="0 0 104 104">
+          <defs>
+            <mask id="reel-slots-left">
+              <rect width="104" height="104" fill="white" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(120 52 52)" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(240 52 52)" />
+            </mask>
+          </defs>
+          <g className="reel">
+            <circle className="reel-base" cx="52" cy="52" r="50" fill="var(--color-track-well)" />
+            <circle className="reel-face" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#reel-slots-left)" />
+            <circle className="reel-rim" cx="52" cy="52" r="50" />
+            <circle className="reel-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+          </g>
+        </svg>
         <div className="display-section">
           <div className="display-row">
             <div className="timecode" id="timecode">00:00</div>
@@ -48,17 +53,22 @@ function App() {
             </div>
           </div>
         </div>
-        <div className="tape-reel right-reel" id="right-reel">
-          <div className="reel-center"></div>
-          <div className="reel-holes">
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-            <div className="hole"></div>
-          </div>
-        </div>
+        <svg className="tape-reel right-reel" id="right-reel" width="104" height="104" viewBox="0 0 104 104">
+          <defs>
+            <mask id="reel-slots-right">
+              <rect width="104" height="104" fill="white" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(120 52 52)" />
+              <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(240 52 52)" />
+            </mask>
+          </defs>
+          <g className="reel">
+            <circle className="reel-base" cx="52" cy="52" r="50" fill="var(--color-track-well)" />
+            <circle className="reel-face" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#reel-slots-right)" />
+            <circle className="reel-rim" cx="52" cy="52" r="50" />
+            <circle className="reel-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+          </g>
+        </svg>
         <div className="playhead" id="playhead">
           <div className="playhead-indicator" id="playhead-indicator" />
         </div>
