@@ -496,22 +496,37 @@ input[type="range"]::-moz-range-thumb {
 
 /* Track Controls */
 
-
-
 .arm-button {
   appearance: none;
   background: var(--paper);
   border: 1px solid var(--ink);
   border-radius: 2px;
   width: 28px;
-  height: 12px;
+  height: 20px;
   cursor: pointer;
   position: relative;
   transition: background 0.2s ease;
 }
 
+/* Add record icon to ARM buttons */
+.arm-button::after {
+  content: '●';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: bold;
+  color: var(--ink);
+  pointer-events: none;
+}
+
 .arm-button:checked {
   background: var(--red);
+}
+
+.arm-button:checked::after {
+  color: var(--paper);
 }
 
 .arm-button:hover {
@@ -529,15 +544,33 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--ink);
   border-radius: 2px;
   width: 28px;
-  height: 12px;
+  height: 20px;
   cursor: pointer;
   position: relative;
   transition: background 0.2s ease;
-  margin-top: 4px;
+  margin-top: 2px;
+}
+
+/* Add "S" label to solo buttons */
+.solo-button::after {
+  content: 'S';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: bold;
+  font-family: 'Space Mono', monospace;
+  color: var(--ink);
+  pointer-events: none;
 }
 
 .solo-button:checked {
   background: var(--sky);
+}
+
+.solo-button:checked::after {
+  color: var(--paper);
 }
 
 .solo-button:hover {
@@ -554,7 +587,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .mute-button {
@@ -563,7 +596,7 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--ink);
   border-radius: 2px;
   width: 28px;
-  height: 28px; /* Make it square */
+  height: 28px; /* Perfect square */
   cursor: pointer;
   position: relative;
   transition: background 0.2s ease;
@@ -593,7 +626,7 @@ input[type="range"]::-moz-range-thumb {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-weight: 400;
+  font-weight: bold;
   font-family: 'Space Mono', monospace;
   letter-spacing: 1px;
   color: var(--ink);
@@ -767,7 +800,7 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .master-section {
