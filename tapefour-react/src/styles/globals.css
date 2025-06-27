@@ -1,19 +1,42 @@
-/* Updated slider thumbs to paper color - v2.0 */
+/* TapeFour Color System - 1970s Tape Machine Inspired */
 :root {
-  --paper: #DCCDB7;
-  --panel: #C1A889;
-  --track: #6B4F33;
-  --accent: #D18C33;
-  --ink: #322819;
-  --green: #22C55E;
-  --orange: #F59E0B;
-  --red: #d23219;
-  --sky: #2175FF;
+  /* Primary chassis colors */
+  --color-chassis: hsl(42, 25%, 78%);           /* Main background - warm paper */
+  --color-control-surface: hsl(35, 18%, 65%);   /* Panel backgrounds */
+  --color-track-well: hsl(28, 36%, 40%);        /* Dark brown for tracks/wells */
+  --color-text-primary: hsl(35, 28%, 15%);      /* Main text - dark ink */
+  
+  /* Vintage accent colors */
+  --color-accent-warm: hsl(28, 65%, 52%);       /* Burnt orange for highlights */
+  --color-accent-olive: hsl(52, 20%, 45%);      /* Muted olive for secondary */
+  
+  /* Functional colors */
+  --color-record: hsl(18, 75%, 48%);            /* Warm orange for REC */
+  --color-solo: hsl(208, 100%, 55%);            /* Blue for SOLO */
+  --color-mute: hsl(35, 45%, 58%);              /* Desaturated clay for MUTE */
+  --color-play: hsl(142, 71%, 45%);             /* Green for PLAY */
+  --color-stop: hsl(43, 88%, 50%);              /* Amber for STOP */
+  
+  /* Interactive states */
+  --color-hover-overlay: hsla(0, 0%, 100%, 0.08);
+  --color-active-overlay: hsla(0, 0%, 0%, 0.04);
+  --color-shadow-inset: hsla(0, 0%, 0%, 0.12);
+  
+  /* Legacy compatibility */
+  --paper: var(--color-chassis);
+  --panel: var(--color-control-surface);
+  --track: var(--color-track-well);
+  --accent: var(--color-accent-warm);
+  --ink: var(--color-text-primary);
+  --green: var(--color-play);
+  --orange: var(--color-stop);
+  --red: var(--color-record);
+  --sky: var(--color-solo);
 }
 
-/* Ported styles from the vanilla prototype */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;500;600;700&display=swap');
+/* Typography - 1970s Equipment Aesthetic */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 * {
   margin: 0;
@@ -21,43 +44,68 @@
   box-sizing: border-box;
 }
 
+/* Base Styles with Paper Grain Texture */
 html {
-  background: var(--paper);
+  background: var(--color-chassis);
+  /* Coarse paper grain overlay for authentic analogue feel */
   background-image: 
-    radial-gradient(circle at 20% 50%, rgba(50, 40, 25, 0.03) 1px, transparent 1px),
-    radial-gradient(circle at 80% 20%, rgba(50, 40, 25, 0.03) 1px, transparent 1px),
-    radial-gradient(circle at 40% 80%, rgba(50, 40, 25, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px, 70px 70px, 60px 60px;
-  background-position: 0 0, 30px 30px, 15px 45px;
+    /* Fine paper grain */
+    radial-gradient(circle at 20% 50%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 80% 20%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 40% 80%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
+    /* Coarse grain overlay */
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      rgba(50, 40, 25, 0.02) 1px,
+      transparent 2px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0px,
+      rgba(50, 40, 25, 0.02) 1px,
+      transparent 2px
+    );
+  background-size: 
+    50px 50px, 
+    70px 70px, 
+    60px 60px,
+    3px 3px,
+    3px 3px;
+  background-position: 0 0, 30px 30px, 15px 45px, 0 0, 0 0;
 }
 
 body {
-  font-family: 'Space Mono', monospace;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 400;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--color-text-primary);
+  background: var(--color-chassis);
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 20px;
+  padding: 48px 20px; /* Increased padding by 8px */
   position: relative;
+  letter-spacing: -0.01em; /* Subtle letter spacing for readability */
 }
 
 /* The rest of the styles are unchanged from the original index.html */
 
+/* Main Chassis Container */
 .recorder-container {
-  background: var(--panel);
-  border-radius: 8px;
-  border: 1px solid var(--ink);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  background: var(--color-control-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-text-primary);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 40px; /* Increased padding by 8px */
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px; /* Increased gap by 8px */
   position: relative;
   overflow: hidden;
 }
@@ -92,47 +140,58 @@ body {
   z-index: 2;
 }
 
+/* Main Title - Rounded Grotesk Style */
 .header {
-  font-size: 24px;
-  font-weight: 600;
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 2px;
+  font-size: 28px;
+  font-weight: 500;
+  font-family: 'IBM Plex Mono', 'SF Mono', Monaco, monospace;
+  letter-spacing: 0.08em; /* Consistent letter spacing */
   text-align: center;
-  color: var(--ink);
+  color: var(--color-text-primary);
+  margin-bottom: 4px; /* 4pt grid alignment */
 }
 
+/* Cassette Counter/Reel Panel with Inset Border */
 .cassette-display {
-  background: var(--panel);
-  border-radius: 8px;
-  padding: 24px;
-  border: 1px solid var(--ink);
+  background: var(--color-control-surface);
+  border-radius: 6px;
+  padding: 32px; /* Increased padding by 8px */
+  border: 1px solid var(--color-text-primary);
+  /* Inset border for hardware feel */
+  box-shadow: 
+    inset 0 1px 3px var(--color-shadow-inset),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  min-height: 120px;
+  gap: 20px; /* Aligned to 4pt grid */
+  min-height: 128px; /* 4pt grid aligned */
   position: relative;
 }
 
-/* Cassette Tape Reels */
+/* Cassette Tape Reels - Maximum Size for Dominant Presence */
 .tape-reel {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 56px;
-  height: 56px;
-  background: var(--panel);
+  width: 104px; /* Increased further from 88px */
+  height: 104px; /* Increased further from 88px */
+  background: var(--color-control-surface);
   border-radius: 50%;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--color-text-primary);
+  /* Enhanced vintage look with deeper shadows */
+  box-shadow: 
+    inset 0 4px 8px var(--color-shadow-inset),
+    0 3px 6px rgba(0, 0, 0, 0.2);
 }
 
 .left-reel {
-  left: 24px;
+  left: 72px; /* Adjusted for larger size while keeping centered */
 }
 
 .right-reel {
-  right: 24px;
+  right: 72px; /* Adjusted for larger size while keeping centered */
 }
 
 .reel-center {
@@ -140,10 +199,12 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 16px;
-  height: 16px;
-  background: var(--track);
+  width: 28px; /* Increased from 24px */
+  height: 28px; /* Increased from 24px */
+  background: var(--color-track-well);
   border-radius: 50%;
+  border: 1px solid var(--color-text-primary);
+  box-shadow: inset 0 3px 4px var(--color-shadow-inset);
 }
 
 .reel-holes {
@@ -151,16 +212,19 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
+  width: 76px; /* Increased from 64px to match larger reel */
+  height: 76px; /* Increased from 64px to match larger reel */
 }
 
+/* Reel Holes - Slightly Larger for Better Visibility */
 .hole {
   position: absolute;
-  width: 4px;
-  height: 4px;
-  background: var(--paper);
+  width: 5px; /* Increased from 4px */
+  height: 5px; /* Increased from 4px */
+  background: var(--color-chassis);
   border-radius: 50%;
+  border: 1px solid var(--color-track-well);
+  box-shadow: inset 0 1px 1px var(--color-shadow-inset);
 }
 
 .hole:nth-child(1) {
@@ -199,7 +263,7 @@ body {
   transform: translateY(-50%);
 }
 
-/* Spinning animation */
+/* Ultra-Smooth Tape Reel Animations - Professional Grade */
 @keyframes spin {
   from {
     transform: translateY(-50%) rotate(0deg);
@@ -209,19 +273,59 @@ body {
   }
 }
 
-.tape-reel.spinning {
-  animation: spin 3s linear infinite;
+@keyframes spinSmoothDecelerate {
+  0% {
+    transform: translateY(-50%) rotate(0deg);
+    animation-timing-function: linear;
+  }
+  25% {
+    transform: translateY(-50%) rotate(90deg);
+    animation-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+  50% {
+    transform: translateY(-50%) rotate(180deg);
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  75% {
+    transform: translateY(-50%) rotate(270deg);
+    animation-timing-function: cubic-bezier(0.075, 0.82, 0.165, 1);
+  }
+  100% {
+    transform: translateY(-50%) rotate(360deg);
+    animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  }
 }
 
+.tape-reel {
+  /* Buttery smooth transition for all state changes */
+  transition: transform 2.5s cubic-bezier(0.19, 1, 0.22, 1);
+  transform-origin: center center;
+  will-change: transform; /* Optimize for smooth animation */
+}
+
+.tape-reel.spinning {
+  animation: spin 2.8s linear infinite;
+  transition: none; /* Disable transition while actively spinning */
+}
+
+/* Ultra-smooth deceleration - like real vintage tape machines */
+.tape-reel.stopping {
+  animation: spinSmoothDecelerate 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  transition: none;
+}
+
+/* Fader Controls with Depth */
 .fader {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 25px;
   height: 180px;
-  background: var(--track);
+  background: var(--color-track-well);
   border-radius: 4px;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--color-text-primary);
+  /* 1px inner shadow for depth without true 3D */
+  box-shadow: inset 0 1px 3px var(--color-shadow-inset);
   outline: none;
   cursor: pointer;
   writing-mode: vertical-lr;
@@ -231,7 +335,7 @@ body {
 
 /* Firefox specific track styling */
 .fader::-moz-range-track {
-  background: var(--track);
+  background: var(--color-track-well);
   border: none;
   border-radius: 2px;
   height: 180px;
@@ -240,70 +344,76 @@ body {
 
 /* WebKit track styling */
 .fader::-webkit-slider-runnable-track {
-  background: var(--track);
+  background: var(--color-track-well);
   border-radius: 2px;
   height: 180px;
   width: 16px;
 }
 
-/* Force slider thumb colors - override all browser defaults */
-input[type="range"]::-webkit-slider-thumb {
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-}
-
-input[type="range"]::-moz-range-thumb {
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-}
+/* Fader Thumbs - Updated Color System - Removed conflicting generic rules */
 
 .fader::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
   width: 30px;
   height: 40px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
+  background: var(--color-accent-warm) !important;
+  background-color: var(--color-accent-warm) !important;
+  border: 1px solid var(--color-text-primary);
   border-radius: 12%;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
   margin-left: -7px;
   position: relative;
-  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .fader::-webkit-slider-thumb:hover {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .fader::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
+  width: 30px;
+  height: 40px;
+  background: var(--color-accent-warm) !important;
+  background-color: var(--color-accent-warm) !important;
+  border: 1px solid var(--color-text-primary);
+  border-radius: 12%;
   cursor: pointer;
-  transition: background 0.2s ease;
-  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
+  transition: all 0.15s ease;
+  box-shadow: 
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .fader::-moz-range-thumb:hover {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  box-shadow: 
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
-/* Master Fader Styling */
-
+/* Master Fader - Enhanced Styling */
 .master-fader {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 25px;
   height: 180px;
-  background: var(--track);
+  background: var(--color-track-well);
   border-radius: 4px;
-  border: 1px solid var(--ink);
+  border: 1px solid var(--color-text-primary);
+  /* 1px inner shadow for depth */
+  box-shadow: inset 0 1px 3px var(--color-shadow-inset);
   outline: none;
   cursor: pointer;
   writing-mode: vertical-lr;
@@ -312,7 +422,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .master-fader::-webkit-slider-runnable-track {
-  background: var(--track);
+  background: var(--color-track-well);
   border-radius: 2px;
   height: 180px;
   width: 16px;
@@ -323,22 +433,30 @@ input[type="range"]::-moz-range-thumb {
   -webkit-appearance: none;
   width: 30px;
   height: 40px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
+  background: var(--color-accent-warm) !important;
+  background-color: var(--color-accent-warm) !important;
+  border: 1px solid var(--color-text-primary);
   border-radius: 15%;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
   margin-left: -7px;
-  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .master-fader::-webkit-slider-thumb:hover {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .master-fader::-moz-range-track {
-  background: var(--track);
+  background: var(--color-track-well);
   border: none;
   border-radius: 2px;
   height: 180px;
@@ -346,19 +464,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .master-fader::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
+  width: 30px;
+  height: 40px;
+  background: var(--color-accent-warm) !important;
+  background-color: var(--color-accent-warm) !important;
+  border: 1px solid var(--color-text-primary);
+  border-radius: 15%;
   cursor: pointer;
-  transition: background 0.2s ease;
-  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
+  transition: all 0.15s ease;
+  box-shadow: 
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 .master-fader::-moz-range-thumb:hover {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
+  box-shadow: 
+    inset 0 18px 0 0 var(--color-chassis),
+    inset 0 -18px 0 0 var(--color-chassis);
 }
 
 /* Pan Knob Styling */
@@ -422,60 +546,76 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-/* Custom rotating indicator */
+/* Pan Knob Rotating Indicator - Fixed Transform Origin */
 .pan-knob-container::before {
   content: '';
   position: absolute;
   width: 3px;
   height: 12px;
-  background: #DCCDB7;
-  border: 1px solid var(--ink);
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
   border-radius: 2px;
   top: 6px;
   left: 50%;
-  transform-origin: 50% 19px;
+  /* Fixed transform origin: knob center (17.5px) - indicator top (6px) = 11.5px */
+  transform-origin: 50% 11.5px;
   transform: translateX(-50%) rotate(var(--rotation, 0deg));
   pointer-events: none;
   z-index: 12;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .pan-knob-container:hover::before {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-accent-warm) 15%);
 }
 
 
 
+/* Transport Bar - Distinct Hardware Strip */
 .transport-controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 24px;
-  background: var(--panel);
-  border-radius: 8px;
-  border: 1px solid var(--ink);
+  gap: 12px; /* Increased spacing */
+  padding: 32px; /* Increased padding by 8px */
+  /* Darker background strip for hierarchy */
+  background: linear-gradient(180deg, 
+    var(--color-track-well) 0%, 
+    hsl(28, 36%, 38%) 100%);
+  border-radius: 6px;
+  border: 1px solid var(--color-text-primary);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* Transport Buttons - Soft Rounded with Color Coding */
 .transport-button {
-  background: var(--paper);
-  color: var(--ink);
-  border: 1px solid var(--ink);
-  border-radius: 4px;
+  background: var(--color-chassis);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px; /* Soft rounded corners */
   width: 56px;
   height: 56px;
   font-size: 16px;
   font-weight: 500;
-  font-family: 'Space Mono', monospace;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.1s ease;
+  transition: all 0.15s ease;
+  /* Subtle hover highlight */
+  position: relative;
+}
+
+.transport-button:hover {
+  background: color-mix(in srgb, var(--color-chassis) 92%, var(--color-hover-overlay) 8%);
 }
 
 .transport-button:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
@@ -484,33 +624,44 @@ input[type="range"]::-moz-range-thumb {
   height: 28px;
 }
 
+/* Play Button States */
 #play-btn.playing {
-  background: var(--green);
+  background: var(--color-play);
   color: white;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
 }
 
+#play-btn.playing:hover {
+  background: color-mix(in srgb, var(--color-play) 90%, white 10%);
+}
+
+/* Stop Button States */
 #stop-btn.stopping {
-  background: #F59E0A;
+  background: var(--color-stop);
   color: white;
   transition: background-color 0.05s ease;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
 
+/* Record Button with Warm Orange */
 .record-button {
-  background: var(--paper);
-  border: 1px solid var(--ink);
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px;
 }
 
 .record-button.recording {
-  background: var(--red);
+  background: var(--color-record);
   color: white;
+  box-shadow: 0 0 12px rgba(210, 50, 25, 0.4);
 }
 
-.record-button:hover {
-  /* No hover effect */
+.record-button:hover:not(.recording) {
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-record) 15%);
 }
 
 .record-button:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
@@ -546,175 +697,203 @@ input[type="range"]::-moz-range-thumb {
   min-width: 120px;
 }
 
+/* Timecode Display - Monospace Counter */
 .timecode {
-  font-family: 'Space Mono', monospace;
+  font-family: 'IBM Plex Mono', 'SF Mono', Monaco, monospace;
   font-weight: 500;
-  letter-spacing: 1px;
+  letter-spacing: 0.05em;
   font-size: 24px;
-  color: var(--ink);
-  background: var(--paper);
+  color: var(--color-text-primary);
+  background: var(--color-chassis);
   padding: 8px 16px;
-  border: 1px solid var(--ink);
-  border-radius: 4px;
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px;
   min-width: 100px;
   text-align: center;
+  box-shadow: 
+    inset 0 1px 2px var(--color-shadow-inset),
+    0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Volume Meter */
+/* Volume Meter - 2px Bars with Animation */
 .volume-meter {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 2px;
+  gap: 1px; /* 1px gap between bars */
   height: 16px;
   width: 120px;
+  padding: 2px;
+  background: var(--color-track-well);
+  border-radius: 2px;
+  border: 1px solid var(--color-text-primary);
+  /* Inset shadow for depth */
+  box-shadow: inset 0 1px 2px var(--color-shadow-inset);
 }
 
 .volume-meter-segment {
-  flex: 1;
+  width: 2px; /* 2px wide bars */
   height: 100%;
-  background: var(--track);
+  background: var(--color-track-well);
   border-radius: 1px;
+  transition: background-color 0.1s ease, transform 0.1s ease;
 }
 
 .volume-meter-segment.lit {
-  background: var(--green);
+  background: var(--color-play);
+  transform: scaleY(1.1); /* Subtle animation on fill */
 }
 
+/* Color coding for different levels */
 .volume-meter-segment:nth-child(7).lit,
 .volume-meter-segment:nth-child(8).lit,
 .volume-meter-segment:nth-child(9).lit {
-  background: var(--orange);
+  background: var(--color-stop);
 }
 
 .volume-meter-segment:nth-child(10).lit {
-  background: var(--red);
+  background: var(--color-record);
+  box-shadow: 0 0 4px rgba(210, 50, 25, 0.5);
 }
 
 /* Track Controls */
 
+/* ARM Buttons - Color Coded Record */
 .arm-button {
   appearance: none;
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  width: 28px;
-  height: 20px;
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px; /* Soft rounded corners */
+  width: 32px; /* Slightly larger for better touch */
+  height: 24px; /* 4pt grid aligned */
   cursor: pointer;
   position: relative;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
 }
 
-/* Add record icon to ARM buttons */
+/* Record icon for ARM buttons */
 .arm-button::after {
   content: '●';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: bold;
-  color: var(--ink);
+  color: var(--color-text-primary);
   pointer-events: none;
 }
 
+.arm-button:hover {
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-record) 15%);
+}
+
 .arm-button:checked {
-  background: var(--red);
+  background: var(--color-record);
+  box-shadow: 0 0 8px rgba(210, 50, 25, 0.3);
 }
 
 .arm-button:checked::after {
-  color: var(--paper);
-}
-
-.arm-button:hover {
-  /* No hover effect */
+  color: var(--color-chassis);
 }
 
 .arm-button:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
+/* SOLO Buttons - Blue Accent */
 .solo-button {
   appearance: none;
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  width: 28px;
-  height: 20px;
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px; /* Soft rounded corners */
+  width: 32px; /* Consistent with ARM buttons */
+  height: 24px; /* 4pt grid aligned */
   cursor: pointer;
   position: relative;
-  transition: background 0.2s ease;
-  margin-top: 2px;
+  transition: all 0.15s ease;
+  margin-top: 4px; /* 4pt grid alignment */
 }
 
-/* Add "S" label to solo buttons */
+/* "S" label for solo buttons */
 .solo-button::after {
   content: 'S';
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 8px;
-  font-weight: bold;
-  font-family: 'Space Mono', monospace;
-  color: var(--ink);
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  color: var(--color-text-primary);
   pointer-events: none;
-}
-
-.solo-button:checked {
-  background: var(--sky);
-}
-
-.solo-button:checked::after {
-  color: var(--paper);
+  letter-spacing: 0;
 }
 
 .solo-button:hover {
-  /* No hover effect */
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-solo) 15%);
+}
+
+.solo-button:checked {
+  background: var(--color-solo);
+  box-shadow: 0 0 8px rgba(33, 117, 255, 0.3);
+}
+
+.solo-button:checked::after {
+  color: var(--color-chassis);
 }
 
 .solo-button:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
+/* MUTE Button - Desaturated Clay */
 .mute-button-container {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: 4px; /* 4pt grid alignment */
 }
 
 .mute-button {
   appearance: none;
-  background: var(--orange); /* Default lit state (unmuted) */
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  width: 28px;
-  height: 28px; /* Perfect square */
+  background: var(--color-mute); /* Desaturated clay - default lit state (unmuted) */
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px; /* Soft rounded corners */
+  width: 32px; /* Consistent with other buttons */
+  height: 32px; /* Perfect square, 4pt grid aligned */
   cursor: pointer;
   position: relative;
-  transition: background 0.2s ease;
+  transition: all 0.15s ease;
   margin: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mute-button:hover:not(:checked) {
+  background: color-mix(in srgb, var(--color-mute) 85%, var(--color-text-primary) 15%);
 }
 
 .mute-button:checked {
-  background: var(--paper); /* Dark state (muted) */
+  background: var(--color-chassis); /* Light state (muted) */
+  box-shadow: 
+    inset 0 1px 2px var(--color-shadow-inset),
+    0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.mute-button:hover {
-  /* No hover effect */
+.mute-button:checked:hover {
+  background: color-mix(in srgb, var(--color-chassis) 92%, var(--color-text-primary) 8%);
 }
 
 .mute-button:active {
-  background: color-mix(in srgb, var(--orange) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-mute) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
 .mute-button:checked:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
 }
 
@@ -723,11 +902,11 @@ input[type="range"]::-moz-range-thumb {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-weight: bold;
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 1px;
-  color: var(--ink);
-  font-size: 10px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--color-text-primary);
+  font-size: 11px;
   pointer-events: none;
   z-index: 1;
 }
@@ -1036,14 +1215,18 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid var(--ink);
 }
 
+/* Track Container - Improved Spacing */
 .tracks-container {
   display: flex;
-  gap: 8px;
-  padding: 16px;
-  background: var(--panel);
-  border-radius: 8px;
-  border: 1px solid var(--ink);
+  gap: 16px; /* Increased gap by 8px */
+  padding: 24px; /* Increased padding by 8px */
+  background: var(--color-control-surface);
+  border-radius: 6px;
+  border: 1px solid var(--color-text-primary);
   align-items: flex-start;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .track {
@@ -1083,45 +1266,48 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
 }
 
+/* Fader Markings - 4pt Grid Aligned */
 .marking {
-  font-size: 9px;
-  font-family: 'Space Mono', monospace;
-  color: var(--ink);
+  font-size: 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: var(--color-text-primary);
   line-height: 1;
   white-space: nowrap;
   position: absolute;
   right: 0;
+  letter-spacing: 0.02em;
 }
 
-/* Position markings based on fader scale (corrected order) */
+/* Position markings based on fader scale - 4pt grid aligned */
 .marking[data-db="0"] {
-  top: 45px; /* At 75% position from bottom (where default fader thumb sits) */
-  font-weight: bold;
-  color: var(--accent);
+  top: 44px; /* 4pt grid aligned */
+  font-weight: 600;
+  color: var(--color-accent-warm);
 }
 
 .marking[data-db="-6"] {
-  top: 65px;
+  top: 64px; /* 4pt grid aligned */
 }
 
 .marking[data-db="-12"] {
-  top: 85px;
+  top: 84px; /* 4pt grid aligned */
 }
 
 .marking[data-db="-24"] {
-  top: 105px;
+  top: 104px; /* 4pt grid aligned */
 }
 
 .marking[data-db="-36"] {
-  top: 125px;
+  top: 124px; /* 4pt grid aligned */
 }
 
 .marking[data-db="-48"] {
-  top: 145px;
+  top: 144px; /* 4pt grid aligned */
 }
 
 .marking[data-db="-60"] {
-  top: 165px; /* At the bottom of fader */
+  top: 164px; /* 4pt grid aligned */
 }
 
 /* Master section layout updates */
@@ -1150,29 +1336,33 @@ input[type="range"]::-moz-range-thumb {
   justify-content: flex-start;
 }
 
+/* Master Section Divider */
 .master-divider {
   width: 2px;
   height: 100%;
-  background: var(--track);
+  background: var(--color-track-well);
   border: none;
   font-size: 0;
   writing-mode: horizontal-tb;
   display: block;
+  border-radius: 1px;
 }
 
+/* Master Fader Label - Centered Typography */
 .master-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px; /* 4pt grid aligned */
   font-size: 10px;
-  font-family: 'Space Mono', monospace;
-  color: var(--ink);
-  font-weight: bold;
+  font-family: 'Inter', sans-serif;
+  color: var(--color-text-primary);
+  font-weight: 600;
   writing-mode: horizontal-tb;
   height: 100%;
-  justify-content: space-evenly;
+  justify-content: center; /* Better center alignment */
   align-items: center;
-  min-width: 12px;
+  min-width: 16px; /* 4pt grid aligned */
+  letter-spacing: 0.05em;
 }
 
 .master-text div {
@@ -1202,239 +1392,46 @@ input[type="range"]::-moz-range-thumb {
 
 .tip-item {
   font-size: 14px;
-  color: var(--ink);
+  color: var(--color-text-primary);
   margin: 8px 0;
-  font-family: 'Space Mono', monospace;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
 }
 
-/* Updated track layout - no borders, reduced spacing */
-.track {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 8px;
-  padding: 8px;
-  min-height: 220px;
-}
+/* =============================================================================
+   TAPEFOUR DESIGN SYSTEM SUMMARY
+   ============================================================================= 
 
-.track-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 8px;
-  width: 50px;
-}
+   🎨 COLOR PALETTE:
+   - HSL-based semantic color system with 1970s tape machine aesthetics
+   - Primary: Warm camel-brown chassis (#DCCDB7)
+   - Accents: Burnt orange (#D18C33) and muted olive tones
+   - Functional colors: Record (warm orange), Solo (blue), Mute (clay)
 
-.fader-section, .master-fader-section {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 6px;
-}
+   🎚️ CONTROLS:
+   - 6px soft-rounded corners throughout
+   - Subtle hover states with 8% overlay
+   - Color-coded buttons (REC=orange, SOLO=blue, MUTE=clay)
+   - Inner shadows on fader tracks for hardware depth
 
-.fader-markings {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  padding: 8px 0;
-  min-height: 180px;
-  width: 25px;
-  position: relative;
-}
+   📏 LAYOUT & SPACING:
+   - 4pt grid system for consistent vertical rhythm
+   - 8px increased padding throughout for better breathing room
+   - Enhanced visual hierarchy with distinct transport bar
 
-.marking {
-  font-size: 9px;
-  font-family: 'Space Mono', monospace;
-  color: var(--ink);
-  line-height: 1;
-  white-space: nowrap;
-  position: absolute;
-  right: 0;
-}
+   🔤 TYPOGRAPHY:
+   - IBM Plex Mono for titles and displays (rounded grotesk)
+   - Inter for UI labels and controls (semi-bold sans)
+   - Consistent letter-spacing for readability
 
-/* Position markings based on fader scale (corrected order) */
-.marking[data-db="0"] {
-  top: 45px; /* At 75% position from bottom (where default fader thumb sits) */
-  font-weight: bold;
-  color: var(--accent);
-}
+   📊 VOLUME METERS:
+   - 2px wide bars with 1px gaps
+   - Animated fill with scaleY transform
+   - Color-coded levels (green → amber → red)
 
-.marking[data-db="-6"] {
-  top: 65px;
-}
+   🎭 VINTAGE TOUCHES:
+   - Coarse paper grain overlay at 4% opacity
+   - Hardware-style inset borders on panels
+   - Authentic analogue equipment aesthetics
 
-.marking[data-db="-12"] {
-  top: 85px;
-}
-
-.marking[data-db="-24"] {
-  top: 105px;
-}
-
-.marking[data-db="-36"] {
-  top: 125px;
-}
-
-.marking[data-db="-48"] {
-  top: 145px;
-}
-
-.marking[data-db="-60"] {
-  top: 165px; /* At the bottom of fader */
-}
-
-/* Updated fader styling with center line on thumb */
-.fader {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 25px;
-  height: 180px;
-  background: var(--track);
-  border-radius: 4px;
-  border: 1px solid var(--ink);
-  outline: none;
-  cursor: pointer;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  position: relative;
-}
-
-.fader::-webkit-slider-runnable-track {
-  background: var(--track);
-  border-radius: 2px;
-  height: 180px;
-  width: 16px;
-}
-
-.fader::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 30px;
-  height: 40px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 12%;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  margin-left: -7px;
-  position: relative;
-  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
-}
-
-.fader::-moz-range-track {
-  background: var(--track);
-  border: none;
-  border-radius: 2px;
-  height: 180px;
-  width: 4px;
-}
-
-.fader::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
-}
-
-/* Master fader updates */
-.master-fader {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  width: 25px;
-  height: 180px;
-  background: var(--track);
-  border-radius: 4px;
-  border: 1px solid var(--ink);
-  outline: none;
-  cursor: pointer;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  position: relative;
-}
-
-.master-fader::-webkit-slider-runnable-track {
-  background: var(--track);
-  border-radius: 2px;
-  height: 180px;
-  width: 16px;
-}
-
-.master-fader::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 30px;
-  height: 40px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 15%;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  margin-left: -7px;
-  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
-}
-
-.master-fader::-moz-range-track {
-  background: var(--track);
-  border: none;
-  border-radius: 2px;
-  height: 180px;
-  width: 4px;
-}
-
-.master-fader::-moz-range-thumb {
-  width: 8px;
-  height: 8px;
-  background: #DCCDB7 !important;
-  background-color: #DCCDB7 !important;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
-}
-
-/* Update tracks container for reduced spacing */
-.tracks-container {
-  display: flex;
-  gap: 8px;
-  padding: 16px;
-  background: var(--panel);
-  border-radius: 8px;
-  border: 1px solid var(--ink);
-  align-items: flex-start;
-}
-
-/* Master section adjustments */
-.master-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  min-height: 220px;
-}
-
-/* Pan knob adjustments for reduced spacing */
-.pan-knob-container {
-  margin: 0;
-  width: 40px;
-  height: 40px;
-  z-index: 100;
-}
-
-.pan-knob {
-  width: 35px;
-  height: 35px;
-} 
+   ============================================================================= */

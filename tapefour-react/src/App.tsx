@@ -189,7 +189,7 @@ function App() {
         <div className="settings-content">
           <h3 className="settings-title">Settings</h3>
           <div className="settings-group">
-            <label className="settings-label" htmlFor="audio-input-select">Audio Input</label>
+            <label className="settings-label" htmlFor="audio-input-select">🎤 Audio Input</label>
             <select id="audio-input-select" className="settings-select">
               <option value="">Select Audio Input Device...</option>
             </select>
@@ -206,7 +206,7 @@ function App() {
           
           <div className="settings-group">
             <div className="settings-toggle-header" id="audio-processing-toggle">
-              <h4 className="settings-subtitle">Audio Processing</h4>
+              <h4 className="settings-subtitle">🎛️ Audio Processing</h4>
               <div className="toggle-arrow" id="audio-processing-arrow">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6,9 12,15 18,9"></polyline>
@@ -231,7 +231,7 @@ function App() {
 
           <div className="settings-group">
             <div className="settings-toggle-header" id="keyboard-shortcuts-toggle">
-              <h4 className="settings-subtitle">Keyboard Shortcuts</h4>
+              <h4 className="settings-subtitle">⌨️ Keyboard Shortcuts</h4>
               <div className="toggle-arrow" id="keyboard-shortcuts-arrow">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="6,9 12,15 18,9"></polyline>
@@ -289,9 +289,9 @@ function App() {
           </div>
           
           <div className="settings-group">
-            <h4 className="settings-subtitle">Tips</h4>
+            <h4 className="settings-subtitle">💡 Tips</h4>
             <div className="tips-content">
-              <p className="tip-item">💡 Double-click pan knobs or faders to reset to default values</p>
+              <p className="tip-item">Double-click pan knobs or faders to reset to default values</p>
             </div>
           </div>
           

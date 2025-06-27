@@ -112,12 +112,22 @@ export default class TapeFour {
     // reset faders & knobs
     this.tracks.forEach((track) => {
       const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
-      if (fader) fader.value = '75';
+      if (fader) {
+        fader.value = '75';
+        // Initialize CSS custom property for volume indicator line
+        fader.style.setProperty('--fader-value', '75');
+      }
       
       const panKnob = document.getElementById(`pan-${track.id}`) as HTMLInputElement | null;
       if (panKnob) panKnob.value = '50'; // Center position
     });
-    (document.getElementById('master-fader') as HTMLInputElement | null)?.setAttribute('value', '75');
+    
+    const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
+    if (masterFader) {
+      masterFader.setAttribute('value', '75');
+      // Initialize CSS custom property for master fader volume indicator line
+      masterFader.style.setProperty('--master-fader-value', '75');
+    }
   }
 
   private setupEventListeners() {
@@ -567,10 +577,22 @@ export default class TapeFour {
     } else {
       console.warn(`⚠️ No gain node found for track ${trackId}`);
     }
+    
+    // Update the CSS custom property for the volume indicator line position
+    const faderElement = document.getElementById(`fader-${trackId}`) as HTMLElement;
+    if (faderElement) {
+      faderElement.style.setProperty('--fader-value', value.toString());
+    }
   }
 
   private updateMasterGain(value: number) {
     if (this.masterGainNode) this.masterGainNode.gain.value = value / 100;
+    
+    // Update the CSS custom property for the master fader volume indicator line position
+    const masterFaderElement = document.getElementById('master-fader') as HTMLElement;
+    if (masterFaderElement) {
+      masterFaderElement.style.setProperty('--master-fader-value', value.toString());
+    }
   }
 
   private resetTrackFader(trackId: number) {
@@ -863,18 +885,14 @@ export default class TapeFour {
               autoGainControl: this.state.autoGainControl,
               // Enhanced constraints for audio interfaces
               sampleRate: 48000, // Common for audio interfaces
-              channelCount: { max: 2 }, // Request up to 2 channels (stereo)
-              latency: 0.01, // Low latency for audio interfaces
-              volume: 1.0 // Maximum volume
+              channelCount: { max: 2 } // Request up to 2 channels (stereo)
             } 
           : {
               echoCancellation: this.state.echoCancellation,
               noiseSuppression: this.state.noiseSuppression,
               autoGainControl: this.state.autoGainControl,
               sampleRate: 48000,
-              channelCount: { max: 2 },
-              latency: 0.01,
-              volume: 1.0
+              channelCount: { max: 2 }
             },
       };
 
@@ -902,8 +920,7 @@ export default class TapeFour {
         console.log(`[TAPEFOUR]   Track capabilities:`, {
           sampleRate: capabilities.sampleRate,
           channelCount: capabilities.channelCount,
-          echoCancellation: capabilities.echoCancellation,
-          latency: capabilities.latency
+          echoCancellation: capabilities.echoCancellation
         });
         // Log current settings
         const settings = track.getSettings();
