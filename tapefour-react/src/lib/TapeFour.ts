@@ -131,10 +131,15 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
       fader?.addEventListener('input', (e) => this.updateTrackGain(track.id, +(e.target as HTMLInputElement).value));
+      // Double-click to reset to default value (75)
+      fader?.addEventListener('dblclick', (e) => this.resetTrackFader(track.id));
     });
 
     // Master fader
-    (document.getElementById('master-fader') as HTMLInputElement | null)?.addEventListener('input', (e) => this.updateMasterGain(+(e.target as HTMLInputElement).value));
+    const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
+    masterFader?.addEventListener('input', (e) => this.updateMasterGain(+(e.target as HTMLInputElement).value));
+    // Double-click to reset to default value (75)
+    masterFader?.addEventListener('dblclick', () => this.resetMasterFader());
 
     // Transport
     document.getElementById('play-btn')?.addEventListener('click', () => this.play());
@@ -357,6 +362,24 @@ export default class TapeFour {
 
   private updateMasterGain(value: number) {
     if (this.masterGainNode) this.masterGainNode.gain.value = value / 100;
+  }
+
+  private resetTrackFader(trackId: number) {
+    const fader = document.getElementById(`fader-${trackId}`) as HTMLInputElement | null;
+    if (fader) {
+      fader.value = '75'; // Reset to default value
+      this.updateTrackGain(trackId, 75); // Update the gain
+      console.log(`🎚️ Track ${trackId} fader reset to default (75%)`);
+    }
+  }
+
+  private resetMasterFader() {
+    const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
+    if (masterFader) {
+      masterFader.value = '75'; // Reset to default value
+      this.updateMasterGain(75); // Update the gain
+      console.log(`🎚️ Master fader reset to default (75%)`);
+    }
   }
 
   /* ---------- Transport ---------- */
@@ -586,16 +609,25 @@ export default class TapeFour {
               deviceId: { exact: this.state.selectedInputDeviceId },
               echoCancellation: this.state.echoCancellation,
               noiseSuppression: this.state.noiseSuppression,
-              autoGainControl: this.state.autoGainControl
+              autoGainControl: this.state.autoGainControl,
+              // Enhanced constraints for audio interfaces
+              sampleRate: 48000, // Common for audio interfaces
+              channelCount: { max: 2 }, // Request up to 2 channels (stereo)
+              latency: 0.01, // Low latency for audio interfaces
+              volume: 1.0 // Maximum volume
             } 
           : {
               echoCancellation: this.state.echoCancellation,
               noiseSuppression: this.state.noiseSuppression,
-              autoGainControl: this.state.autoGainControl
+              autoGainControl: this.state.autoGainControl,
+              sampleRate: 48000,
+              channelCount: { max: 2 },
+              latency: 0.01,
+              volume: 1.0
             },
       };
 
-      console.log('[TAPEFOUR] 🎤 Requesting microphone with constraints:', JSON.stringify(constraints, null, 2));
+      console.log('[TAPEFOUR] 🎤 Requesting microphone with enhanced constraints:', JSON.stringify(constraints, null, 2));
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.mediaRecorder = new MediaRecorder(this.mediaStream);
@@ -614,6 +646,17 @@ export default class TapeFour {
       console.log(`[TAPEFOUR] 🎤 MediaRecorder created, input tracks: ${this.mediaStream.getAudioTracks().length}`);
       this.mediaStream.getAudioTracks().forEach((track, i) => {
         console.log(`[TAPEFOUR]   Track ${i}: ${track.label}, enabled: ${track.enabled}`);
+        // Log the track's capabilities for debugging
+        const capabilities = track.getCapabilities();
+        console.log(`[TAPEFOUR]   Track capabilities:`, {
+          sampleRate: capabilities.sampleRate,
+          channelCount: capabilities.channelCount,
+          echoCancellation: capabilities.echoCancellation,
+          latency: capabilities.latency
+        });
+        // Log current settings
+        const settings = track.getSettings();
+        console.log(`[TAPEFOUR]   Track settings:`, settings);
       });
 
       // Set up volume meter monitoring during recording
@@ -773,6 +816,12 @@ export default class TapeFour {
       }
 
       const inputs = devices.filter((d) => d.kind === 'audioinput');
+
+      // Enhanced device information logging
+      console.log('[TAPEFOUR] 🎤 Available audio input devices:');
+      inputs.forEach((device, index) => {
+        console.log(`[TAPEFOUR]   ${index + 1}. ${device.label || 'Unknown Device'} (${device.deviceId.slice(0, 8)}...)`);
+      });
 
       // Deduplicate identical labels by appending an index
       const labelCounts: Record<string, number> = {};
@@ -1200,5 +1249,53 @@ export default class TapeFour {
     if (rightReel) rightReel.classList.remove('spinning');
     
     console.log('🛑 Tape reels stopped spinning');
+  }
+
+  // Add this method for debugging
+  private async debugAudioInterface() {
+    console.log('[TAPEFOUR] 🔍 Audio Interface Debug Test');
+    
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const scarlettDevice = devices.find(d => 
+        d.kind === 'audioinput' && 
+        d.label.toLowerCase().includes('scarlett')
+      );
+      
+      if (scarlettDevice) {
+        console.log('[TAPEFOUR] 🎤 Found Scarlett device:', scarlettDevice);
+        
+        // Test with different constraints
+        const testConstraints = {
+          audio: {
+            deviceId: { exact: scarlettDevice.deviceId },
+            sampleRate: 48000,
+            channelCount: { min: 1, ideal: 2, max: 6 }, // Scarlett 6i6 has 6 inputs
+            autoGainControl: false,
+            noiseSuppression: false,
+            echoCancellation: false
+          }
+        };
+        
+        const testStream = await navigator.mediaDevices.getUserMedia(testConstraints);
+        console.log('[TAPEFOUR] ✅ Test stream created');
+        
+        testStream.getAudioTracks().forEach((track, i) => {
+          console.log(`[TAPEFOUR] Test Track ${i}:`, {
+            label: track.label,
+            enabled: track.enabled,
+            settings: track.getSettings(),
+            capabilities: track.getCapabilities()
+          });
+        });
+        
+        // Clean up test stream
+        testStream.getTracks().forEach(track => track.stop());
+      } else {
+        console.log('[TAPEFOUR] ⚠️ No Scarlett device found in device list');
+      }
+    } catch (err) {
+      console.error('[TAPEFOUR] ❌ Debug test failed:', err);
+    }
   }
 } 
