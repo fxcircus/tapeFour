@@ -730,6 +730,15 @@ export default class TapeFour {
 
   private async setupRecording() {
     try {
+      // Check if volume meter was active before stopping the stream
+      const wasVolumeMeterActive = this.volumeMeterActive;
+      
+      // Stop volume meter first if it was active
+      if (wasVolumeMeterActive) {
+        console.log('[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
+        this.stopVolumeMeter();
+      }
+      
       // Always stop and clean up existing media stream before creating a new one
       // This ensures we use the currently selected device for recording
       if (this.mediaStream) {
@@ -795,8 +804,12 @@ export default class TapeFour {
         console.log(`[TAPEFOUR]   Track settings:`, settings);
       });
 
-      // Set up volume meter monitoring during recording
-      this.setupVolumeMeter();
+      // Restart volume meter if it was previously active
+      if (wasVolumeMeterActive) {
+        console.log('[TAPEFOUR] 🔊 Restarting volume meter with new media stream');
+        await this.startVolumeMeter();
+      }
+      
     } catch (err) {
       console.error('Error setting up recording', err);
       alert('Could not access microphone. Please check permissions and settings.');
@@ -1285,36 +1298,10 @@ export default class TapeFour {
   }
 
   private setupVolumeMeter() {
-    if (!this.mediaStream || !this.audioContext) return;
-
-    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
-    const analyser = this.audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
-
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    
-    const updateMeter = () => {
-      if (this.state.isRecording) {
-        analyser.getByteFrequencyData(dataArray);
-        
-        // Calculate RMS (Root Mean Square) for more accurate volume representation
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i] * dataArray[i];
-        }
-        const rms = Math.sqrt(sum / dataArray.length);
-        const level = rms / 255; // Normalize to 0-1
-        
-        this.updateVolumeMeter(level);
-        requestAnimationFrame(updateMeter);
-      } else {
-        // Reset meter when not recording
-        this.updateVolumeMeter(0);
-      }
-    };
-    
-    updateMeter();
+    // This method is deprecated in favor of startVolumeMeter()
+    // Keeping for backward compatibility but redirect to proper method
+    console.log('[TAPEFOUR] ⚠️ setupVolumeMeter() is deprecated, using startVolumeMeter() instead');
+    this.startVolumeMeter();
   }
 
   private async startVolumeMeter() {
