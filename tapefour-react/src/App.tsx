@@ -78,10 +78,12 @@ function App() {
                   max={100}
                   defaultValue={75}
                 />
-                <div className="track-label">{id}</div>
-                <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
+                <div className="mute-button-container">
+                  <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
+                  <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
+                </div>
                 <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
-                <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
+                <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
               </div>
             )
           })}
@@ -94,8 +96,8 @@ function App() {
               max={100}
               defaultValue={75}
             />
-            <div className="master-label">MAIN</div>
             <div className="master-spacer"></div>
+            <div className="master-label">MAIN</div>
           </div>
         </div>
       </div>

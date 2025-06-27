@@ -445,15 +445,7 @@ body {
 
 /* Track Controls */
 
-.track-label {
-  font-weight: 400;
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 1px;
-  color: var(--ink);
-  font-size: 14px;
-  text-align: center;
-  margin: 0;
-}
+
 
 .arm-button {
   appearance: none;
@@ -506,21 +498,29 @@ body {
   transform: translateY(1px);
 }
 
-.mute-button {
-  appearance: none;
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  border-radius: 2px;
-  width: 28px;
-  height: 12px;
-  cursor: pointer;
+.mute-button-container {
   position: relative;
-  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 4px;
 }
 
+.mute-button {
+  appearance: none;
+  background: var(--orange); /* Default lit state (unmuted) */
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  width: 28px;
+  height: 28px; /* Make it square */
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  margin: 0;
+}
+
 .mute-button:checked {
-  background: var(--orange);
+  background: var(--paper); /* Dark state (muted) */
 }
 
 .mute-button:hover {
@@ -528,8 +528,27 @@ body {
 }
 
 .mute-button:active {
+  background: color-mix(in srgb, var(--orange) 96%, black 4%);
+  transform: translateY(1px);
+}
+
+.mute-button:checked:active {
   background: color-mix(in srgb, var(--paper) 96%, black 4%);
   transform: translateY(1px);
+}
+
+.mute-button-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: 400;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 1px;
+  color: var(--ink);
+  font-size: 10px;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Settings Modal */
@@ -688,7 +707,7 @@ body {
 .tracks-container {
   display: flex;
   justify-content: space-around;
-  align-items: end;
+  align-items: start;
   gap: 24px;
   margin-bottom: 32px;
 }
@@ -721,7 +740,7 @@ body {
 }
 
 .master-spacer {
-  height: 60px; /* Height to match 3 buttons (12px each) + gaps (4px each) + extra spacing */
+  height: 8px; /* Small gap to align MAIN label with track mute buttons */
 }
 
 /* Remove any remaining gradients and shadows */
