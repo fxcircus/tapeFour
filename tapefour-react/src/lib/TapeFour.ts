@@ -598,8 +598,25 @@ export default class TapeFour {
   private resetTrackFader(trackId: number) {
     const fader = document.getElementById(`fader-${trackId}`) as HTMLInputElement | null;
     if (fader) {
-      fader.value = '75'; // Reset to default value
-      this.updateTrackGain(trackId, 75); // Update the gain
+      const currentValue = parseInt(fader.value);
+      const targetValue = 75;
+      
+      // Only animate if there's a difference
+      if (currentValue !== targetValue) {
+        // Add reset animation class for visual feedback
+        fader.classList.add('fader-resetting');
+        
+        // Animate the fader value smoothly
+        this.animateFaderValue(fader, currentValue, targetValue, 200, (value: number) => {
+          this.updateTrackGain(trackId, value);
+        });
+        
+        // Remove the animation class after animation completes
+        setTimeout(() => {
+          fader.classList.remove('fader-resetting');
+        }, 200);
+      }
+      
       console.log(`🎚️ Track ${trackId} fader reset to default (75%)`);
     }
   }
@@ -607,10 +624,57 @@ export default class TapeFour {
   private resetMasterFader() {
     const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
     if (masterFader) {
-      masterFader.value = '75'; // Reset to default value
-      this.updateMasterGain(75); // Update the gain
+      const currentValue = parseInt(masterFader.value);
+      const targetValue = 75;
+      
+      // Only animate if there's a difference
+      if (currentValue !== targetValue) {
+        // Add reset animation class for visual feedback
+        masterFader.classList.add('fader-resetting');
+        
+        // Animate the fader value smoothly
+        this.animateFaderValue(masterFader, currentValue, targetValue, 200, (value: number) => {
+          this.updateMasterGain(value);
+        });
+        
+        // Remove the animation class after animation completes
+        setTimeout(() => {
+          masterFader.classList.remove('fader-resetting');
+        }, 200);
+      }
+      
       console.log(`🎚️ Master fader reset to default (75%)`);
     }
+  }
+
+  private animateFaderValue(
+    fader: HTMLInputElement, 
+    startValue: number, 
+    endValue: number, 
+    duration: number, 
+    onUpdate: (value: number) => void
+  ) {
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Use easeOutCubic for smooth deceleration
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      
+      const currentValue = startValue + (endValue - startValue) * easeOutCubic;
+      const roundedValue = Math.round(currentValue);
+      
+      fader.value = roundedValue.toString();
+      onUpdate(roundedValue);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
   }
 
   private updateTrackPan(trackId: number, value: number) {
