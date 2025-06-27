@@ -1175,7 +1175,7 @@ export default class TapeFour {
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement('a'), {
       href: url,
-      download: `tapefour-mix-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.wav`,
+      download: `TS_tapefour_mix_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '_')}.wav`,
     });
     document.body.appendChild(a);
     a.click();
