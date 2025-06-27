@@ -480,6 +480,58 @@ body {
   transform: translateY(1px);
 }
 
+.solo-button {
+  appearance: none;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  width: 28px;
+  height: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  margin-top: 4px;
+}
+
+.solo-button:checked {
+  background: var(--sky);
+}
+
+.solo-button:hover {
+  /* No hover effect */
+}
+
+.solo-button:active {
+  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  transform: translateY(1px);
+}
+
+.mute-button {
+  appearance: none;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  width: 28px;
+  height: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+  margin-top: 4px;
+}
+
+.mute-button:checked {
+  background: var(--orange);
+}
+
+.mute-button:hover {
+  /* No hover effect */
+}
+
+.mute-button:active {
+  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  transform: translateY(1px);
+}
+
 /* Settings Modal */
 .settings-modal {
   background: rgba(50, 40, 25, 0.5);
@@ -669,7 +721,7 @@ body {
 }
 
 .master-spacer {
-  height: 24px;
+  height: 60px; /* Height to match 3 buttons (12px each) + gaps (4px each) + extra spacing */
 }
 
 /* Remove any remaining gradients and shadows */

@@ -80,6 +80,8 @@ function App() {
                 />
                 <div className="track-label">{id}</div>
                 <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
+                <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
+                <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
               </div>
             )
           })}

@@ -33,14 +33,19 @@ export default class TapeFour {
     id: number;
     audioBuffer: AudioBuffer | null;
     isArmed: boolean;
+    isSolo: boolean;
+    isMuted: boolean;
     gainNode: GainNode | null;
     sourceNode: AudioBufferSourceNode | null;
   }> = [
-    { id: 1, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
-    { id: 2, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
-    { id: 3, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
-    { id: 4, audioBuffer: null, isArmed: false, gainNode: null, sourceNode: null },
+    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
+    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
+    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
+    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, gainNode: null, sourceNode: null },
   ];
+
+  // Store previous mute states for when solo is disengaged
+  private previousMuteStates: boolean[] = [false, false, false, false];
 
   constructor() {
     // Load previously selected audio device from localStorage
@@ -102,6 +107,18 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const el = document.getElementById(`track-${track.id}`);
       el?.addEventListener('click', () => this.toggleTrackArm(track.id));
+    });
+
+    // Solo buttons
+    this.tracks.forEach((track) => {
+      const el = document.getElementById(`solo-${track.id}`);
+      el?.addEventListener('click', () => this.toggleTrackSolo(track.id));
+    });
+
+    // Mute buttons
+    this.tracks.forEach((track) => {
+      const el = document.getElementById(`mute-${track.id}`);
+      el?.addEventListener('click', () => this.toggleTrackMute(track.id));
     });
 
     // Faders
@@ -179,12 +196,109 @@ export default class TapeFour {
     }
   }
 
+  private toggleTrackSolo(trackId: number) {
+    const track = this.tracks.find((t) => t.id === trackId)!;
+    const el = document.getElementById(`solo-${trackId}`) as HTMLInputElement;
+
+    // Exclusive solo: only one track can be soloed at a time
+    if (track.isSolo) {
+      // Unsolo this track - restore previous mute states
+      track.isSolo = false;
+      if (el) el.checked = false;
+      
+      // Restore previous mute states
+      this.tracks.forEach((t, index) => {
+        t.isMuted = this.previousMuteStates[index];
+        const muteEl = document.getElementById(`mute-${t.id}`) as HTMLInputElement;
+        if (muteEl) muteEl.checked = t.isMuted;
+      });
+      
+      console.log(`[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states`);
+    } else {
+      // Store current mute states before soloing
+      this.tracks.forEach((t, index) => {
+        this.previousMuteStates[index] = t.isMuted;
+      });
+      
+      // Unsolo all other tracks first
+      this.tracks.forEach((t) => {
+        if (t.id !== trackId) {
+          t.isSolo = false;
+          const otherEl = document.getElementById(`solo-${t.id}`) as HTMLInputElement;
+          if (otherEl) otherEl.checked = false;
+        }
+      });
+      
+      // Solo this track - unmute all tracks first, then mute all except this one
+      this.tracks.forEach((t) => {
+        t.isMuted = t.id !== trackId; // Mute all tracks except the soloed one
+        const muteEl = document.getElementById(`mute-${t.id}`) as HTMLInputElement;
+        if (muteEl) muteEl.checked = t.isMuted;
+      });
+      
+      // Set solo state
+      track.isSolo = true;
+      if (el) el.checked = true;
+      
+      console.log(`[TAPEFOUR] 🔊 Track ${trackId} soloed - all other tracks muted`);
+    }
+    
+    // Update audio routing
+    this.updateAudioRouting();
+  }
+
+  private toggleTrackMute(trackId: number) {
+    const track = this.tracks.find((t) => t.id === trackId)!;
+    const el = document.getElementById(`mute-${trackId}`) as HTMLInputElement;
+
+    // If any track is currently soloed, don't allow manual mute changes
+    const hasSoloedTrack = this.tracks.some(t => t.isSolo);
+    if (hasSoloedTrack) {
+      console.log(`[TAPEFOUR] ⚠️ Cannot manually mute/unmute while a track is soloed`);
+      // Reset the checkbox to current state
+      if (el) el.checked = track.isMuted;
+      return;
+    }
+
+    // Toggle mute state
+    track.isMuted = !track.isMuted;
+    if (el) el.checked = track.isMuted;
+    
+    console.log(`[TAPEFOUR] ${track.isMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isMuted ? 'muted' : 'unmuted'}`);
+    
+    // Update audio routing
+    this.updateAudioRouting();
+  }
+
+  private updateAudioRouting() {
+    // Update gain nodes based on mute/solo state
+    this.tracks.forEach((track) => {
+      if (track.gainNode) {
+        // If track is muted, set gain to 0, otherwise use fader value
+        if (track.isMuted) {
+          track.gainNode.gain.value = 0;
+        } else {
+          // Get current fader value and apply it
+          const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
+          const faderValue = fader ? parseInt(fader.value) : 75;
+          track.gainNode.gain.value = faderValue / 100;
+        }
+      }
+    });
+  }
+
   private updateTrackGain(trackId: number, value: number) {
     const track = this.tracks.find((t) => t.id === trackId)!;
     if (track.gainNode) {
-      const gainValue = value / 100;
-      track.gainNode.gain.value = gainValue;
-      console.log(`🎚️ Track ${trackId} gain set to ${gainValue} (${value}%)`);
+      // If track is muted, keep gain at 0 regardless of fader position
+      if (track.isMuted) {
+        track.gainNode.gain.value = 0;
+        console.log(`🎚️ Track ${trackId} fader moved to ${value}% but track is muted (gain remains 0)`);
+      } else {
+        const gainValue = value / 100;
+        track.gainNode.gain.value = gainValue;
+        console.log(`🎚️ Track ${trackId} gain set to ${gainValue} (${value}%)`);
+      }
     } else {
       console.warn(`⚠️ No gain node found for track ${trackId}`);
     }
