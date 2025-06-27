@@ -202,17 +202,17 @@ body {
 .fader::-moz-range-track {
   background: var(--track);
   border: none;
-  border-radius: 4px;
+  border-radius: 2px;
   height: 144px;
-  width: 32px;
+  width: 4px;
 }
 
 /* WebKit track styling */
 .fader::-webkit-slider-runnable-track {
   background: var(--track);
-  border-radius: 4px;
+  border-radius: 2px;
   height: 144px;
-  width: 32px;
+  width: 16px;
 }
 
 .fader::-webkit-slider-thumb {
@@ -222,8 +222,10 @@ body {
   height: 8px;
   background: var(--sky);
   border: 1px solid var(--ink);
+  border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s ease;
+  /* margin-left: -2px; Center on 4px track */
 }
 
 .fader::-webkit-slider-thumb:hover {
@@ -235,6 +237,7 @@ body {
   height: 8px;
   background: var(--sky);
   border: 1px solid var(--ink);
+  border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -263,9 +266,9 @@ body {
 
 .master-fader::-webkit-slider-runnable-track {
   background: var(--track);
-  border-radius: 4px;
+  border-radius: 2px;
   height: 144px;
-  width: 32px;
+  width: 16px;
 }
 
 .master-fader::-webkit-slider-thumb {
@@ -275,8 +278,10 @@ body {
   height: 8px;
   background: var(--sky);
   border: 1px solid var(--ink);
+  border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s ease;
+  margin-left: -2px; /* Center on 4px track */
 }
 
 .master-fader::-webkit-slider-thumb:hover {
@@ -286,9 +291,9 @@ body {
 .master-fader::-moz-range-track {
   background: var(--track);
   border: none;
-  border-radius: 4px;
+  border-radius: 2px;
   height: 144px;
-  width: 32px;
+  width: 4px;
 }
 
 .master-fader::-moz-range-thumb {
