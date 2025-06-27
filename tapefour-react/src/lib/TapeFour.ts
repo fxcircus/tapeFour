@@ -19,6 +19,7 @@ export default class TapeFour {
   private volumeMeterActive = false;
   private volumeMeterAnimationId: number | null = null;
   private analyserNode: AnalyserNode | null = null;
+  private reelAnimationActive = false;
 
   private state = {
     isPlaying: false,
@@ -1566,13 +1567,67 @@ export default class TapeFour {
   }
 
   private stopTapeReelSpinning() {
-    const leftReel = document.getElementById('left-reel');
-    const rightReel = document.getElementById('right-reel');
+    // Prevent multiple animations from running simultaneously
+    if (this.reelAnimationActive) {
+      console.log('🛑 Reel animation already in progress, skipping');
+      return;
+    }
+
+    const leftReel = document.getElementById('left-reel') as unknown as SVGElement;
+    const rightReel = document.getElementById('right-reel') as unknown as SVGElement;
     
-    if (leftReel) leftReel.classList.remove('spinning');
-    if (rightReel) rightReel.classList.remove('spinning');
+    if (leftReel) {
+      console.log('🛑 Left reel stopping with manual animation');
+      leftReel.classList.remove('spinning');
+    }
     
-    console.log('🛑 Tape reels stopped spinning');
+    if (rightReel) {
+      console.log('🛑 Right reel stopping with manual animation');
+      rightReel.classList.remove('spinning');
+    }
+    
+    // Start the animation for both reels
+    this.reelAnimationActive = true;
+    this.animateReelRotation(leftReel, rightReel, 500);
+    
+    console.log('🛑 Tape reels stopping with smooth animation');
+  }
+
+  private animateReelRotation(leftReel: SVGElement | null, rightReel: SVGElement | null, duration: number) {
+    const startTime = performance.now();
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Use easeOutCubic for smooth deceleration (same as fader animation)
+      const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+      
+      // Animate from current rotation to 0 degrees
+      // We'll assume the reel could be at any rotation, so we animate towards 0
+      const currentRotation = (1 - easeOutCubic) * 360; // Start from a full rotation and go to 0
+      
+      if (leftReel) {
+        leftReel.style.transform = `translateY(-50%) rotate(${currentRotation}deg)`;
+      }
+      if (rightReel) {
+        rightReel.style.transform = `translateY(-50%) rotate(${currentRotation}deg)`;
+      }
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Ensure final position is exactly 0
+        if (leftReel) leftReel.style.transform = `translateY(-50%) rotate(0deg)`;
+        if (rightReel) rightReel.style.transform = `translateY(-50%) rotate(0deg)`;
+        
+        // Mark animation as complete
+        this.reelAnimationActive = false;
+        console.log('🛑 Reel animation complete');
+      }
+    };
+    
+    requestAnimationFrame(animate);
   }
 
   // Add this method for debugging

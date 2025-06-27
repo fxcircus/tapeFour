@@ -307,11 +307,21 @@ body {
   }
 }
 
+@keyframes reelStop {
+  0% {
+    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  100% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+}
+
 .tape-reel {
   /* Buttery smooth transition for all state changes */
   transition: transform 2.5s cubic-bezier(0.19, 1, 0.22, 1);
   transform-origin: center center;
   will-change: transform; /* Optimize for smooth animation */
+  transform: translateY(-50%);
 }
 
 .tape-reel.spinning {
@@ -321,8 +331,8 @@ body {
 
 /* Ultra-smooth deceleration - like real vintage tape machines */
 .tape-reel.stopping {
-  animation: spinSmoothDecelerate 2.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
-  transition: none;
+  animation: reelStop 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transition: none !important;
 }
 
 /* SVG Reel Styles */
