@@ -43,6 +43,8 @@ export default class TapeFour {
   ];
 
   constructor() {
+    // Load previously selected audio device from localStorage
+    this.loadSavedAudioDevice();
     this.initializeAudio();
     this.initializeUI();
     this.setupEventListeners();
@@ -404,6 +406,15 @@ export default class TapeFour {
 
   private async setupRecording() {
     try {
+      // Always stop and clean up existing media stream before creating a new one
+      // This ensures we use the currently selected device for recording
+      if (this.mediaStream) {
+        console.log('[TAPEFOUR] 🛑 Stopping existing media stream before creating new one');
+        this.mediaStream.getTracks().forEach(track => track.stop());
+        this.mediaStream = null;
+        this.mediaRecorder = null;
+      }
+
       const constraints: MediaStreamConstraints = {
         audio: this.state.selectedInputDeviceId 
           ? { 
@@ -636,6 +647,34 @@ export default class TapeFour {
     (document.getElementById('settings-modal') as HTMLElement | null)?.style.setProperty('display', 'none');
   }
 
+  private loadSavedAudioDevice() {
+    try {
+      const savedDeviceId = localStorage.getItem('tapefour-audio-input-device');
+      if (savedDeviceId && savedDeviceId !== 'null') {
+        this.state.selectedInputDeviceId = savedDeviceId;
+        console.log(`[TAPEFOUR] 💾 Loaded saved audio device: ${savedDeviceId}`);
+      } else {
+        console.log('[TAPEFOUR] 💾 No saved audio device found, using default');
+      }
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not load saved audio device:', err);
+    }
+  }
+
+  private saveAudioDevice(deviceId: string | null) {
+    try {
+      if (deviceId) {
+        localStorage.setItem('tapefour-audio-input-device', deviceId);
+        console.log(`[TAPEFOUR] 💾 Saved audio device: ${deviceId}`);
+      } else {
+        localStorage.removeItem('tapefour-audio-input-device');
+        console.log('[TAPEFOUR] 💾 Cleared saved audio device (using default)');
+      }
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not save audio device:', err);
+    }
+  }
+
   private async changeAudioInputDevice(newDeviceId: string | null) {
     // If device changed, we need to refresh the media stream
     if (newDeviceId !== this.state.selectedInputDeviceId) {
@@ -643,7 +682,11 @@ export default class TapeFour {
       
       this.state.selectedInputDeviceId = newDeviceId;
       
-      // Stop existing media stream if it exists
+      // Save the device selection to localStorage
+      this.saveAudioDevice(newDeviceId);
+      
+      // IMPORTANT: Always stop and recreate media stream when device changes
+      // This ensures ALL future recordings (any track) use the new device
       if (this.mediaStream) {
         console.log('[TAPEFOUR] 🛑 Stopping existing media stream');
         this.mediaStream.getTracks().forEach(track => track.stop());
@@ -651,11 +694,26 @@ export default class TapeFour {
         this.mediaRecorder = null;
       }
       
-      // If we have armed tracks, restart the input stream with new device
-      const hasArmedTracks = this.tracks.some(t => t.isArmed);
-      if (hasArmedTracks) {
-        console.log('[TAPEFOUR] 🎤 Restarting input stream with new device');
-        await this.ensureInputStream();
+      // Stop volume meter and restart it to pick up new device
+      if (this.volumeMeterActive) {
+        console.log('[TAPEFOUR] 🔄 Restarting volume meter with new device');
+        this.stopVolumeMeter();
+        // Restart volume meter if we have armed tracks
+        const hasArmedTracks = this.tracks.some(t => t.isArmed);
+        if (hasArmedTracks) {
+          await this.ensureInputStream();
+          this.startVolumeMeter();
+        }
+      } else {
+        // Even if no tracks are armed, we should test the new device works
+        console.log('[TAPEFOUR] 🧪 Testing new audio device');
+        try {
+          await this.ensureInputStream();
+          console.log('[TAPEFOUR] ✅ New audio device is working');
+        } catch (err) {
+          console.error('[TAPEFOUR] ❌ New audio device failed:', err);
+          alert('Failed to connect to the selected audio device. Please try a different device or check your audio settings.');
+        }
       }
     }
   }
