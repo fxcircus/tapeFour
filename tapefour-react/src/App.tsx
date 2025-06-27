@@ -70,44 +70,80 @@ function App() {
             const id = i + 1
             return (
               <div className="track" key={id}>
-                <input
-                  type="range"
-                  className="fader"
-                  id={`fader-${id}`}
-                  min={0}
-                  max={100}
-                  defaultValue={75}
-                />
-                <div className="pan-knob-container">
+                <div className="track-controls">
+                  <div className="pan-knob-container">
+                    <input
+                      type="range"
+                      className="pan-knob"
+                      id={`pan-${id}`}
+                      min={0}
+                      max={100}
+                      defaultValue={50}
+                    />
+                  </div>
+                  <div className="mute-button-container">
+                    <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
+                    <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
+                  </div>
+                  <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
+                  <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
+                </div>
+                <div className="fader-section">
                   <input
                     type="range"
-                    className="pan-knob"
-                    id={`pan-${id}`}
+                    className="fader"
+                    id={`fader-${id}`}
                     min={0}
                     max={100}
-                    defaultValue={50}
+                    defaultValue={75}
                   />
+                  <div className="fader-markings">
+                    <div className="marking" data-db="-60">-60</div>
+                    <div className="marking" data-db="-48">-48</div>
+                    <div className="marking" data-db="-36">-36</div>
+                    <div className="marking" data-db="-24">-24</div>
+                    <div className="marking" data-db="-12">-12</div>
+                    <div className="marking" data-db="-6">-6</div>
+                    <div className="marking" data-db="0">0</div>
+                  </div>
                 </div>
-                <div className="mute-button-container">
-                  <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
-                  <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
-                </div>
-                <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
-                <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
               </div>
             )
           })}
           <div className="master-section">
-            <input
-              type="range"
-              className="master-fader"
-              id="master-fader"
-              min={0}
-              max={100}
-              defaultValue={75}
-            />
+            <div className="master-controls">
+              <div className="master-label-vertical">
+                <div className="master-divider">|</div>
+                <div className="master-text">
+                  <div>M</div>
+                  <div>A</div>
+                  <div>S</div>
+                  <div>T</div>
+                  <div>E</div>
+                  <div>R</div>
+                </div>
+              </div>
+              <div className="master-fader-section">
+                <input
+                  type="range"
+                  className="master-fader"
+                  id="master-fader"
+                  min={0}
+                  max={100}
+                  defaultValue={75}
+                />
+                <div className="fader-markings">
+                  <div className="marking" data-db="0">0</div>
+                  <div className="marking" data-db="-6">-6</div>
+                  <div className="marking" data-db="-12">-12</div>
+                  <div className="marking" data-db="-24">-24</div>
+                  <div className="marking" data-db="-36">-36</div>
+                  <div className="marking" data-db="-48">-48</div>
+                  <div className="marking" data-db="-60">-60</div>
+                </div>
+              </div>
+            </div>
             <div className="master-spacer"></div>
-            <div className="master-label">MAIN</div>
           </div>
         </div>
       </div>
@@ -249,6 +285,13 @@ function App() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+          
+          <div className="settings-group">
+            <h4 className="settings-subtitle">Tips</h4>
+            <div className="tips-content">
+              <p className="tip-item">💡 Double-click pan knobs or faders to reset to default values</p>
             </div>
           </div>
           

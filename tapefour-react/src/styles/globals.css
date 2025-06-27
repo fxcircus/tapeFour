@@ -218,7 +218,7 @@ body {
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 25px;
-  height: 144px;
+  height: 180px;
   background: var(--track);
   border-radius: 4px;
   border: 1px solid var(--ink);
@@ -234,7 +234,7 @@ body {
   background: var(--track);
   border: none;
   border-radius: 2px;
-  height: 144px;
+  height: 180px;
   width: 4px;
 }
 
@@ -242,7 +242,7 @@ body {
 .fader::-webkit-slider-runnable-track {
   background: var(--track);
   border-radius: 2px;
-  height: 144px;
+  height: 180px;
   width: 16px;
 }
 
@@ -269,6 +269,8 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   transition: background 0.2s ease;
   margin-left: -7px;
+  position: relative;
+  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
 }
 
 .fader::-webkit-slider-thumb:hover {
@@ -284,6 +286,7 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s ease;
+  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
 }
 
 .fader::-moz-range-thumb:hover {
@@ -297,7 +300,7 @@ input[type="range"]::-moz-range-thumb {
   -webkit-appearance: none;
   -moz-appearance: none;
   width: 25px;
-  height: 144px;
+  height: 180px;
   background: var(--track);
   border-radius: 4px;
   border: 1px solid var(--ink);
@@ -311,7 +314,7 @@ input[type="range"]::-moz-range-thumb {
 .master-fader::-webkit-slider-runnable-track {
   background: var(--track);
   border-radius: 2px;
-  height: 144px;
+  height: 180px;
   width: 16px;
 }
 
@@ -327,6 +330,7 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
   transition: background 0.2s ease;
   margin-left: -7px;
+  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
 }
 
 .master-fader::-webkit-slider-thumb:hover {
@@ -337,7 +341,7 @@ input[type="range"]::-moz-range-thumb {
   background: var(--track);
   border: none;
   border-radius: 2px;
-  height: 144px;
+  height: 180px;
   width: 4px;
 }
 
@@ -350,6 +354,7 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 50%;
   cursor: pointer;
   transition: background 0.2s ease;
+  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
 }
 
 .master-fader::-moz-range-thumb:hover {
@@ -362,19 +367,19 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 8px 0;
+  margin: 0;
   position: relative;
-  width: 50px;
-  height: 50px;
-  z-index: 100; /* Much higher z-index to ensure it's above mute buttons */
+  width: 40px;
+  height: 40px;
+  z-index: 100;
 }
 
 .pan-knob {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  width: 40px;
-  height: 40px;
+  width: 35px;
+  height: 35px;
   background: var(--track);
   border-radius: 50%;
   border: 2px solid var(--ink);
@@ -428,7 +433,7 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 2px;
   top: 6px;
   left: 50%;
-  transform-origin: 50% 19px; /* Distance from top of indicator to center of knob */
+  transform-origin: 50% 19px;
   transform: translateX(-50%) rotate(var(--rotation, 0deg));
   pointer-events: none;
   z-index: 12;
@@ -1027,47 +1032,160 @@ input[type="range"]::-moz-range-thumb {
 .mixer-section {
   background: var(--panel);
   border-radius: 8px;
-  padding: 24px;
+  padding: 0;
   border: 1px solid var(--ink);
 }
 
 .tracks-container {
   display: flex;
-  justify-content: space-around;
-  align-items: start;
-  gap: 24px;
-  margin: 5px, 0;
+  gap: 8px;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--ink);
+  align-items: flex-start;
 }
 
 .track {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  min-height: 220px;
 }
 
+.track-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 8px;
+  width: 50px;
+}
+
+.fader-section, .master-fader-section {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.fader-markings {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px 0;
+  min-height: 180px;
+  width: 25px;
+  position: relative;
+}
+
+.marking {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--ink);
+  line-height: 1;
+  white-space: nowrap;
+  position: absolute;
+  right: 0;
+}
+
+/* Position markings based on fader scale (corrected order) */
+.marking[data-db="0"] {
+  top: 45px; /* At 75% position from bottom (where default fader thumb sits) */
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.marking[data-db="-6"] {
+  top: 65px;
+}
+
+.marking[data-db="-12"] {
+  top: 85px;
+}
+
+.marking[data-db="-24"] {
+  top: 105px;
+}
+
+.marking[data-db="-36"] {
+  top: 125px;
+}
+
+.marking[data-db="-48"] {
+  top: 145px;
+}
+
+.marking[data-db="-60"] {
+  top: 165px; /* At the bottom of fader */
+}
+
+/* Master section layout updates */
 .master-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-left: 32px;
-  padding-left: 24px;
-  border-left: 1px solid var(--ink);
+  padding: 8px;
+  min-height: 220px;
 }
 
-.master-label {
-  font-weight: 400;
+.master-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.master-label-vertical {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 6px;
+  height: 180px;
+  justify-content: flex-start;
+}
+
+.master-divider {
+  width: 2px;
+  height: 100%;
+  background: var(--track);
+  border: none;
+  font-size: 0;
+  writing-mode: horizontal-tb;
+  display: block;
+}
+
+.master-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
   font-family: 'Space Mono', monospace;
-  letter-spacing: 1px;
-  font-size: 14px;
   color: var(--ink);
-  text-align: center;
-  margin: 0;
+  font-weight: bold;
+  writing-mode: horizontal-tb;
+  height: 100%;
+  justify-content: space-evenly;
+  align-items: center;
+  min-width: 12px;
 }
 
-.master-spacer {
-  height: 1px;
+.master-text div {
+  line-height: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Remove the old master-label class */
+.master-label {
+  display: none;
 }
 
 /* Remove any remaining gradients and shadows */
@@ -1075,4 +1193,248 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
 }
 
-/* Clean up any remaining old styles */ 
+/* Clean up any remaining old styles */
+
+/* Tips section styling */
+.tips-content {
+  padding: 12px 0;
+}
+
+.tip-item {
+  font-size: 14px;
+  color: var(--ink);
+  margin: 8px 0;
+  font-family: 'Space Mono', monospace;
+}
+
+/* Updated track layout - no borders, reduced spacing */
+.track {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  padding: 8px;
+  min-height: 220px;
+}
+
+.track-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 8px;
+  width: 50px;
+}
+
+.fader-section, .master-fader-section {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.fader-markings {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px 0;
+  min-height: 180px;
+  width: 25px;
+  position: relative;
+}
+
+.marking {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  color: var(--ink);
+  line-height: 1;
+  white-space: nowrap;
+  position: absolute;
+  right: 0;
+}
+
+/* Position markings based on fader scale (corrected order) */
+.marking[data-db="0"] {
+  top: 45px; /* At 75% position from bottom (where default fader thumb sits) */
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.marking[data-db="-6"] {
+  top: 65px;
+}
+
+.marking[data-db="-12"] {
+  top: 85px;
+}
+
+.marking[data-db="-24"] {
+  top: 105px;
+}
+
+.marking[data-db="-36"] {
+  top: 125px;
+}
+
+.marking[data-db="-48"] {
+  top: 145px;
+}
+
+.marking[data-db="-60"] {
+  top: 165px; /* At the bottom of fader */
+}
+
+/* Updated fader styling with center line on thumb */
+.fader {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 25px;
+  height: 180px;
+  background: var(--track);
+  border-radius: 4px;
+  border: 1px solid var(--ink);
+  outline: none;
+  cursor: pointer;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  position: relative;
+}
+
+.fader::-webkit-slider-runnable-track {
+  background: var(--track);
+  border-radius: 2px;
+  height: 180px;
+  width: 16px;
+}
+
+.fader::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 30px;
+  height: 40px;
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+  border: 1px solid var(--ink);
+  border-radius: 12%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-left: -7px;
+  position: relative;
+  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
+}
+
+.fader::-moz-range-track {
+  background: var(--track);
+  border: none;
+  border-radius: 2px;
+  height: 180px;
+  width: 4px;
+}
+
+.fader::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
+}
+
+/* Master fader updates */
+.master-fader {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 25px;
+  height: 180px;
+  background: var(--track);
+  border-radius: 4px;
+  border: 1px solid var(--ink);
+  outline: none;
+  cursor: pointer;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  position: relative;
+}
+
+.master-fader::-webkit-slider-runnable-track {
+  background: var(--track);
+  border-radius: 2px;
+  height: 180px;
+  width: 16px;
+}
+
+.master-fader::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 30px;
+  height: 40px;
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+  border: 1px solid var(--ink);
+  border-radius: 15%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-left: -7px;
+  background-image: linear-gradient(to right, transparent 48%, var(--ink) 48%, var(--ink) 52%, transparent 52%);
+}
+
+.master-fader::-moz-range-track {
+  background: var(--track);
+  border: none;
+  border-radius: 2px;
+  height: 180px;
+  width: 4px;
+}
+
+.master-fader::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  background: #DCCDB7 !important;
+  background-color: #DCCDB7 !important;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  background-image: linear-gradient(to right, transparent 45%, var(--ink) 45%, var(--ink) 55%, transparent 55%);
+}
+
+/* Update tracks container for reduced spacing */
+.tracks-container {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--ink);
+  align-items: flex-start;
+}
+
+/* Master section adjustments */
+.master-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  min-height: 220px;
+}
+
+/* Pan knob adjustments for reduced spacing */
+.pan-knob-container {
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  z-index: 100;
+}
+
+.pan-knob {
+  width: 35px;
+  height: 35px;
+} 
