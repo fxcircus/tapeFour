@@ -28,10 +28,20 @@ export default class TapeFour {
   // Waveform strip variables
   private waveformCanvas: HTMLCanvasElement | null = null;
   private waveformContext: CanvasRenderingContext2D | null = null;
-  private waveformPeaks: number[] = [];
   private waveformRenderingId: number | null = null;
   private waveformBufferSize = 800; // Width of canvas in pixels
   private waveformAnalyserNode: AnalyserNode | null = null;
+  
+  // Track-specific waveform storage: array of {position, peak} objects for each track
+  private trackWaveforms: Map<number, Array<{position: number, peak: number}>> = new Map();
+  
+  // Track colors for waveform visualization - distinct colors for each track
+  private trackColors = {
+    1: '#D18C33', // Burnt orange (track 1)
+    2: '#2ECC71', // Emerald green (track 2) 
+    3: '#3498DB', // Bright blue (track 3)
+    4: '#C8A8E9'  // Light lavender purple (track 4) - light enough for black text
+  };
 
   private state = {
     isPlaying: false,
@@ -154,8 +164,16 @@ export default class TapeFour {
     this.waveformCanvas = document.getElementById('waveform-canvas') as HTMLCanvasElement | null;
     if (this.waveformCanvas) {
       this.waveformContext = this.waveformCanvas.getContext('2d');
-      this.clearWaveform();
+      this.clearWaveform(); // Clear all tracks on initialization
     }
+
+    // Apply track colors to mute buttons
+    this.applyTrackColorsToUI();
+    
+    // Update existing mute button styling immediately if tracks exist
+    setTimeout(() => {
+      this.tracks.forEach(track => this.updateMuteButtonStyling(track.id));
+    }, 100);
   }
 
   private setupEventListeners() {
@@ -538,6 +556,8 @@ export default class TapeFour {
         // Update mute button visual state to match manual mute state
         const muteEl = document.getElementById(`mute-${t.id}`) as HTMLInputElement;
         if (muteEl) muteEl.checked = t.isManuallyMuted;
+        // Update mute button styling to reflect restored state
+        this.updateMuteButtonStyling(t.id);
       });
       
       console.log(`[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states:`, this.previousMuteStates);
@@ -564,6 +584,8 @@ export default class TapeFour {
       this.tracks.forEach((t) => {
         t.isMuted = t.id !== trackId; // Mute all tracks except the soloed one
         // Don't update mute button visual state when soloing - only when manually clicked
+        // But do update the styling to show which tracks are effectively muted
+        this.updateMuteButtonStyling(t.id);
       });
       
       // Set solo state
@@ -596,6 +618,9 @@ export default class TapeFour {
     if (el) el.checked = track.isManuallyMuted;
     
     console.log(`[TAPEFOUR] ${track.isManuallyMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isManuallyMuted ? 'manually muted' : 'manually unmuted'}`);
+    
+    // Update mute button styling based on new state
+    this.updateMuteButtonStyling(trackId);
     
     // Update audio routing
     this.updateAudioRouting();
@@ -782,6 +807,72 @@ export default class TapeFour {
       this.updateTrackPan(trackId, 50); // Update the pan
       console.log(`🎛️ Track ${trackId} pan reset to center (50)`);
     }
+  }
+
+  private applyTrackColorsToUI() {
+    // Apply track colors to mute button backgrounds for visual consistency
+    this.tracks.forEach((track) => {
+      this.updateMuteButtonStyling(track.id);
+    });
+  }
+
+  private updateMuteButtonStyling(trackId: number) {
+    const track = this.tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    const color = this.trackColors[trackId as keyof typeof this.trackColors];
+    const muteButton = document.getElementById(`mute-${trackId}`) as HTMLElement | null;
+    const muteLabel = document.querySelector(`label[for="mute-${trackId}"]`) as HTMLElement | null;
+    
+    if (muteButton && muteLabel) {
+      if (track.isMuted) {
+        // Muted state (either manually or via solo): use default disabled styling
+        muteButton.style.backgroundColor = ''; // Reset to CSS default (--color-chassis)
+        muteButton.style.borderColor = ''; // Reset to CSS default
+        muteLabel.style.color = 'var(--color-text-primary)'; // Default text color
+        muteLabel.style.fontWeight = '600'; // Normal weight
+        
+        console.log(`🎨 Applied muted (disabled) styling to track ${trackId} mute button`);
+      } else {
+        // Unmuted state: use track color
+        muteButton.style.backgroundColor = color;
+        muteButton.style.borderColor = this.darkenColor(color, 0.2); // Slightly darker border
+        
+        // Choose text color based on background luminance for optimal contrast
+        const textColor = this.getContrastColor(color);
+        muteLabel.style.color = textColor;
+        muteLabel.style.fontWeight = '700'; // Bold for better visibility
+        
+        console.log(`🎨 Applied active color ${color} with ${textColor} text to track ${trackId} mute button`);
+      }
+    }
+  }
+
+  // Calculate luminance to determine if we should use black or white text
+  private getContrastColor(hexColor: string): string {
+    // Remove # if present
+    const color = hexColor.replace('#', '');
+    
+    // Convert to RGB
+    const r = parseInt(color.substr(0, 2), 16);
+    const g = parseInt(color.substr(2, 2), 16);
+    const b = parseInt(color.substr(4, 2), 16);
+    
+    // Calculate relative luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Return black for light backgrounds, white for dark backgrounds
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  }
+
+  // Darken a hex color by a percentage
+  private darkenColor(hexColor: string, amount: number): string {
+    const color = hexColor.replace('#', '');
+    const r = Math.max(0, parseInt(color.substr(0, 2), 16) * (1 - amount));
+    const g = Math.max(0, parseInt(color.substr(2, 2), 16) * (1 - amount));
+    const b = Math.max(0, parseInt(color.substr(4, 2), 16) * (1 - amount));
+    
+    return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
   }
 
   /* ---------- Transport ---------- */
@@ -1023,8 +1114,8 @@ export default class TapeFour {
 
     this.mediaRecorder!.start();
     
-    // Start waveform capture
-    this.clearWaveform();
+    // Start waveform capture - only clear the current track's waveform
+    this.clearWaveform(armedTrack.id);
     this.startWaveformCapture();
     
     console.log('[TAPEFOUR] ✅ Recording started');
@@ -1898,11 +1989,22 @@ export default class TapeFour {
 
   /* ---------- Waveform Strip Methods ---------- */
 
-  private clearWaveform() {
+  private clearWaveform(trackId?: number) {
     if (!this.waveformContext || !this.waveformCanvas) return;
     
-    this.waveformPeaks = [];
+    if (trackId) {
+      // Clear only the specified track's waveform data
+      this.trackWaveforms.set(trackId, []);
+      console.log(`[WAVEFORM] 🗑️ Cleared waveform data for track ${trackId}`);
+    } else {
+      // Clear all track waveforms (used for full reset)
+      this.trackWaveforms.clear();
+      console.log('[WAVEFORM] 🗑️ Cleared all track waveform data');
+    }
+    
+    // Always clear the canvas and redraw remaining waveforms
     this.waveformContext.clearRect(0, 0, this.waveformCanvas.width, this.waveformCanvas.height);
+    this.redrawAllTrackWaveforms();
   }
 
   private setupWaveformAnalyser() {
@@ -1954,8 +2056,11 @@ export default class TapeFour {
   private drawWaveformPeak(peak: number) {
     if (!this.waveformContext || !this.waveformCanvas) return;
     
+    // Find the currently armed track
+    const armedTrack = this.tracks.find(t => t.isArmed);
+    if (!armedTrack) return;
+    
     const canvas = this.waveformCanvas;
-    const ctx = this.waveformContext;
     const height = canvas.height;
     
     // Calculate current playhead position using the SAME logic as updatePlayheadUI
@@ -1966,7 +2071,6 @@ export default class TapeFour {
     const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
     
     // Scale the position to match the canvas internal coordinate system
-    // Canvas internal width is 800px, but it's displayed at displayedWidth
     const canvasInternalWidth = canvas.width; // 800px from HTML
     const scaleFactor = canvasInternalWidth / displayedWidth;
     
@@ -1974,19 +2078,62 @@ export default class TapeFour {
     const playheadPosition = Math.min(progress * displayedWidth, displayedWidth);
     const canvasX = playheadPosition * scaleFactor;
     
-    // Set waveform style to bright orange for visual pop
-    ctx.fillStyle = '#D18C33'; // var(--color-accent-warm) - burnt orange for highlights
-    ctx.strokeStyle = '#D18C33';
-    ctx.lineWidth = 1;
+    // Store this peak data for the current track
+    if (!this.trackWaveforms.has(armedTrack.id)) {
+      this.trackWaveforms.set(armedTrack.id, []);
+    }
+    
+    this.trackWaveforms.get(armedTrack.id)!.push({
+      position: canvasX,
+      peak: peak
+    });
+    
+    // Redraw all track waveforms to show the new peak
+    this.redrawAllTrackWaveforms();
+  }
+  
+  private redrawAllTrackWaveforms() {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const canvas = this.waveformCanvas;
+    const ctx = this.waveformContext;
+    const height = canvas.height;
+    const canvasInternalWidth = canvas.width;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvasInternalWidth, height);
+    
+    let totalTracksDrawn = 0;
+    
+    // Draw waveforms for all tracks with data (in order: 1, 2, 3, 4)
+    for (let trackId = 1; trackId <= 4; trackId++) {
+      const waveformData = this.trackWaveforms.get(trackId);
+      if (!waveformData || waveformData.length === 0) continue;
+      
+      // Set color for this track
+      const color = this.trackColors[trackId as keyof typeof this.trackColors] || '#D18C33';
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.85; // Slight transparency for layering effect
+      
+      // Draw all peaks for this track
+      const peakWidth = 3;
+      for (const { position, peak } of waveformData) {
+        const peakHeight = peak * (height * 0.8);
+        if (position < canvasInternalWidth && position >= 0) {
+          ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
+        }
+      }
+      
+      totalTracksDrawn++;
+    }
+    
+    // Reset alpha
     ctx.globalAlpha = 1;
     
-    // Draw waveform from bottom upward for better visual alignment
-    const peakHeight = peak * (height * 0.8); // Use 80% of height for better proportions
-    const peakWidth = 3; // Slightly thinner for cleaner look
-    
-    // Draw peak as vertical line from bottom upward at scaled canvas position
-    if (canvasX < canvasInternalWidth && canvasX >= 0) {
-      ctx.fillRect(canvasX, height - peakHeight, peakWidth, peakHeight);
+    if (totalTracksDrawn > 0) {
+      console.log(`[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks`);
     }
   }
 
