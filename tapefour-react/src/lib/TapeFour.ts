@@ -56,6 +56,9 @@ export default class TapeFour {
     echoCancellation: false,
     noiseSuppression: false,
     autoGainControl: false,
+    // Punch-in recording state
+    recordMode: 'fresh' as 'fresh' | 'punchIn',
+    punchInStartPosition: 0, // Position where punch-in recording started (in ms)
   };
 
   private tracks: Array<{
@@ -571,14 +574,19 @@ export default class TapeFour {
     this.playheadContainer.addEventListener('click', onClick);
     
     // Add visual feedback with CSS cursor
-    this.playheadContainer.style.cursor = 'pointer';
-    playheadIndicator.style.cursor = 'grab';
+    this.updatePlayheadCursor();
     
     console.log('[SCRUB] ✅ Playhead scrubbing setup complete');
   }
 
   private handlePlayheadDrag(e: MouseEvent) {
     if (!this.playheadContainer) return;
+    
+    // Disable scrubbing while recording to prevent accidental repositioning
+    if (this.state.isRecording) {
+      console.log('[SCRUB] ⚠️ Scrubbing disabled during recording');
+      return;
+    }
     
     // Get mouse position relative to the playhead container
     const rect = this.playheadContainer.getBoundingClientRect();
@@ -595,6 +603,24 @@ export default class TapeFour {
     this.updatePlayheadUI();
     
     console.log(`[SCRUB] 🎯 Scrubbed to ${(newPosition / 1000).toFixed(2)}s (${(progress * 100).toFixed(1)}%)`);
+  }
+
+  private updatePlayheadCursor() {
+    if (!this.playheadContainer) return;
+    
+    const playheadIndicator = document.getElementById('playhead-indicator') as HTMLElement | null;
+    
+    if (this.state.isRecording) {
+      // Recording mode: show disabled cursor
+      this.playheadContainer.style.cursor = 'not-allowed';
+      if (playheadIndicator) playheadIndicator.style.cursor = 'not-allowed';
+      this.playheadContainer.title = 'Scrubbing disabled during recording';
+    } else {
+      // Normal mode: show interactive cursor
+      this.playheadContainer.style.cursor = 'pointer';
+      if (playheadIndicator) playheadIndicator.style.cursor = 'grab';
+      this.playheadContainer.title = 'Click or drag to scrub timeline';
+    }
   }
 
   private restartPlaybackFromCurrentPosition() {
@@ -1266,6 +1292,17 @@ export default class TapeFour {
     console.log(`[TAPEFOUR] 🎯 Armed track: ${armedTrack?.id || 'none'}`);
     if (!armedTrack) return alert('Please arm a track before recording.');
 
+    // Determine recording mode based on current playhead position
+    if (this.state.playheadPosition > 0) {
+      this.state.recordMode = 'punchIn';
+      this.state.punchInStartPosition = this.state.playheadPosition;
+      console.log(`[PUNCH-IN] 🎯 Punch-in recording from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+    } else {
+      this.state.recordMode = 'fresh';
+      this.state.punchInStartPosition = 0;
+      console.log('[TAPEFOUR] 🎵 Fresh recording from beginning');
+    }
+
     await this.initializeAudio();
     await this.setupRecording();
     await this.unmuteInput();
@@ -1275,7 +1312,22 @@ export default class TapeFour {
     console.log('[TAPEFOUR] 🗑️ Recording buffer cleared');
 
     this.state.isRecording = true;
-    document.getElementById('record-btn')?.classList.add('recording');
+    
+    // Update record button styling based on mode
+    const recordBtn = document.getElementById('record-btn');
+    if (recordBtn) {
+      recordBtn.classList.add('recording');
+      if (this.state.recordMode === 'punchIn') {
+        recordBtn.classList.add('punch-in');
+        recordBtn.title = 'Punch-In Recording - Only armed tracks will be overdubbed';
+      } else {
+        recordBtn.classList.remove('punch-in');
+        recordBtn.title = 'Recording - Armed tracks will be replaced from beginning';
+      }
+    }
+    
+    // Update playhead cursor to show scrubbing is disabled
+    this.updatePlayheadCursor();
 
     console.log('[TAPEFOUR] 🎵 Starting monitoring playback during recording...');
     console.log('[TAPEFOUR] 🎧 Other tracks will play at reduced volume to minimize bleed');
@@ -1290,29 +1342,38 @@ export default class TapeFour {
     // Enable monitoring mode (lower volume playback during recording)
     this.enableMonitoringMode();
     
-    // Play all other tracks for monitoring
+    // Play all tracks for monitoring (including armed tracks in punch-in mode)
     const recordingStartTime = this.audioContext!.currentTime + 0.05;
     console.log(`[TAPEFOUR] 🕐 Starting synchronized monitoring playback at audio context time: ${recordingStartTime}`);
     
     this.tracks.forEach((t) => {
-      if (!t.isArmed && t.audioBuffer) {
+      if (t.audioBuffer && (this.state.recordMode === 'punchIn' || !t.isArmed)) {
         console.log(`[TAPEFOUR]   - Playing track ${t.id} for monitoring during recording`);
         this.playTrack(t, recordingStartTime);
       }
     });
 
     this.state.isPlaying = true;
-    this.state.playheadPosition = 0; // Start from beginning for proper sync
+    // For fresh recording, start from beginning; for punch-in, continue from current position
+    if (this.state.recordMode === 'fresh') {
+      this.state.playheadPosition = 0;
+    }
     this.startPlayheadTimer();
     document.getElementById('play-btn')?.classList.add('playing');
 
     this.mediaRecorder!.start();
     
-    // Start waveform capture - only clear the current track's waveform
-    this.clearWaveform(armedTrack.id);
+    // Handle waveform capture based on recording mode
+    if (this.state.recordMode === 'fresh') {
+      // Fresh recording: clear the current track's waveform
+      this.clearWaveform(armedTrack.id);
+    } else {
+      // Punch-in: fade existing waveform and prepare for overlay
+      this.preparePunchInWaveform(armedTrack.id);
+    }
     this.startWaveformCapture();
     
-    console.log('[TAPEFOUR] ✅ Recording started');
+    console.log(`[TAPEFOUR] ✅ ${this.state.recordMode === 'punchIn' ? 'Punch-in' : 'Fresh'} recording started`);
   }
 
   private async setupRecording() {
@@ -1421,12 +1482,21 @@ export default class TapeFour {
   }
 
   private stopRecording() {
-    console.log('[TAPEFOUR] 🛑 Stopping recording');
+    console.log(`[TAPEFOUR] 🛑 Stopping ${this.state.recordMode} recording`);
     if (!this.state.isRecording) return;
     
     this.state.isRecording = false;
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
-    document.getElementById('record-btn')?.classList.remove('recording');
+    
+    // Clean up record button styling
+    const recordBtn = document.getElementById('record-btn');
+    if (recordBtn) {
+      recordBtn.classList.remove('recording', 'punch-in');
+      recordBtn.title = 'Record';
+    }
+    
+    // Re-enable scrubbing by updating cursor
+    this.updatePlayheadCursor();
     
     // Stop waveform capture
     this.stopWaveformCapture();
@@ -1441,7 +1511,13 @@ export default class TapeFour {
       // Stop all track sources
       this.tracks.forEach((t) => {
         if (t.sourceNode) {
-          t.sourceNode.stop();
+          try {
+            t.sourceNode.stop();
+            t.sourceNode.disconnect();
+          } catch (e) {
+            // Source might already be stopped, ignore errors
+            console.log(`  - Track ${t.id} source already stopped`);
+          }
           t.sourceNode = null;
         }
       });
@@ -1455,9 +1531,12 @@ export default class TapeFour {
         console.log('[TAPEFOUR] 🗑️ Clearing leftover recording buffer after stop');
         this.recordingBuffer = [];
       }
+      
+      // Redraw waveforms to remove punch-in overlay and restore normal opacity
+      this.redrawAllTrackWaveforms();
     }, 100); // Small delay to allow MediaRecorder onstop to fire first
     
-    console.log('[TAPEFOUR] ✅ Recording stopped');
+    console.log(`[TAPEFOUR] ✅ ${this.state.recordMode} recording stopped`);
   }
 
   private async processRecording() {
@@ -1469,15 +1548,24 @@ export default class TapeFour {
     const arrayBuffer = await blob.arrayBuffer();
 
     try {
-      const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-      console.log(`[TAPEFOUR] 🎵 Decoded audio buffer: ${audioBuffer.length} samples, ${audioBuffer.duration.toFixed(2)}s, ${audioBuffer.numberOfChannels} channels`);
+      const newAudioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
+      console.log(`[TAPEFOUR] 🎵 Decoded audio buffer: ${newAudioBuffer.length} samples, ${newAudioBuffer.duration.toFixed(2)}s, ${newAudioBuffer.numberOfChannels} channels`);
       
-      // Find the currently armed track and assign the recording to it
+      // Find the currently armed track
       const armedTrack = this.tracks.find((t) => t.isArmed);
       if (armedTrack) {
-        armedTrack.audioBuffer = audioBuffer;
-        console.log(`[TAPEFOUR] ✅ Recorded audio assigned to track ${armedTrack.id}`);
-        console.log(`[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${audioBuffer.length} samples (${audioBuffer.duration.toFixed(2)}s)`);
+        if (this.state.recordMode === 'fresh') {
+          // Fresh recording: replace the entire buffer
+          armedTrack.audioBuffer = newAudioBuffer;
+          console.log(`[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id}`);
+          console.log(`[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
+        } else {
+          // Punch-in recording: merge with existing buffer
+          const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
+          armedTrack.audioBuffer = mergedBuffer;
+          console.log(`[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id}`);
+          console.log(`[PUNCH-IN] 📊 Track ${armedTrack.id} now has ${mergedBuffer.length} samples (${mergedBuffer.duration.toFixed(2)}s)`);
+        }
       } else {
         console.warn('[TAPEFOUR] ⚠️ No armed track found to assign recording to');
       }
@@ -1485,8 +1573,89 @@ export default class TapeFour {
       console.error('[TAPEFOUR] Error processing recording', err);
     }
 
+    // Reset recording mode state
+    this.state.recordMode = 'fresh';
+    this.state.punchInStartPosition = 0;
+
     this.mediaStream?.getTracks().forEach((t) => t.stop());
     console.log('[TAPEFOUR] 🔌 Media stream tracks stopped');
+  }
+
+  private mergeBuffersForPunchIn(existingBuffer: AudioBuffer | null, newBuffer: AudioBuffer, punchInStartMs: number): AudioBuffer {
+    const sampleRate = this.audioContext!.sampleRate;
+    const punchInStartSamples = Math.floor((punchInStartMs / 1000) * sampleRate);
+    const newBufferLength = newBuffer.length;
+    const punchOutSamples = punchInStartSamples + newBufferLength;
+    
+    console.log(`[PUNCH-IN] 🔧 Merging buffers:`);
+    console.log(`  - Punch-in start: ${punchInStartMs}ms (${punchInStartSamples} samples)`);
+    console.log(`  - New recording: ${newBufferLength} samples`);
+    console.log(`  - Punch-out: ${punchOutSamples} samples`);
+    
+    // Determine the final buffer length
+    const existingLength = existingBuffer ? existingBuffer.length : 0;
+    const finalLength = Math.max(existingLength, punchOutSamples);
+    
+    // Determine channel count (use the maximum of existing and new)
+    const existingChannels = existingBuffer ? existingBuffer.numberOfChannels : 1;
+    const newChannels = newBuffer.numberOfChannels;
+    const finalChannels = Math.max(existingChannels, newChannels);
+    
+    console.log(`  - Final buffer: ${finalLength} samples, ${finalChannels} channels`);
+    
+    // Create the merged buffer
+    const mergedBuffer = this.audioContext!.createBuffer(finalChannels, finalLength, sampleRate);
+    
+    // Process each channel
+    for (let channel = 0; channel < finalChannels; channel++) {
+      const mergedData = mergedBuffer.getChannelData(channel);
+      
+      // 1. Copy pre-punch segment from existing buffer (if it exists)
+      if (existingBuffer && punchInStartSamples > 0) {
+        const existingChannelIndex = Math.min(channel, existingBuffer.numberOfChannels - 1);
+        const existingData = existingBuffer.getChannelData(existingChannelIndex);
+        const prePunchLength = Math.min(punchInStartSamples, existingData.length);
+        
+        for (let i = 0; i < prePunchLength; i++) {
+          mergedData[i] = existingData[i];
+        }
+        console.log(`  - Channel ${channel}: Copied ${prePunchLength} pre-punch samples`);
+      }
+      
+      // 2. Copy new recording data (punch-in segment)
+      const newChannelIndex = Math.min(channel, newBuffer.numberOfChannels - 1);
+      const newData = newBuffer.getChannelData(newChannelIndex);
+      
+      for (let i = 0; i < newBufferLength; i++) {
+        const targetIndex = punchInStartSamples + i;
+        if (targetIndex < finalLength) {
+          mergedData[targetIndex] = newData[i];
+        }
+      }
+      console.log(`  - Channel ${channel}: Copied ${newBufferLength} punch-in samples`);
+      
+      // 3. Copy post-punch segment from existing buffer (if it exists and extends beyond punch-out)
+      if (existingBuffer && existingBuffer.length > punchOutSamples) {
+        const existingChannelIndex = Math.min(channel, existingBuffer.numberOfChannels - 1);
+        const existingData = existingBuffer.getChannelData(existingChannelIndex);
+        const postPunchStart = punchOutSamples;
+        const postPunchLength = existingBuffer.length - postPunchStart;
+        
+        for (let i = 0; i < postPunchLength; i++) {
+          const sourceIndex = postPunchStart + i;
+          const targetIndex = postPunchStart + i;
+          if (targetIndex < finalLength && sourceIndex < existingData.length) {
+            mergedData[targetIndex] = existingData[sourceIndex];
+          }
+        }
+        console.log(`  - Channel ${channel}: Copied ${postPunchLength} post-punch samples`);
+      }
+      
+      // Fill any remaining gaps with silence (already zeroed by createBuffer)
+    }
+    
+    console.log(`[PUNCH-IN] ✅ Buffer merge complete: ${finalLength} samples (${(finalLength / sampleRate).toFixed(2)}s)`);
+    return mergedBuffer;
   }
 
   /* ---------- Playhead --------- */
@@ -2204,6 +2373,18 @@ export default class TapeFour {
     this.redrawAllTrackWaveforms();
   }
 
+  private preparePunchInWaveform(trackId: number) {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    console.log(`[PUNCH-IN] 🎨 Preparing punch-in waveform for track ${trackId}`);
+    
+    // Mark this track as in punch-in mode for visual rendering
+    // We'll render existing waveform at reduced opacity and overlay new recording
+    this.redrawAllTrackWaveforms();
+    
+    console.log('[PUNCH-IN] ✅ Punch-in waveform prepared - existing waveform will be faded during recording');
+  }
+
   private setupWaveformAnalyser() {
     if (!this.audioContext || !this.inputSourceNode) return;
     
@@ -2301,6 +2482,8 @@ export default class TapeFour {
     ctx.clearRect(0, 0, canvasInternalWidth, height);
     
     let totalTracksDrawn = 0;
+    const armedTrack = this.tracks.find(t => t.isArmed);
+    const isPunchInRecording = this.state.isRecording && this.state.recordMode === 'punchIn';
     
     // Draw waveforms for all tracks with data (in order: 1, 2, 3, 4)
     for (let trackId = 1; trackId <= 4; trackId++) {
@@ -2312,7 +2495,15 @@ export default class TapeFour {
       ctx.fillStyle = color;
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.85; // Slight transparency for layering effect
+      
+      // Determine opacity based on punch-in recording state
+      if (isPunchInRecording && armedTrack && trackId === armedTrack.id) {
+        // Armed track during punch-in: fade existing waveform to 40% opacity
+        ctx.globalAlpha = 0.4;
+      } else {
+        // Normal opacity for other tracks or non-punch-in recording
+        ctx.globalAlpha = 0.85;
+      }
       
       // Draw all peaks for this track
       const peakWidth = 3;
@@ -2326,11 +2517,55 @@ export default class TapeFour {
       totalTracksDrawn++;
     }
     
+    // Draw punch-in overlay if actively recording in punch-in mode
+    if (isPunchInRecording && armedTrack) {
+      this.drawPunchInOverlay(armedTrack.id);
+    }
+    
     // Reset alpha
     ctx.globalAlpha = 1;
     
     if (totalTracksDrawn > 0) {
       console.log(`[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks`);
+    }
+  }
+
+  private drawPunchInOverlay(trackId: number) {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const canvas = this.waveformCanvas;
+    const ctx = this.waveformContext;
+    const height = canvas.height;
+    
+    // Calculate punch-in region
+    const progress = this.state.playheadPosition / this.state.maxRecordingTime;
+    const punchInProgress = this.state.punchInStartPosition / this.state.maxRecordingTime;
+    
+    // Get the displayed width and scale to canvas
+    const playheadElement = document.getElementById('playhead');
+    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
+    const scaleFactor = canvas.width / displayedWidth;
+    
+    const punchInStartX = punchInProgress * displayedWidth * scaleFactor;
+    const currentX = progress * displayedWidth * scaleFactor;
+    const overlayWidth = currentX - punchInStartX;
+    
+    if (overlayWidth > 0) {
+      // Set punch-in overlay color (semi-transparent orange)
+      const trackColor = this.trackColors[trackId as keyof typeof this.trackColors] || '#D18C33';
+      ctx.fillStyle = `${trackColor}80`; // Add 50% transparency (80 in hex)
+      ctx.globalAlpha = 0.7;
+      
+      // Draw overlay rectangle from punch-in start to current position
+      ctx.fillRect(punchInStartX, 0, overlayWidth, height);
+      
+      // Draw a subtle border to highlight the punch-in region
+      ctx.strokeStyle = trackColor;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.9;
+      ctx.strokeRect(punchInStartX, 0, overlayWidth, height);
+      
+      console.log(`[PUNCH-IN] 🎨 Drew punch-in overlay: ${punchInStartX.toFixed(1)}px to ${currentX.toFixed(1)}px (width: ${overlayWidth.toFixed(1)}px)`);
     }
   }
 
