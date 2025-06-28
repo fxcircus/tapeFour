@@ -70,6 +70,7 @@ export default class TapeFour {
     id: number;
     audioBuffer: AudioBuffer | null;
     originalBuffer: AudioBuffer | null; // Store original buffer for toggling reverse
+    recordStartTime: number; // Timeline position (ms) where this track's recording started
     isArmed: boolean;
     isSolo: boolean;
     isMuted: boolean;
@@ -80,10 +81,10 @@ export default class TapeFour {
     panNode: StereoPannerNode | null;
     panValue: number; // 0 = fully left, 50 = center, 100 = fully right
   }> = [
-    { id: 1, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 2, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 3, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 4, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 1, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 2, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 3, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 4, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -1354,7 +1355,17 @@ export default class TapeFour {
   }
 
   private playTrack(track: typeof this.tracks[number], startTime?: number) {
+    if (!track.audioBuffer || !this.audioContext) return;
+    
     console.log(`🎵 playTrack() called for track ${track.id}`);
+    
+    // Calculate track's timeline boundaries
+    const trackStartMs = track.recordStartTime;
+    const trackEndMs = track.recordStartTime + (track.audioBuffer.duration * 1000);
+    const currentPlayheadMs = this.state.playheadPosition;
+    
+    console.log(`  - Track ${track.id} timeline: ${trackStartMs}ms - ${trackEndMs}ms, playhead at ${currentPlayheadMs}ms`);
+    console.log(`  - Track ${track.id} is ${track.isReversed ? 'REVERSED' : 'NORMAL'}, buffer duration: ${track.audioBuffer.duration.toFixed(3)}s`);
     
     // Ensure any existing source is properly stopped and cleaned up
     if (track.sourceNode) {
@@ -1369,10 +1380,38 @@ export default class TapeFour {
       track.sourceNode = null;
     }
 
+    let actualStartTime = startTime || this.audioContext!.currentTime;
+    let bufferOffset = 0;
+
+    if (currentPlayheadMs < trackStartMs) {
+      // Case 1: Playhead is before track starts - schedule track to start at correct time
+      const delaySeconds = (trackStartMs - currentPlayheadMs) / 1000;
+      actualStartTime += delaySeconds;
+      bufferOffset = 0; // Start from beginning of track
+      console.log(`  - Track ${track.id} scheduled to start in ${delaySeconds.toFixed(3)}s at timeline position ${trackStartMs}ms`);
+    } else if (currentPlayheadMs >= trackEndMs) {
+      // Case 2: Playhead is past track end - don't play
+      console.log(`  - Track ${track.id} not playing: playhead past end of track`);
+      return;
+    } else {
+      // Case 3: Playhead is within track timeline - start immediately with offset
+      const timeFromTrackStart = currentPlayheadMs - trackStartMs;
+      bufferOffset = timeFromTrackStart / 1000;
+      console.log(`  - Track ${track.id} starting immediately with offset ${bufferOffset.toFixed(3)}s`);
+    }
+
+    // For reversed tracks, the buffer is already reversed, so we use the same offset logic
+    if (track.isReversed) {
+      console.log(`  - Track ${track.id} is REVERSED: using offset ${bufferOffset.toFixed(3)}s in reversed buffer`);
+    }
+    
+    // Ensure offset is within valid bounds
+    bufferOffset = Math.max(0, Math.min(bufferOffset, track.audioBuffer.duration - 0.001));
+
     const source = this.audioContext!.createBufferSource();
     source.buffer = track.audioBuffer!;
     console.log(`  - Created source node for track ${track.id}`);
-    console.log(`  - Connecting: source -> gainNode(${track.gainNode!.gain.value}) -> master`);
+    console.log(`  - Connecting: source -> gainNode(${track.gainNode!.gain.value}) -> panNode(${track.panNode!.pan.value}) -> master`);
     source.connect(track.gainNode!);
     source.onended = () => {
       console.log(`  - Track ${track.id} source ended naturally`);
@@ -1381,12 +1420,18 @@ export default class TapeFour {
       }
     };
     
-    // All tracks should start simultaneously from the current playhead position
-    // This ensures they play together as a multitrack recording
-    const actualStartTime = startTime || this.audioContext!.currentTime;
-    const offset = this.state.playheadPosition / 1000;
-    source.start(actualStartTime, offset);
-    console.log(`  - Started playback at audio context time: ${actualStartTime}, offset: ${offset}s`);
+    // Add debug logging for scheduled sources
+    if (actualStartTime > this.audioContext!.currentTime + 0.2) {
+      console.log(`  - Track ${track.id} scheduled to start at ${actualStartTime.toFixed(3)}, current time is ${this.audioContext!.currentTime.toFixed(3)} (delay: ${(actualStartTime - this.audioContext!.currentTime).toFixed(3)}s)`);
+      
+      // Add a timeout to check if the source actually starts
+      setTimeout(() => {
+        console.log(`  - Checking scheduled track ${track.id}: sourceNode is ${track.sourceNode ? 'still active' : 'null'}`);
+      }, (actualStartTime - this.audioContext!.currentTime) * 1000 + 100);
+    }
+    
+    source.start(actualStartTime, bufferOffset);
+    console.log(`  - Started track ${track.id} playback at audio context time: ${actualStartTime.toFixed(3)}, buffer offset: ${bufferOffset.toFixed(3)}s`);
 
     track.sourceNode = source;
   }
@@ -1533,6 +1578,7 @@ export default class TapeFour {
       track.audioBuffer = null;
       track.originalBuffer = null;
       track.isReversed = false;
+      track.recordStartTime = 0;
       console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset reverse state`);
       // Update reverse button styling
       this.updateReverseButtonStyling(track.id);
@@ -1655,7 +1701,9 @@ export default class TapeFour {
     } else {
       this.state.recordMode = 'fresh';
       this.state.punchInStartPosition = 0;
-      console.log('[TAPEFOUR] 🎵 Fresh recording from beginning');
+      // For fresh recordings, set the start time to current playhead position (which could be > 0 if user paused and then recorded)
+      armedTrack.recordStartTime = this.state.playheadPosition;
+      console.log(`[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
     }
 
     await this.initializeAudio();
@@ -1913,15 +1961,16 @@ export default class TapeFour {
       const armedTrack = this.tracks.find((t) => t.isArmed);
       if (armedTrack) {
         if (this.state.recordMode === 'fresh') {
-          // Fresh recording: replace the entire buffer
+          // Fresh recording: replace the entire buffer (recordStartTime already set in record() method)
           armedTrack.audioBuffer = newAudioBuffer;
-          console.log(`[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id}`);
+          console.log(`[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id} starting at ${armedTrack.recordStartTime}ms`);
           console.log(`[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
         } else {
-          // Punch-in recording: merge with existing buffer
+          // Punch-in recording: merge with existing buffer (keep original start time)
           const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
           armedTrack.audioBuffer = mergedBuffer;
-          console.log(`[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id}`);
+          // For punch-in, recordStartTime remains unchanged as it keeps the original track's timeline position
+          console.log(`[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id} (original start time: ${armedTrack.recordStartTime}ms)`);
           console.log(`[PUNCH-IN] 📊 Track ${armedTrack.id} now has ${mergedBuffer.length} samples (${mergedBuffer.duration.toFixed(2)}s)`);
         }
       } else {
