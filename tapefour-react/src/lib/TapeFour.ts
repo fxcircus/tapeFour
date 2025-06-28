@@ -1224,7 +1224,11 @@ export default class TapeFour {
 
   private updatePlayheadUI() {
     const progress = this.state.playheadPosition / this.state.maxRecordingTime;
-    const maxWidth = 120;
+    
+    // Get the actual rendered width of the playhead container for accurate positioning
+    const playheadElement = document.getElementById('playhead');
+    const maxWidth = playheadElement ? playheadElement.clientWidth : 120;
+    
     const pos = Math.min(progress * maxWidth, maxWidth);
     (document.getElementById('playhead-indicator') as HTMLElement | null)?.style.setProperty('left', `${pos}px`);
     
@@ -1954,10 +1958,21 @@ export default class TapeFour {
     const ctx = this.waveformContext;
     const height = canvas.height;
     
-    // Calculate current playhead position (same logic as updatePlayheadUI)
+    // Calculate current playhead position using the SAME logic as updatePlayheadUI
     const progress = this.state.playheadPosition / this.state.maxRecordingTime;
-    const maxWidth = canvas.width; // Use full canvas width instead of fixed 120px
-    const currentX = Math.min(progress * maxWidth, maxWidth);
+    
+    // Get the displayed width of the playhead container (what the user sees)
+    const playheadElement = document.getElementById('playhead');
+    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
+    
+    // Scale the position to match the canvas internal coordinate system
+    // Canvas internal width is 800px, but it's displayed at displayedWidth
+    const canvasInternalWidth = canvas.width; // 800px from HTML
+    const scaleFactor = canvasInternalWidth / displayedWidth;
+    
+    // Calculate position in playhead space, then scale to canvas space
+    const playheadPosition = Math.min(progress * displayedWidth, displayedWidth);
+    const canvasX = playheadPosition * scaleFactor;
     
     // Set waveform style to bright orange for visual pop
     ctx.fillStyle = '#D18C33'; // var(--color-accent-warm) - burnt orange for highlights
@@ -1969,9 +1984,9 @@ export default class TapeFour {
     const peakHeight = peak * (height * 0.8); // Use 80% of height for better proportions
     const peakWidth = 3; // Slightly thinner for cleaner look
     
-    // Draw peak as vertical line from bottom upward at current playhead position
-    if (currentX < canvas.width && currentX >= 0) {
-      ctx.fillRect(currentX, height - peakHeight, peakWidth, peakHeight);
+    // Draw peak as vertical line from bottom upward at scaled canvas position
+    if (canvasX < canvasInternalWidth && canvasX >= 0) {
+      ctx.fillRect(canvasX, height - peakHeight, peakWidth, peakHeight);
     }
   }
 
