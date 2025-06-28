@@ -9,6 +9,7 @@
   /* Vintage accent colors */
   --color-accent-warm: hsl(28, 65%, 52%);       /* Burnt orange for highlights */
   --color-accent-olive: hsl(52, 20%, 45%);      /* Muted olive for secondary */
+  --color-accent-purple: hsl(271, 81%, 56%);    /* Purple for reverse buttons */
   
   /* Functional colors */
   --color-record: hsl(18, 75%, 48%);            /* Warm orange for REC */
@@ -1073,6 +1074,65 @@ body {
 .solo-button:active {
   background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
   transform: translateY(1px);
+}
+
+/* REVERSE Buttons - Purple Accent */
+.reverse-button {
+  appearance: none;
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 4px; /* Square corners for reverse button */
+  width: 24px; /* Square button */
+  height: 24px; /* Square button */
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+  margin-top: 4px; /* 4pt grid alignment */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reverse-button svg {
+  stroke: var(--color-text-primary);
+  transition: stroke 0.15s ease;
+}
+
+.reverse-button:hover {
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-accent-purple) 15%);
+}
+
+.reverse-button:hover svg {
+  stroke: var(--color-accent-purple);
+}
+
+.reverse-button.active {
+  background: var(--color-accent-purple);
+  border-color: var(--color-accent-purple);
+  box-shadow: 0 0 8px rgba(147, 51, 234, 0.3);
+}
+
+.reverse-button.active svg {
+  stroke: var(--color-chassis);
+}
+
+.reverse-button:active {
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
+  transform: translateY(1px);
+}
+
+.reverse-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reverse-button:disabled:hover {
+  background: var(--color-chassis);
+  border-color: var(--color-text-primary);
+}
+
+.reverse-button:disabled:hover svg {
+  stroke: var(--color-text-primary);
 }
 
 /* MUTE Button - Desaturated Clay */

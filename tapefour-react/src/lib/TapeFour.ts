@@ -69,19 +69,21 @@ export default class TapeFour {
   private tracks: Array<{
     id: number;
     audioBuffer: AudioBuffer | null;
+    originalBuffer: AudioBuffer | null; // Store original buffer for toggling reverse
     isArmed: boolean;
     isSolo: boolean;
     isMuted: boolean;
     isManuallyMuted: boolean; // Visual state for mute button
+    isReversed: boolean; // Track if audio is reversed
     gainNode: GainNode | null;
     sourceNode: AudioBufferSourceNode | null;
     panNode: StereoPannerNode | null;
     panValue: number; // 0 = fully left, 50 = center, 100 = fully right
   }> = [
-    { id: 1, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 2, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 3, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 4, audioBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 1, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 2, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 3, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 4, audioBuffer: null, originalBuffer: null, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -183,9 +185,12 @@ export default class TapeFour {
     // Apply track colors to mute buttons
     this.applyTrackColorsToUI();
     
-    // Update existing mute button styling immediately if tracks exist
+    // Update existing button styling immediately if tracks exist
     setTimeout(() => {
-      this.tracks.forEach(track => this.updateMuteButtonStyling(track.id));
+      this.tracks.forEach(track => {
+        this.updateMuteButtonStyling(track.id);
+        this.updateReverseButtonStyling(track.id);
+      });
       this.updateBounceButtonState(); // Initialize bounce button state
     }, 100);
   }
@@ -229,6 +234,12 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const el = document.getElementById(`mute-${track.id}`);
       el?.addEventListener('click', () => this.toggleTrackMute(track.id));
+    });
+
+    // Reverse buttons
+    this.tracks.forEach((track) => {
+      const el = document.getElementById(`reverse-${track.id}`);
+      el?.addEventListener('click', () => this.toggleTrackReverse(track.id));
     });
 
     // Faders
@@ -1054,6 +1065,111 @@ export default class TapeFour {
     });
   }
 
+  private toggleTrackReverse(trackId: number) {
+    console.log(`[TAPEFOUR] 🔄 Toggling reverse for track ${trackId}`);
+    
+    const track = this.tracks[trackId - 1];
+    if (!track) return;
+
+    // Safety check: Stop transport if playing or recording
+    if (this.state.isPlaying || this.state.isRecording) {
+      console.log('[TAPEFOUR] 🛑 Stopping transport before reversing track');
+      this.stop();
+    }
+
+    // Check if track has audio
+    if (!track.audioBuffer) {
+      console.log(`[TAPEFOUR] ⚠️ Track ${trackId} has no audio to reverse`);
+      return;
+    }
+
+    try {
+      if (track.isReversed) {
+        // Track is currently reversed, restore original
+        if (track.originalBuffer) {
+          console.log(`[TAPEFOUR] ⏮️ Restoring original audio for track ${trackId}`);
+          track.audioBuffer = track.originalBuffer;
+          track.isReversed = false;
+        }
+      } else {
+        // Track is not reversed, reverse it
+        console.log(`[TAPEFOUR] 🔄 Reversing audio for track ${trackId}`);
+        
+        // Store original buffer if not already stored
+        if (!track.originalBuffer) {
+          track.originalBuffer = track.audioBuffer;
+        }
+        
+        // Create reversed buffer
+        const reversedBuffer = this.reverseAudioBuffer(track.audioBuffer);
+        track.audioBuffer = reversedBuffer;
+        track.isReversed = true;
+      }
+
+      // Update UI state
+      this.updateReverseButtonStyling(trackId);
+      
+      // Regenerate waveform with new audio data
+      this.generateTrackWaveform(track.audioBuffer, trackId);
+      this.redrawAllTrackWaveforms();
+      
+      console.log(`[TAPEFOUR] ✅ Track ${trackId} reverse toggle complete. Reversed: ${track.isReversed}`);
+      
+    } catch (error) {
+      console.error(`[TAPEFOUR] ❌ Error reversing track ${trackId}:`, error);
+      this.showError(`Failed to reverse track ${trackId}. Please try again.`);
+    }
+  }
+
+  private reverseAudioBuffer(originalBuffer: AudioBuffer): AudioBuffer {
+    if (!this.audioContext) {
+      throw new Error('No audio context available');
+    }
+
+    // Create new buffer with same properties
+    const reversedBuffer = this.audioContext.createBuffer(
+      originalBuffer.numberOfChannels,
+      originalBuffer.length,
+      originalBuffer.sampleRate
+    );
+
+    // Reverse each channel
+    for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+      const originalData = originalBuffer.getChannelData(channel);
+      const reversedData = reversedBuffer.getChannelData(channel);
+      
+      // Copy samples in reverse order
+      for (let i = 0; i < originalData.length; i++) {
+        reversedData[i] = originalData[originalData.length - 1 - i];
+      }
+    }
+
+    return reversedBuffer;
+  }
+
+  private updateReverseButtonStyling(trackId: number) {
+    const reverseButton = document.getElementById(`reverse-${trackId}`);
+    const track = this.tracks[trackId - 1];
+    
+    if (!reverseButton || !track) return;
+
+    // Update button visual state
+    if (track.isReversed) {
+      reverseButton.classList.add('active');
+    } else {
+      reverseButton.classList.remove('active');
+    }
+
+    // Update button disabled state
+    if (!track.audioBuffer) {
+      reverseButton.setAttribute('disabled', 'true');
+      reverseButton.setAttribute('title', 'No audio to reverse');
+    } else {
+      reverseButton.removeAttribute('disabled');
+      reverseButton.setAttribute('title', `Reverse Track ${trackId}`);
+    }
+  }
+
   private updateMuteButtonStyling(trackId: number) {
     const track = this.tracks.find(t => t.id === trackId);
     if (!track) return;
@@ -1413,10 +1529,14 @@ export default class TapeFour {
     // First stop all transport activity
     this.stop();
     
-    // Clear all track audio buffers
+    // Clear all track audio buffers and reset reverse states
     this.tracks.forEach((track) => {
       track.audioBuffer = null;
-      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer`);
+      track.originalBuffer = null;
+      track.isReversed = false;
+      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset reverse state`);
+      // Update reverse button styling
+      this.updateReverseButtonStyling(track.id);
     });
     
     // Clear master buffer
@@ -1821,6 +1941,12 @@ export default class TapeFour {
     
     // Update bounce button state since new audio may be available
     this.updateBounceButtonState();
+    
+    // Update reverse button state for the recorded track
+    const armedTrack = this.tracks.find((t) => t.isArmed);
+    if (armedTrack) {
+      this.updateReverseButtonStyling(armedTrack.id);
+    }
   }
 
   private mergeBuffersForPunchIn(existingBuffer: AudioBuffer | null, newBuffer: AudioBuffer, punchInStartMs: number): AudioBuffer {
