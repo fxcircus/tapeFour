@@ -1151,10 +1151,12 @@ export default class TapeFour {
     if (this.state.masterBuffer) {
       console.log('🏆 Playing master buffer from bounce');
       this.playMasterTrack(startTime);
-    } else {
-      // Prepare all tracks to start simultaneously
-      const tracksToPlay = this.tracks.filter(t => t.audioBuffer);
-      console.log(`🎵 Preparing ${tracksToPlay.length} tracks for synchronized playback`);
+    }
+    
+    // ALSO play any individual tracks (for layering new recordings on top of master)
+    const tracksToPlay = this.tracks.filter(t => t.audioBuffer);
+    if (tracksToPlay.length > 0) {
+      console.log(`🎵 Preparing ${tracksToPlay.length} individual tracks for playback${this.state.masterBuffer ? ' (layered with master)' : ''}`);
       
       this.tracks.forEach((t) => {
         if (t.audioBuffer) {
@@ -1388,7 +1390,12 @@ export default class TapeFour {
     if (this.state.masterBuffer) {
       console.log('🏆 Restarting master buffer from scrubbed position');
       this.playMasterTrack(startTime);
-    } else {
+    }
+    
+    // ALSO restart any individual tracks (for layering new recordings on top of master)
+    const tracksToRestart = this.tracks.filter(t => t.audioBuffer);
+    if (tracksToRestart.length > 0) {
+      console.log(`🎵 Restarting ${tracksToRestart.length} individual tracks${this.state.masterBuffer ? ' (layered with master)' : ''}`);
       this.tracks.forEach((t) => {
         if (t.audioBuffer) {
           console.log(`🎶 Restarting track ${t.id} from scrubbed position`);
