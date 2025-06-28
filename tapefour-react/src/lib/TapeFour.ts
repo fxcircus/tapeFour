@@ -1970,10 +1970,21 @@ export default class TapeFour {
       tracksWithAudio.forEach((track) => {
         const src = offline.createBufferSource();
         const gain = offline.createGain();
+        const pan = offline.createStereoPanner();
+        
+        // Set up the audio chain: source -> gain -> pan -> master
         src.buffer = track.audioBuffer!;
         gain.gain.value = track.gainNode!.gain.value;
+        
+        // Convert track pan value (0-100) to StereoPanner value (-1 to 1)
+        // 0 = fully left (-1), 50 = center (0), 100 = fully right (1)
+        const panPosition = (track.panValue - 50) / 50;
+        pan.pan.value = panPosition;
+        
+        // Connect the audio chain
         src.connect(gain);
-        gain.connect(offlineMaster);
+        gain.connect(pan);
+        pan.connect(offlineMaster);
         src.start(0);
       });
 
