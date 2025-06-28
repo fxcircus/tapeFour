@@ -70,21 +70,23 @@ export default class TapeFour {
     id: number;
     audioBuffer: AudioBuffer | null;
     originalBuffer: AudioBuffer | null; // Store original buffer for toggling reverse
+    originalBufferForSpeed: AudioBuffer | null; // Store original buffer for toggling half-speed
     recordStartTime: number; // Timeline position (ms) where this track's recording started
     isArmed: boolean;
     isSolo: boolean;
     isMuted: boolean;
     isManuallyMuted: boolean; // Visual state for mute button
     isReversed: boolean; // Track if audio is reversed
+    isHalfSpeed: boolean; // Track if audio is at half speed
     gainNode: GainNode | null;
     sourceNode: AudioBufferSourceNode | null;
     panNode: StereoPannerNode | null;
     panValue: number; // 0 = fully left, 50 = center, 100 = fully right
   }> = [
-    { id: 1, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 2, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 3, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 4, audioBuffer: null, originalBuffer: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 1, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 2, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 3, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 4, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -191,6 +193,7 @@ export default class TapeFour {
       this.tracks.forEach(track => {
         this.updateMuteButtonStyling(track.id);
         this.updateReverseButtonStyling(track.id);
+        this.updateHalfSpeedButtonStyling(track.id);
       });
       this.updateBounceButtonState(); // Initialize bounce button state
     }, 100);
@@ -241,6 +244,12 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const el = document.getElementById(`reverse-${track.id}`);
       el?.addEventListener('click', () => this.toggleTrackReverse(track.id));
+    });
+
+    // Half-speed buttons
+    this.tracks.forEach((track) => {
+      const el = document.getElementById(`half-speed-${track.id}`);
+      el?.addEventListener('click', () => this.toggleTrackHalfSpeed(track.id));
     });
 
     // Faders
@@ -554,6 +563,23 @@ export default class TapeFour {
           e.preventDefault();
           console.log('[TAPEFOUR] ⌨️ 4 key pressed - toggling track 4 arm');
           this.toggleTrackArm(4);
+          break;
+        
+        case 'KeyH':
+          // H key for half-speed on focused/armed track
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ H key pressed - toggling half-speed');
+          
+          // Find the first armed track to apply half-speed
+          const armedTrack = this.tracks.find(t => t.isArmed);
+          if (armedTrack) {
+            console.log(`[TAPEFOUR] ⌨️ H key - applying to armed track ${armedTrack.id}`);
+            this.toggleTrackHalfSpeed(armedTrack.id);
+          } else {
+            // If no track is armed, show a helpful message
+            console.log('[TAPEFOUR] ⌨️ H key - no track armed, showing error');
+            this.showError('Arm a track first, then press H to toggle half-speed');
+          }
           break;
         
         case 'Comma':
@@ -1170,6 +1196,149 @@ export default class TapeFour {
     }
   }
 
+  private async toggleTrackHalfSpeed(trackId: number) {
+    console.log(`[HALF-SPEED] 🐌 toggleTrackHalfSpeed() called for track ${trackId}`);
+    
+    // Transport safety - stop all activity first
+    if (this.state.isPlaying || this.state.isRecording || this.state.isPaused) {
+      console.log('[HALF-SPEED] 🛑 Stopping transport for safety');
+      this.stop();
+    }
+    
+    const track = this.tracks.find(t => t.id === trackId);
+    if (!track || !track.audioBuffer) {
+      console.warn(`[HALF-SPEED] ⚠️ Track ${trackId} has no audio buffer to process`);
+      return;
+    }
+    
+    try {
+      if (track.isHalfSpeed) {
+        // Disable half-speed: restore original buffer
+        console.log(`[HALF-SPEED] ⏮️ Disabling half-speed for track ${trackId}`);
+        if (track.originalBufferForSpeed) {
+          track.audioBuffer = track.originalBufferForSpeed;
+          track.originalBufferForSpeed = null;
+          track.isHalfSpeed = false;
+          console.log(`[HALF-SPEED] ✅ Restored original buffer for track ${trackId}`);
+        } else {
+          console.warn(`[HALF-SPEED] ⚠️ No original buffer found for track ${trackId}`);
+        }
+      } else {
+        // Enable half-speed: create half-speed buffer
+        console.log(`[HALF-SPEED] 🐌 Enabling half-speed for track ${trackId}`);
+        
+        // Store original buffer for restoration
+        track.originalBufferForSpeed = track.audioBuffer;
+        
+        // Show processing indicator for longer operations
+        const startTime = Date.now();
+        
+        // Create half-speed buffer
+        const halfSpeedBuffer = await this.createHalfSpeedBuffer(track.audioBuffer);
+        
+        const processingTime = Date.now() - startTime;
+        if (processingTime > 200) {
+          console.log(`[HALF-SPEED] ⏰ Processing took ${processingTime}ms`);
+        }
+        
+        // Apply the half-speed buffer
+        track.audioBuffer = halfSpeedBuffer;
+        track.isHalfSpeed = true;
+        
+        console.log(`[HALF-SPEED] ✅ Created half-speed buffer for track ${trackId}: ${halfSpeedBuffer.duration.toFixed(2)}s (2x original)`);
+      }
+      
+      // Update button styling
+      this.updateHalfSpeedButtonStyling(trackId);
+      
+      // Regenerate waveform to match new duration
+      this.generateTrackWaveform(track.audioBuffer, trackId);
+      
+      // Update project duration
+      this.updateProjectDuration();
+      
+      console.log(`[HALF-SPEED] ✅ Half-speed toggle complete for track ${trackId}`);
+      
+    } catch (error) {
+      console.error(`[HALF-SPEED] ❌ Error toggling half-speed for track ${trackId}:`, error);
+      this.showError(`Failed to process half-speed for track ${trackId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async createHalfSpeedBuffer(originalBuffer: AudioBuffer): Promise<AudioBuffer> {
+    console.log(`[HALF-SPEED] 🔧 Creating half-speed buffer from ${originalBuffer.duration.toFixed(2)}s original`);
+    
+    if (!this.audioContext) {
+      throw new Error('AudioContext not available');
+    }
+    
+    // Create offline context with double the length for half-speed
+    const offlineContext = new OfflineAudioContext(
+      originalBuffer.numberOfChannels,
+      originalBuffer.length * 2, // Double the length
+      originalBuffer.sampleRate
+    );
+    
+    // Create source and set to half playback rate
+    const source = offlineContext.createBufferSource();
+    source.buffer = originalBuffer;
+    source.playbackRate.value = 0.5; // Half speed = double duration, lower pitch
+    
+    // Connect to output
+    source.connect(offlineContext.destination);
+    
+    // Start playback and render
+    source.start(0);
+    const renderedBuffer = await offlineContext.startRendering();
+    
+    console.log(`[HALF-SPEED] ✅ Half-speed buffer created: ${renderedBuffer.duration.toFixed(2)}s`);
+    return renderedBuffer;
+  }
+
+  private updateHalfSpeedButtonStyling(trackId: number) {
+    const halfSpeedButton = document.getElementById(`half-speed-${trackId}`);
+    const track = this.tracks[trackId - 1];
+    
+    if (!halfSpeedButton || !track) return;
+
+    // Update button visual state
+    if (track.isHalfSpeed) {
+      halfSpeedButton.classList.add('active');
+    } else {
+      halfSpeedButton.classList.remove('active');
+    }
+
+    // Update button disabled state
+    if (!track.audioBuffer) {
+      halfSpeedButton.setAttribute('disabled', 'true');
+      halfSpeedButton.setAttribute('title', 'No audio to slow down');
+    } else {
+      halfSpeedButton.removeAttribute('disabled');
+      halfSpeedButton.setAttribute('title', `Half-speed Track ${trackId} (H)`);
+    }
+  }
+
+  private updateProjectDuration() {
+    // Calculate the maximum duration across all tracks (including master)
+    let maxDuration = 0;
+    
+    // Check individual tracks
+    this.tracks.forEach(track => {
+      if (track.audioBuffer) {
+        const trackDuration = track.recordStartTime + (track.audioBuffer.duration * 1000);
+        maxDuration = Math.max(maxDuration, trackDuration);
+      }
+    });
+    
+    // Check master buffer
+    if (this.state.masterBuffer) {
+      maxDuration = Math.max(maxDuration, this.state.masterBuffer.duration * 1000);
+    }
+    
+    this.state.duration = maxDuration;
+    console.log(`[DURATION] 📏 Project duration updated to ${(maxDuration / 1000).toFixed(2)}s`);
+  }
+
   private updateMuteButtonStyling(trackId: number) {
     const track = this.tracks.find(t => t.id === trackId);
     if (!track) return;
@@ -1573,15 +1742,18 @@ export default class TapeFour {
     // First stop all transport activity
     this.stop();
     
-    // Clear all track audio buffers and reset reverse states
+    // Clear all track audio buffers and reset states
     this.tracks.forEach((track) => {
       track.audioBuffer = null;
       track.originalBuffer = null;
+      track.originalBufferForSpeed = null;
       track.isReversed = false;
+      track.isHalfSpeed = false;
       track.recordStartTime = 0;
-      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset reverse state`);
-      // Update reverse button styling
+      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset all states`);
+      // Update button styling
       this.updateReverseButtonStyling(track.id);
+      this.updateHalfSpeedButtonStyling(track.id);
     });
     
     // Clear master buffer
@@ -1990,10 +2162,11 @@ export default class TapeFour {
     // Update bounce button state since new audio may be available
     this.updateBounceButtonState();
     
-    // Update reverse button state for the recorded track
+    // Update button states for the recorded track
     const armedTrack = this.tracks.find((t) => t.isArmed);
     if (armedTrack) {
       this.updateReverseButtonStyling(armedTrack.id);
+      this.updateHalfSpeedButtonStyling(armedTrack.id);
     }
   }
 

@@ -88,9 +88,14 @@ function App() {
                     <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
                   </div>
                   <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
-                  <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
-                    ⇄
-                  </button>
+                  <div className="speed-controls">
+                    <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
+                      ⇄
+                    </button>
+                    <button className="half-speed-button" id={`half-speed-${id}`} data-track={id} title={`Half-speed Track ${id} (H)`}>
+                      ½
+                    </button>
+                  </div>
                   <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} title={`Arm Track ${id} (${id})`} />
                 </div>
                 <div className="fader-section">
