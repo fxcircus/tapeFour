@@ -25,6 +25,14 @@ export default class TapeFour {
   private inputSourceNode: MediaStreamAudioSourceNode | null = null;
   private inputMonitoringGainNode: GainNode | null = null;
 
+  // Waveform strip variables
+  private waveformCanvas: HTMLCanvasElement | null = null;
+  private waveformContext: CanvasRenderingContext2D | null = null;
+  private waveformPeaks: number[] = [];
+  private waveformRenderingId: number | null = null;
+  private waveformBufferSize = 800; // Width of canvas in pixels
+  private waveformAnalyserNode: AnalyserNode | null = null;
+
   private state = {
     isPlaying: false,
     isRecording: false,
@@ -140,6 +148,13 @@ export default class TapeFour {
       masterFader.setAttribute('value', '80'); // 0 dB = 80% fader position (logarithmic taper)
       // Initialize CSS custom property for master fader volume indicator line
       masterFader.style.setProperty('--master-fader-value', '80');
+    }
+
+    // Initialize waveform canvas
+    this.waveformCanvas = document.getElementById('waveform-canvas') as HTMLCanvasElement | null;
+    if (this.waveformCanvas) {
+      this.waveformContext = this.waveformCanvas.getContext('2d');
+      this.clearWaveform();
     }
   }
 
@@ -930,6 +945,10 @@ export default class TapeFour {
     if (!this.tracks.some(t => t.isArmed)) {
       this.updateVolumeMeter(0);
     }
+    
+    // Keep waveform visible after recording for visual reference
+    // (waveform will only clear when starting new recording)
+    
     console.log('✅ Stop complete');
   }
 
@@ -993,6 +1012,11 @@ export default class TapeFour {
     document.getElementById('play-btn')?.classList.add('playing');
 
     this.mediaRecorder!.start();
+    
+    // Start waveform capture
+    this.clearWaveform();
+    this.startWaveformCapture();
+    
     console.log('[TAPEFOUR] ✅ Recording started');
   }
 
@@ -1092,6 +1116,9 @@ export default class TapeFour {
         await this.startInputMonitoring();
       }
       
+      // Setup waveform analyser for recording
+      this.setupWaveformAnalyser();
+      
     } catch (err) {
       console.error('Error setting up recording', err);
       alert('Could not access microphone. Please check permissions and settings.');
@@ -1105,6 +1132,9 @@ export default class TapeFour {
     this.state.isRecording = false;
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
     document.getElementById('record-btn')?.classList.remove('recording');
+    
+    // Stop waveform capture
+    this.stopWaveformCapture();
     
     // Stop monitoring playback and disable monitoring mode
     this.disableMonitoringMode();
@@ -1587,8 +1617,6 @@ export default class TapeFour {
     }
   }
 
-
-
   private async startVolumeMeter() {
     if (this.volumeMeterActive) return;
     
@@ -1682,26 +1710,20 @@ export default class TapeFour {
   }
 
   private stopInputMonitoring() {
-    if (!this.state.isMonitoring) return;
-    
-    // Disconnect monitoring gain but keep input source node if volume meter is active
     if (this.inputSourceNode && this.inputMonitoringGainNode) {
       try {
+        console.log('[INPUT] 🔇 Stopping input monitoring...');
+        
+        // Disconnect input monitoring
         this.inputSourceNode.disconnect(this.inputMonitoringGainNode);
-      } catch (e) {
-        // Ignore disconnect errors - might already be disconnected
+        this.inputMonitoringGainNode.disconnect(this.audioContext!.destination);
+        console.log('[INPUT] ✅ Input monitoring stopped');
+        
+        this.state.isMonitoring = false;
+      } catch (error) {
+        console.warn('[INPUT] ⚠️ Error stopping input monitoring:', error);
       }
     }
-    
-    // Only clean up input source node if nothing else is using it
-    if (!this.volumeMeterActive && this.inputSourceNode) {
-      this.inputSourceNode.disconnect();
-      this.inputSourceNode = null;
-    }
-    
-    this.state.isMonitoring = false;
-    
-    console.log('[TAPEFOUR] 🔇 Input monitoring stopped');
   }
 
   private enableMonitoringMode() {
@@ -1794,5 +1816,101 @@ export default class TapeFour {
     requestAnimationFrame(animate);
   }
 
+  /* ---------- Waveform Strip Methods ---------- */
 
+  private clearWaveform() {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    this.waveformPeaks = [];
+    this.waveformContext.clearRect(0, 0, this.waveformCanvas.width, this.waveformCanvas.height);
+  }
+
+  private setupWaveformAnalyser() {
+    if (!this.audioContext || !this.inputSourceNode) return;
+    
+    this.waveformAnalyserNode = this.audioContext.createAnalyser();
+    this.waveformAnalyserNode.fftSize = 512; // Smaller FFT for better performance
+    this.waveformAnalyserNode.smoothingTimeConstant = 0.3;
+    
+    // Connect input to waveform analyser
+    this.inputSourceNode.connect(this.waveformAnalyserNode);
+    
+    console.log('[WAVEFORM] 🌊 Waveform analyser setup complete');
+  }
+
+  private startWaveformCapture() {
+    if (!this.waveformAnalyserNode) return;
+    
+    console.log('[WAVEFORM] 🎬 Starting waveform capture...');
+    
+    const dataArray = new Uint8Array(this.waveformAnalyserNode.frequencyBinCount);
+    
+    const captureWaveform = () => {
+      if (!this.state.isRecording || !this.waveformAnalyserNode) {
+        this.waveformRenderingId = null;
+        return;
+      }
+      
+      // Get time domain data (waveform)
+      this.waveformAnalyserNode.getByteTimeDomainData(dataArray);
+      
+      // Calculate peak amplitude for this frame
+      let peak = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const sample = Math.abs(dataArray[i] - 128) / 128; // Convert to 0-1 range
+        if (sample > peak) peak = sample;
+      }
+      
+      // Draw this peak immediately at current X position (left-to-right)
+      this.drawWaveformPeak(peak);
+      
+      // Continue capturing
+      this.waveformRenderingId = requestAnimationFrame(captureWaveform);
+    };
+    
+    this.waveformRenderingId = requestAnimationFrame(captureWaveform);
+  }
+
+  private drawWaveformPeak(peak: number) {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const canvas = this.waveformCanvas;
+    const ctx = this.waveformContext;
+    const height = canvas.height;
+    const midY = height / 2;
+    
+    // Calculate current playhead position (same logic as updatePlayheadUI)
+    const progress = this.state.playheadPosition / this.state.maxRecordingTime;
+    const maxWidth = canvas.width; // Use full canvas width instead of fixed 120px
+    const currentX = Math.min(progress * maxWidth, maxWidth);
+    
+    // Set waveform style to match track color
+    ctx.fillStyle = '#8A7156'; // var(--track) color to match brown elements
+    ctx.strokeStyle = '#8A7156';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 1;
+    
+    // Only draw positive amplitude (mirrored upward from center)
+    const peakHeight = peak * (height / 2);
+    const peakWidth = 10; // Width of each peak line
+    
+    // Draw peak as vertical line from center upward at current playhead position
+    if (currentX < canvas.width && currentX >= 0) {
+      ctx.fillRect(currentX, midY - peakHeight, peakWidth, peakHeight);
+    }
+  }
+
+  private stopWaveformCapture() {
+    if (this.waveformRenderingId) {
+      cancelAnimationFrame(this.waveformRenderingId);
+      this.waveformRenderingId = null;
+    }
+    
+    if (this.waveformAnalyserNode) {
+      this.waveformAnalyserNode.disconnect();
+      this.waveformAnalyserNode = null;
+    }
+    
+    console.log('[WAVEFORM] 🛑 Waveform capture stopped');
+  }
 } 

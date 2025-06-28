@@ -70,6 +70,7 @@ function App() {
           </g>
         </svg>
         <div className="playhead" id="playhead">
+          <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
           <div className="playhead-indicator" id="playhead-indicator" />
         </div>
       </div>

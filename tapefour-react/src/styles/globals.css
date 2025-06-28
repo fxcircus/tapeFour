@@ -753,26 +753,42 @@ body {
   transform: translateY(1px);
 }
 
-.playhead {
-  position: relative;
-  width: 100%;
-  max-width: 304px;
-  height: 4px;
-  background: var(--track);
-  display: block;
-  border-radius: 4px;
-  margin-top: 8px;
-}
+/* Playhead */
+  .playhead {
+    position: absolute;
+    left: 50%;
+    bottom: 5px; /* Position under the reels */
+    transform: translateX(-41%);
+    width: 60%; /* Span between reel centers */
+    height: 30px; /* Increased height for better waveform visualization */
+    background: transparent; /* Remove brown background, show only waveform */
+    border-radius: 4px;
+  }
 
 .playhead-indicator {
   position: absolute;
+  bottom: 0;
   left: 0;
+  width: 5px;
+  height: 5px;
+  background: var(--color-record); /* Brown color to match theme */
+  border-radius: 1px;
+  transition: left 0.1s ease;
+}
+
+/* Waveform Canvas - positioned above playhead indicator */
+.waveform-canvas {
+  position: absolute;
   top: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--accent);
-  border-radius: 4px;
-  transition: left 0.1s linear;
+  left: 0;
+  width: 50%;
+  height: 50px; /* Increased height for better visualization */
+  display: block;
+  background: transparent;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  pointer-events: none; /* Allow clicks to pass through to playhead */
 }
 
 /* Display Section */
@@ -1274,27 +1290,6 @@ body {
   border-radius: 4px;
 }
 
-/* Playhead */
-.playhead {
-  width: 100%;
-  height: 4px;
-  background: var(--track);
-  border-radius: 4px;
-  position: relative;
-  margin-top: 8px;
-}
-
-.playhead-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--accent);
-  border-radius: 4px;
-  transition: left 0.1s ease;
-}
-
 /* Main Layout */
 .mixer-section {
   background: var(--panel);
@@ -1380,7 +1375,7 @@ body {
 .marking[data-db="0"] {
   top: 40px; /* 0 dB aligned with 80% fader position */
   font-weight: 600;
-  color: var(--color-accent-warm);
+  color: var(--track); /* Changed from orange to brown to match theme */
 }
 
 .marking.dash:nth-of-type(2) {
