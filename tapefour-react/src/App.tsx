@@ -40,16 +40,7 @@ function App() {
           <div className="display-row">
             <div className="timecode" id="timecode">00:00</div>
             <div className="volume-meter" id="volume-meter">
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
-              <div className="volume-meter-segment"></div>
+              <div className="volume-meter-fill" id="volume-meter-fill"></div>
             </div>
           </div>
         </div>

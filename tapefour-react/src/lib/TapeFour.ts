@@ -813,6 +813,7 @@ export default class TapeFour {
       this.state.isPaused = false;
       this.startPlayheadTimer();
       document.getElementById('play-btn')?.classList.add('playing');
+      document.getElementById('pause-btn')?.classList.remove('paused');
       return;
     }
 
@@ -935,6 +936,7 @@ export default class TapeFour {
     this.stopPlayheadTimer();
 
     document.getElementById('play-btn')?.classList.remove('playing');
+    document.getElementById('pause-btn')?.classList.remove('paused');
     document.getElementById('record-btn')?.classList.remove('recording');
     (document.getElementById('playhead-indicator') as HTMLElement | null)?.style.setProperty('left', '0px');
     
@@ -958,6 +960,7 @@ export default class TapeFour {
       this.state.isPaused = true;
       this.stopPlayheadTimer();
       document.getElementById('play-btn')?.classList.remove('playing');
+      document.getElementById('pause-btn')?.classList.add('paused');
     } else if (this.state.isPaused) {
       this.play();
     }
@@ -966,6 +969,13 @@ export default class TapeFour {
   public async record() {
     console.log('[TAPEFOUR] 🔴 RECORD button pressed');
     if (this.state.isRecording) return this.stopRecording();
+
+    // If currently paused, unpause and reset pause button
+    if (this.state.isPaused) {
+      console.log('[TAPEFOUR] ⏯️ Unpausing before recording');
+      this.state.isPaused = false;
+      document.getElementById('pause-btn')?.classList.remove('paused');
+    }
 
     const armedTrack = this.tracks.find((t) => t.isArmed);
     console.log(`[TAPEFOUR] 🎯 Armed track: ${armedTrack?.id || 'none'}`);
@@ -1235,19 +1245,44 @@ export default class TapeFour {
   }
 
   private updateVolumeMeter(level: number) {
-    // Convert level (0-1) to number of segments (0-10)
-    const segmentCount = Math.floor(level * 10);
-    const volumeMeter = document.getElementById('volume-meter') as HTMLElement | null;
+    // Clamp level to 0-1 range
+    const clampedLevel = Math.max(0, Math.min(1, level));
+    const fillElement = document.getElementById('volume-meter-fill') as HTMLElement | null;
     
-    if (volumeMeter) {
-      const segments = volumeMeter.querySelectorAll('.volume-meter-segment');
-      segments.forEach((segment, index) => {
-        if (index < segmentCount) {
-          segment.classList.add('lit');
-        } else {
-          segment.classList.remove('lit');
-        }
-      });
+    if (fillElement) {
+      // Set width as percentage
+      const widthPercent = clampedLevel * 100;
+      fillElement.style.width = `${widthPercent}%`;
+      
+      // Determine color and glow based on level
+      let color: string;
+      let glowColor: string;
+      let zone: string;
+      
+      if (clampedLevel >= 0.9) {
+        // Red zone (90-100%)
+        color = 'var(--color-record)';
+        glowColor = 'rgba(210, 50, 25, 0.5)';
+        zone = 'RED';
+      } else if (clampedLevel >= 0.7) {
+        // Amber zone (70-90%)
+        color = 'var(--color-stop)';
+        glowColor = 'rgba(245, 158, 11, 0.4)';
+        zone = 'AMBER';
+      } else {
+        // Green zone (0-70%)
+        color = 'var(--color-play)';
+        glowColor = 'rgba(34, 197, 94, 0.3)';
+        zone = 'GREEN';
+      }
+      
+      fillElement.style.backgroundColor = color;
+      fillElement.style.boxShadow = `0 0 4px ${glowColor}`;
+      
+      // Debug logging for high levels
+      if (clampedLevel >= 0.7) {
+        console.log(`[METER] 📊 High level detected: ${level.toFixed(3)} (${widthPercent.toFixed(1)}%) -> ${zone} zone`);
+      }
     }
   }
 
@@ -1633,25 +1668,66 @@ export default class TapeFour {
 
     // Create analyser for volume monitoring
     this.analyserNode = this.audioContext.createAnalyser();
-    this.analyserNode.fftSize = 256;
+    this.analyserNode.fftSize = 512; // Increased for better resolution
+    this.analyserNode.smoothingTimeConstant = 0.1; // Faster response for better peak detection
     this.inputSourceNode.connect(this.analyserNode);
 
-    const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
+    const dataArray = new Uint8Array(this.analyserNode.fftSize); // Use time domain data size
     this.volumeMeterActive = true;
+    
+    let peakHold = 0;
+    let peakHoldTime = 0;
     
     const updateMeter = () => {
       if (this.volumeMeterActive && this.analyserNode) {
-        this.analyserNode.getByteFrequencyData(dataArray);
+        // Use time domain data for better peak detection
+        this.analyserNode.getByteTimeDomainData(dataArray);
         
-        // Calculate RMS (Root Mean Square) for more accurate volume representation
-        let sum = 0;
+        // Calculate peak level for clipping detection
+        let peak = 0;
+        let rmsSum = 0;
+        
         for (let i = 0; i < dataArray.length; i++) {
-          sum += dataArray[i] * dataArray[i];
+          // Convert from unsigned byte (0-255) to signed (-1 to 1)
+          const sample = (dataArray[i] - 128) / 128;
+          const absSample = Math.abs(sample);
+          
+          // Track peak
+          if (absSample > peak) {
+            peak = absSample;
+          }
+          
+          // Accumulate for RMS
+          rmsSum += sample * sample;
         }
-        const rms = Math.sqrt(sum / dataArray.length);
-        const level = rms / 255; // Normalize to 0-1
         
-        this.updateVolumeMeter(level);
+        // Calculate RMS
+        const rms = Math.sqrt(rmsSum / dataArray.length);
+        
+        // Use peak level with some RMS influence for better responsiveness
+        // This gives us good peak detection while still showing consistent levels
+        let displayLevel = Math.max(peak * 0.8, rms * 2); // Boost RMS for visibility
+        
+        // Apply some compression/scaling to make higher levels more visible
+        // This helps show amber and red zones more easily
+        displayLevel = Math.pow(displayLevel, 0.7); // Slight compression curve
+        
+        // Peak hold functionality - hold peaks for a brief moment
+        const now = performance.now();
+        if (displayLevel > peakHold) {
+          peakHold = displayLevel;
+          peakHoldTime = now;
+        } else if (now - peakHoldTime > 200) { // Hold for 200ms
+          peakHold *= 0.95; // Slow decay
+        }
+        
+        // Use the higher of current level or peak hold
+        const finalLevel = Math.max(displayLevel, peakHold);
+        
+        // Clamp to 0-1 range
+        const clampedLevel = Math.min(Math.max(finalLevel, 0), 1);
+        
+        this.updateVolumeMeter(clampedLevel);
         this.volumeMeterAnimationId = requestAnimationFrame(updateMeter);
       }
     };

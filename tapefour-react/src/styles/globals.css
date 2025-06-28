@@ -675,7 +675,7 @@ body {
   border: 2px solid var(--color-text-primary);
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.1);
+    0 3px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Transport Buttons - Soft Rounded with Color Coding */
@@ -725,6 +725,14 @@ body {
 
 /* Stop Button States */
 #stop-btn.stopping {
+  background: var(--color-stop);
+  color: white;
+  transition: background-color 0.05s ease;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Pause Button States */
+#pause-btn.paused {
   background: var(--color-stop);
   color: white;
   transition: background-color 0.05s ease;
@@ -858,12 +866,9 @@ body {
     0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Volume Meter - 2px Bars with Animation */
+/* Volume Meter - Continuous Progress Bar */
 .volume-meter {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1px; /* 1px gap between bars */
+  position: relative;
   height: 18px; /* Slightly taller for better proportion */
   width: 140px; /* Wider to match timecode proportions */
   padding: 3px; /* Increased padding */
@@ -873,31 +878,41 @@ body {
   margin-top: 4px; /* Add space above volume meter */
   /* Inset shadow for depth */
   box-shadow: inset 0 1px 2px var(--color-shadow-inset);
+  overflow: hidden;
 }
 
-.volume-meter-segment {
-  width: 2px; /* 2px wide bars */
+.volume-meter-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
-  background: var(--color-track-well);
-  border-radius: 1px;
-  transition: background-color 0.1s ease, transform 0.1s ease;
+  width: 0%;
+  background: var(--color-play); /* Default green */
+  border-radius: 2px;
+  transition: width 0.05s ease, background-color 0.1s ease;
+  /* Subtle glow effect for active levels */
+  box-shadow: 0 0 3px rgba(34, 197, 94, 0.3);
+  
+  /* Create segmented appearance using CSS mask for clean separation */
+  mask: repeating-linear-gradient(
+    to right,
+    black 0px,
+    black 11px,            /* Width of each visible segment */
+    transparent 11px,      /* Gap between segments */
+    transparent 13px       /* Total width including gap */
+  );
+  -webkit-mask: repeating-linear-gradient(
+    to right,
+    black 0px,
+    black 11px,
+    transparent 11px,
+    transparent 13px
+  );
 }
 
-.volume-meter-segment.lit {
-  background: var(--color-play);
-  transform: scaleY(1.1); /* Subtle animation on fill */
-}
-
-/* Color coding for different levels */
-.volume-meter-segment:nth-child(7).lit,
-.volume-meter-segment:nth-child(8).lit,
-.volume-meter-segment:nth-child(9).lit {
-  background: var(--color-stop);
-}
-
-.volume-meter-segment:nth-child(10).lit {
-  background: var(--color-record);
-  box-shadow: 0 0 4px rgba(210, 50, 25, 0.5);
+/* Hide the old segment-based elements - they'll be replaced by the fill bar */
+.volume-meter-segment {
+  display: none;
 }
 
 /* Track Controls */
