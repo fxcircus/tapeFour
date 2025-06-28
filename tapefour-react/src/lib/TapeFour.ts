@@ -436,11 +436,18 @@ export default class TapeFour {
       if (e.repeat) return;
 
       switch (e.code) {
-        case 'Space':
-          // Space key for play
+        case 'KeyA':
+          // A key for play
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ Space key pressed - triggering play');
+          console.log('[TAPEFOUR] ⌨️ A key pressed - triggering play');
           this.play();
+          break;
+        
+        case 'KeyP':
+          // P key for pause
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ P key pressed - triggering pause');
+          this.pause();
           break;
         
         case 'KeyQ':

@@ -88,7 +88,7 @@ function App() {
                     <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
                   </div>
                   <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
-                  <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
+                  <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} title={`Arm Track ${id} (${id})`} />
                 </div>
                 <div className="fader-section">
                                   <input
@@ -151,23 +151,23 @@ function App() {
       </div>
 
       <div className="transport-controls">
-        <button className="transport-button" id="stop-btn">
+        <button className="transport-button" id="stop-btn" title="Stop (S)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="6" y="6" width="12" height="12" />
           </svg>
         </button>
-        <button className="transport-button play-button" id="play-btn">
+        <button className="transport-button play-button" id="play-btn" title="Play (A)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="5,3 19,12 5,21" />
           </svg>
         </button>
-        <button className="transport-button" id="pause-btn">
+        <button className="transport-button" id="pause-btn" title="Pause (P)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="6" y="4" width="4" height="16" />
             <rect x="14" y="4" width="4" height="16" />
           </svg>
         </button>
-        <button className="transport-button record-button" id="record-btn">
+        <button className="transport-button record-button" id="record-btn" title="Record (Q)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" />
           </svg>
@@ -180,14 +180,14 @@ function App() {
             <path d="M2 18 C2 18, 6 16, 12 18 C18 20, 22 18, 22 18" />
           </svg>
         </button>
-        <button className="transport-button" id="export-btn">
+        <button className="transport-button" id="export-btn" title="Export (E)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7,10 12,15 17,10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </button>
-        <button className="transport-button settings-button" id="settings-btn" onClick={handleOpenSettings}>
+        <button className="transport-button settings-button" id="settings-btn" title="Settings (,)" onClick={handleOpenSettings}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
@@ -258,8 +258,12 @@ function App() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td><kbd>Space</kbd></td>
+                    <td><kbd>A</kbd></td>
                     <td>Play</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>P</kbd></td>
+                    <td>Pause</td>
                   </tr>
                   <tr>
                     <td><kbd>Q</kbd></td>
@@ -276,6 +280,10 @@ function App() {
                   <tr>
                     <td><kbd>,</kbd></td>
                     <td>Settings</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>B</kbd></td>
+                    <td>Bounce to master</td>
                   </tr>
                   <tr>
                     <td><kbd>1</kbd></td>
