@@ -309,8 +309,8 @@ function App() {
               </div>
             </div>
             <div className="tips-content collapsed" id="tips-options">
-              <p className="tip-item">Double-click pan knobs or faders to reset to default values</p>
-              <p className="tip-item">Use headphones when recording to avoid feedback from speakers</p>
+              <p className="tip-item">- Double-click pan knobs or faders to reset to default values</p>
+              <p className="tip-item">- Use headphones when recording to avoid feedback from speakers</p>
             </div>
           </div>
           
