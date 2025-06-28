@@ -565,23 +565,6 @@ export default class TapeFour {
           this.toggleTrackArm(4);
           break;
         
-        case 'KeyH':
-          // H key for half-speed on focused/armed track
-          e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ H key pressed - toggling half-speed');
-          
-          // Find the first armed track to apply half-speed
-          const armedTrack = this.tracks.find(t => t.isArmed);
-          if (armedTrack) {
-            console.log(`[TAPEFOUR] ⌨️ H key - applying to armed track ${armedTrack.id}`);
-            this.toggleTrackHalfSpeed(armedTrack.id);
-          } else {
-            // If no track is armed, show a helpful message
-            console.log('[TAPEFOUR] ⌨️ H key - no track armed, showing error');
-            this.showError('Arm a track first, then press H to toggle half-speed');
-          }
-          break;
-        
         case 'Comma':
           // Comma key for settings (both , and < which is shift+comma)
           e.preventDefault();
@@ -1314,7 +1297,7 @@ export default class TapeFour {
       halfSpeedButton.setAttribute('title', 'No audio to slow down');
     } else {
       halfSpeedButton.removeAttribute('disabled');
-      halfSpeedButton.setAttribute('title', `Half-speed Track ${trackId} (H)`);
+      halfSpeedButton.setAttribute('title', `Half-speed Track ${trackId}`);
     }
   }
 

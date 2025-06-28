@@ -1092,9 +1092,9 @@ body {
   border: none;
   border-right: 1px solid var(--color-text-primary);
   border-radius: 0;
-  width: 20px;
+  width: 18px;
   height: 24px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
@@ -1113,7 +1113,7 @@ body {
   color: var(--color-text-primary);
   border: none;
   border-radius: 0;
-  width: 20px;
+  width: 16px;
   height: 24px;
   font-size: 12px;
   font-weight: 600;

@@ -92,7 +92,7 @@ function App() {
                     <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
                       ⇄
                     </button>
-                    <button className="half-speed-button" id={`half-speed-${id}`} data-track={id} title={`Half-speed Track ${id} (H)`}>
+                    <button className="half-speed-button" id={`half-speed-${id}`} data-track={id} title={`Half-speed Track ${id}`}>
                       ½
                     </button>
                   </div>
