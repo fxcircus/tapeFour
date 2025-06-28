@@ -1109,8 +1109,7 @@ export default class TapeFour {
       // Update UI state
       this.updateReverseButtonStyling(trackId);
       
-      // Regenerate waveform with new audio data
-      this.generateTrackWaveform(track.audioBuffer, trackId);
+      // Redraw waveforms with visual flip for reversed tracks
       this.redrawAllTrackWaveforms();
       
       console.log(`[TAPEFOUR] ✅ Track ${trackId} reverse toggle complete. Reversed: ${track.isReversed}`);
@@ -3295,6 +3294,10 @@ export default class TapeFour {
       const waveformData = this.trackWaveforms.get(trackId);
       if (!waveformData || waveformData.length === 0) continue;
       
+      // Check if this track is reversed
+      const track = this.tracks[trackId - 1];
+      const isReversed = track?.isReversed || false;
+      
       // Set color for this track
       const color = this.trackColors[trackId as keyof typeof this.trackColors] || '#D18C33';
       ctx.fillStyle = color;
@@ -3312,10 +3315,33 @@ export default class TapeFour {
       
       // Draw all peaks for this track
       const peakWidth = 3;
-      for (const { position, peak } of waveformData) {
-        const peakHeight = peak * (height * 0.8);
-        if (position < canvasInternalWidth && position >= 0) {
-          ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
+      
+      if (isReversed) {
+        // For reversed tracks, find the min and max positions and flip within that range
+        const positions = waveformData.map(d => d.position);
+        const minPos = Math.min(...positions);
+        const maxPos = Math.max(...positions);
+        const rangeWidth = maxPos - minPos;
+        
+        for (const { position, peak } of waveformData) {
+          // Flip position within its own recorded range
+          const relativePosition = position - minPos; // Position relative to start of recording
+          const flippedRelativePosition = rangeWidth - relativePosition; // Flip within the range
+          const drawPosition = minPos + flippedRelativePosition; // Map back to canvas
+          const peakHeight = peak * (height * 0.8);
+          
+          if (drawPosition < canvasInternalWidth && drawPosition >= 0) {
+            ctx.fillRect(drawPosition, height - peakHeight, peakWidth, peakHeight);
+          }
+        }
+      } else {
+        // Normal (non-reversed) drawing
+        for (const { position, peak } of waveformData) {
+          const peakHeight = peak * (height * 0.8);
+          
+          if (position < canvasInternalWidth && position >= 0) {
+            ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
+          }
         }
       }
       
