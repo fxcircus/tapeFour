@@ -79,6 +79,10 @@ export default class TapeFour {
   // Store previous mute states for when solo is disengaged
   private previousMuteStates: boolean[] = [false, false, false, false];
 
+  // Scrubbing/timeline interaction
+  private isDraggingPlayhead = false;
+  private playheadContainer: HTMLElement | null = null;
+
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
     this.loadSavedAudioDevice();
@@ -489,9 +493,103 @@ export default class TapeFour {
 
     document.addEventListener('keydown', handleKeyDown);
     
+    // Playhead scrubbing functionality
+    this.setupPlayheadScrubbing();
+    
     // Mark event listeners as initialized
     this.eventListenersInitialized = true;
     console.log('[TAPEFOUR] ✅ Event listeners setup complete');
+  }
+
+  private setupPlayheadScrubbing() {
+    // Get playhead container and indicator elements
+    this.playheadContainer = document.getElementById('playhead');
+    const playheadIndicator = document.getElementById('playhead-indicator') as HTMLElement | null;
+    
+    if (!this.playheadContainer || !playheadIndicator) {
+      console.warn('[SCRUB] ⚠️ Playhead elements not found, scrubbing disabled');
+      return;
+    }
+    
+    console.log('[SCRUB] 🎯 Setting up playhead scrubbing...');
+    
+    // Add mouse event listeners for scrubbing
+    const onMouseDown = (e: MouseEvent) => {
+      // Only handle left mouse button
+      if (e.button !== 0) return;
+      
+      this.isDraggingPlayhead = true;
+      console.log('[SCRUB] 🎯 Started playhead dragging');
+      
+      // Handle the initial position
+      this.handlePlayheadDrag(e);
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Add document-level event listeners for smooth dragging
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+    
+    const onMouseMove = (e: MouseEvent) => {
+      if (this.isDraggingPlayhead) {
+        this.handlePlayheadDrag(e);
+        e.preventDefault();
+      }
+    };
+    
+    const onMouseUp = () => {
+      if (this.isDraggingPlayhead) {
+        this.isDraggingPlayhead = false;
+        console.log('[SCRUB] 🎯 Stopped playhead dragging');
+        
+        // Remove document-level event listeners
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      }
+    };
+    
+    // Attach listeners to both the playhead container and indicator
+    this.playheadContainer.addEventListener('mousedown', onMouseDown);
+    playheadIndicator.addEventListener('mousedown', onMouseDown);
+    
+    // Add click handling for immediate seek
+    const onClick = (e: MouseEvent) => {
+      // Only handle clicks if not dragging (to avoid double-triggering)
+      if (!this.isDraggingPlayhead) {
+        this.handlePlayheadDrag(e);
+        console.log('[SCRUB] 🎯 Playhead clicked to seek');
+      }
+    };
+    
+    this.playheadContainer.addEventListener('click', onClick);
+    
+    // Add visual feedback with CSS cursor
+    this.playheadContainer.style.cursor = 'pointer';
+    playheadIndicator.style.cursor = 'grab';
+    
+    console.log('[SCRUB] ✅ Playhead scrubbing setup complete');
+  }
+
+  private handlePlayheadDrag(e: MouseEvent) {
+    if (!this.playheadContainer) return;
+    
+    // Get mouse position relative to the playhead container
+    const rect = this.playheadContainer.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    
+    // Convert pixel position to time position
+    const progress = Math.max(0, Math.min(1, x / rect.width));
+    const newPosition = progress * this.state.maxRecordingTime;
+    
+    // Update playhead position
+    this.state.playheadPosition = newPosition;
+    
+    // Update UI immediately
+    this.updatePlayheadUI();
+    
+    console.log(`[SCRUB] 🎯 Scrubbed to ${(newPosition / 1000).toFixed(2)}s (${(progress * 100).toFixed(1)}%)`);
   }
 
   /* ---------- UI helpers ---------- */
@@ -898,13 +996,9 @@ export default class TapeFour {
     await this.ensureInputStream();
     await this.muteInput(); // Mute input during playback
 
+    // If paused, use the dedicated resume method instead
     if (this.state.isPaused) {
-      console.log('⏯️ Resuming from pause');
-      await this.audioContext!.resume();
-      this.state.isPaused = false;
-      this.startPlayheadTimer();
-      document.getElementById('play-btn')?.classList.add('playing');
-      document.getElementById('pause-btn')?.classList.remove('paused');
+      this.resumeFromPause();
       return;
     }
 
@@ -923,7 +1017,7 @@ export default class TapeFour {
     });
 
     this.state.isPlaying = true;
-    this.state.playheadPosition = 0;
+    // Keep current playhead position for scrubbing functionality
     
     // Schedule all tracks to start at a slightly future time for perfect sync
     const startTime = this.audioContext!.currentTime + 0.1; // 100ms in the future
@@ -1008,7 +1102,7 @@ export default class TapeFour {
     
     this.state.isPlaying = false;
     this.state.isPaused = false;
-    this.state.playheadPosition = 0;
+    // Keep current playhead position for scrubbing functionality
 
     console.log('🛑 Stopping all track sources');
     this.tracks.forEach((t) => {
@@ -1029,7 +1123,7 @@ export default class TapeFour {
     document.getElementById('play-btn')?.classList.remove('playing');
     document.getElementById('pause-btn')?.classList.remove('paused');
     document.getElementById('record-btn')?.classList.remove('recording');
-    (document.getElementById('playhead-indicator') as HTMLElement | null)?.style.setProperty('left', '0px');
+    // Keep playhead indicator at current position for scrubbing functionality
     
     // Reset displays
     this.updateTimecode();
@@ -1053,8 +1147,40 @@ export default class TapeFour {
       document.getElementById('play-btn')?.classList.remove('playing');
       document.getElementById('pause-btn')?.classList.add('paused');
     } else if (this.state.isPaused) {
-      this.play();
+      this.resumeFromPause();
     }
+  }
+
+  private async resumeFromPause() {
+    console.log('⏯️ Resuming from pause');
+    
+    // Stop any existing audio sources since we need to restart from current position
+    this.tracks.forEach((t) => {
+      if (t.sourceNode) {
+        console.log(`🛑 Stopping track ${t.id} source to restart from current position`);
+        t.sourceNode.stop();
+        t.sourceNode = null;
+      }
+    });
+
+    await this.audioContext!.resume();
+    this.state.isPaused = false;
+    this.state.isPlaying = true;
+    
+    // Restart all tracks from the current playhead position (accounting for any scrubbing during pause)
+    const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
+    this.tracks.forEach((t) => {
+      if (t.audioBuffer) {
+        console.log(`🎶 Restarting track ${t.id} from scrubbed position`);
+        this.playTrack(t, startTime);
+      }
+    });
+
+    this.startPlayheadTimer();
+    document.getElementById('play-btn')?.classList.add('playing');
+    document.getElementById('pause-btn')?.classList.remove('paused');
+    
+    console.log(`✅ Resumed playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
   }
 
   public async record() {
