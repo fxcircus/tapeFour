@@ -544,6 +544,11 @@ export default class TapeFour {
         this.isDraggingPlayhead = false;
         console.log('[SCRUB] 🎯 Stopped playhead dragging');
         
+        // If we were playing during the drag, restart audio from new position
+        if (this.state.isPlaying && !this.state.isPaused) {
+          this.restartPlaybackFromCurrentPosition();
+        }
+        
         // Remove document-level event listeners
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
@@ -590,6 +595,44 @@ export default class TapeFour {
     this.updatePlayheadUI();
     
     console.log(`[SCRUB] 🎯 Scrubbed to ${(newPosition / 1000).toFixed(2)}s (${(progress * 100).toFixed(1)}%)`);
+  }
+
+  private restartPlaybackFromCurrentPosition() {
+    console.log('[SCRUB] 🔄 Restarting playback from scrubbed position');
+    
+    // Stop any existing audio sources with proper cleanup
+    this.tracks.forEach((t) => {
+      if (t.sourceNode) {
+        console.log(`🛑 Stopping track ${t.id} source to restart from scrubbed position`);
+        try {
+          t.sourceNode.stop();
+          t.sourceNode.disconnect();
+        } catch (e) {
+          // Source might already be stopped, ignore errors
+          console.log(`  - Track ${t.id} source already stopped`);
+        }
+        t.sourceNode = null;
+      }
+    });
+    
+    // Update the play start time to account for the new position
+    this.playStartTime = Date.now() - this.state.playheadPosition;
+    
+    // Add a small delay to ensure all sources are fully stopped before restarting
+    setTimeout(() => {
+      if (this.state.isPlaying && !this.state.isPaused) {
+        // Restart all tracks from the current playhead position
+        const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
+        this.tracks.forEach((t) => {
+          if (t.audioBuffer) {
+            console.log(`🎶 Restarting track ${t.id} from position ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+            this.playTrack(t, startTime);
+          }
+        });
+        
+        console.log(`✅ Restarted playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+      }
+    }, 10); // 10ms delay to ensure cleanup is complete
   }
 
   /* ---------- UI helpers ---------- */
@@ -1011,7 +1054,13 @@ export default class TapeFour {
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
         console.log(`🛑 Stopping existing source for track ${t.id} before starting new playback`);
-        t.sourceNode.stop();
+        try {
+          t.sourceNode.stop();
+          t.sourceNode.disconnect();
+        } catch (e) {
+          // Source might already be stopped, ignore errors
+          console.log(`  - Track ${t.id} source already stopped`);
+        }
         t.sourceNode = null;
       }
     });
@@ -1049,10 +1098,16 @@ export default class TapeFour {
   private playTrack(track: typeof this.tracks[number], startTime?: number) {
     console.log(`🎵 playTrack() called for track ${track.id}`);
     
-    // Ensure any existing source is properly stopped
+    // Ensure any existing source is properly stopped and cleaned up
     if (track.sourceNode) {
       console.log(`  - Stopping existing source for track ${track.id}`);
-      track.sourceNode.stop();
+      try {
+        track.sourceNode.stop();
+        track.sourceNode.disconnect();
+      } catch (e) {
+        // Source might already be stopped/disconnected, ignore errors
+        console.log(`  - Source for track ${track.id} already stopped`);
+      }
       track.sourceNode = null;
     }
 
@@ -1063,7 +1118,9 @@ export default class TapeFour {
     source.connect(track.gainNode!);
     source.onended = () => {
       console.log(`  - Track ${track.id} source ended naturally`);
-      track.sourceNode = null;
+      if (track.sourceNode === source) {
+        track.sourceNode = null;
+      }
     };
     
     // All tracks should start simultaneously from the current playhead position
@@ -1102,15 +1159,21 @@ export default class TapeFour {
     
     this.state.isPlaying = false;
     this.state.isPaused = false;
-    // Keep current playhead position for scrubbing functionality
+    this.state.playheadPosition = 0; // Reset playhead to beginning on stop
 
     console.log('🛑 Stopping all track sources');
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
         console.log(`  - Stopping track ${t.id} source`);
+        try {
+          t.sourceNode.stop();
+          t.sourceNode.disconnect();
+        } catch (e) {
+          // Source might already be stopped, ignore errors
+          console.log(`  - Track ${t.id} source already stopped`);
+        }
+        t.sourceNode = null;
       }
-      t.sourceNode?.stop();
-      t.sourceNode = null;
     });
 
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
@@ -1123,10 +1186,9 @@ export default class TapeFour {
     document.getElementById('play-btn')?.classList.remove('playing');
     document.getElementById('pause-btn')?.classList.remove('paused');
     document.getElementById('record-btn')?.classList.remove('recording');
-    // Keep playhead indicator at current position for scrubbing functionality
     
-    // Reset displays
-    this.updateTimecode();
+    // Reset playhead indicator and timecode to beginning
+    this.updatePlayheadUI();
     
     // Only reset volume meter if no tracks are armed (otherwise keep monitoring input levels)
     if (!this.tracks.some(t => t.isArmed)) {
@@ -1158,7 +1220,13 @@ export default class TapeFour {
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
         console.log(`🛑 Stopping track ${t.id} source to restart from current position`);
-        t.sourceNode.stop();
+        try {
+          t.sourceNode.stop();
+          t.sourceNode.disconnect();
+        } catch (e) {
+          // Source might already be stopped, ignore errors
+          console.log(`  - Track ${t.id} source already stopped`);
+        }
         t.sourceNode = null;
       }
     });
@@ -1426,9 +1494,12 @@ export default class TapeFour {
   private startPlayheadTimer() {
     this.playStartTime = Date.now() - this.state.playheadPosition;
     this.playheadTimer = window.setInterval(() => {
-      this.state.playheadPosition = Date.now() - this.playStartTime;
-      this.updatePlayheadUI();
-      if (this.state.playheadPosition >= this.state.maxRecordingTime) this.stop();
+      // Don't update playhead position while user is dragging
+      if (!this.isDraggingPlayhead) {
+        this.state.playheadPosition = Date.now() - this.playStartTime;
+        this.updatePlayheadUI();
+        if (this.state.playheadPosition >= this.state.maxRecordingTime) this.stop();
+      }
     }, 50);
     this.startTapeReelSpinning();
   }
