@@ -324,6 +324,36 @@ function App() {
           <button className="close-settings-btn" id="cancel-settings">Close</button>
         </div>
       </div>
+
+      <div id="error-modal" className="settings-modal" style={{ display: 'none' }}>
+        <div className="settings-content">
+          <h3 className="settings-title">⚠️ Error</h3>
+          <div className="settings-group">
+            <p id="error-message" className="error-message">Error message will appear here</p>
+          </div>
+          <button className="close-settings-btn" id="close-error-modal">OK</button>
+        </div>
+      </div>
+
+      <div id="warning-modal" className="settings-modal" style={{ display: 'none' }}>
+        <div className="settings-content">
+          <h3 className="settings-title">🎧 Important Audio Warning</h3>
+          <div className="settings-group">
+            <p className="warning-message">
+              Before recording, please put on headphones to avoid audio feedback from your speakers. 
+              Audio feedback can be loud and potentially damage your hearing or equipment.
+            </p>
+            <label className="checkbox-label warning-checkbox-label">
+              <input type="checkbox" id="dont-show-warning-checkbox" className="settings-checkbox" defaultChecked />
+              Don't show this warning again
+            </label>
+          </div>
+          <div className="warning-buttons">
+            <button className="close-settings-btn warning-cancel-btn" id="cancel-warning">Cancel</button>
+            <button className="close-settings-btn warning-continue-btn" id="continue-warning">Continue</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

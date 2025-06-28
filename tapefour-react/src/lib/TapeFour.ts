@@ -200,8 +200,22 @@ export default class TapeFour {
     
     // Arming toggles
     this.tracks.forEach((track) => {
-      const el = document.getElementById(`track-${track.id}`);
-      el?.addEventListener('click', () => this.toggleTrackArm(track.id));
+      const el = document.getElementById(`track-${track.id}`) as HTMLInputElement;
+      el?.addEventListener('click', (e) => {
+        // Get the checkbox state after the click
+        const isNowChecked = (e.target as HTMLInputElement).checked;
+        
+        // If checkbox is now checked (arming) and we should show warning
+        if (isNowChecked && this.shouldShowWarning() && !this.tracks[track.id - 1].isArmed) {
+          // Immediately reset the checkbox since we need to show warning first
+          (e.target as HTMLInputElement).checked = false;
+          this.showWarning(track.id);
+          return;
+        }
+        
+        // Otherwise proceed with normal toggle logic
+        this.doToggleTrackArm(track.id);
+      });
     });
 
     // Solo buttons
@@ -314,6 +328,13 @@ export default class TapeFour {
     // Settings modal buttons
     document.getElementById('cancel-settings')?.addEventListener('click', () => this.closeSettings());
 
+    // Error modal buttons
+    document.getElementById('close-error-modal')?.addEventListener('click', () => this.closeError());
+
+    // Warning modal buttons
+    document.getElementById('cancel-warning')?.addEventListener('click', () => this.closeWarning());
+    document.getElementById('continue-warning')?.addEventListener('click', () => this.continueWithArming());
+
     // Audio input device selection - change immediately when selected
     document.getElementById('audio-input-select')?.addEventListener('change', async (e) => {
       const select = e.target as HTMLSelectElement;
@@ -423,6 +444,14 @@ export default class TapeFour {
     // Dismiss modal on backdrop click
     document.getElementById('settings-modal')?.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).id === 'settings-modal') this.closeSettings();
+    });
+    
+    document.getElementById('error-modal')?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).id === 'error-modal') this.closeError();
+    });
+    
+    document.getElementById('warning-modal')?.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).id === 'warning-modal') this.closeWarning();
     });
 
     // Keyboard shortcuts
@@ -685,6 +714,18 @@ export default class TapeFour {
   /* ---------- UI helpers ---------- */
 
   private toggleTrackArm(trackId: number) {
+    // Check if we should show the warning first (for keyboard shortcuts)
+    if (this.shouldShowWarning() && !this.tracks[trackId - 1].isArmed) {
+      // Only show warning when arming a track (not when disarming)
+      this.showWarning(trackId);
+      return;
+    }
+    
+    // If warning is disabled or track is being disarmed, proceed directly
+    this.doToggleTrackArm(trackId);
+  }
+
+  private doToggleTrackArm(trackId: number) {
     const track = this.tracks.find((t) => t.id === trackId)!;
     const el = document.getElementById(`track-${trackId}`) as HTMLInputElement;
 
@@ -1433,7 +1474,7 @@ export default class TapeFour {
 
     const armedTrack = this.tracks.find((t) => t.isArmed);
     console.log(`[TAPEFOUR] 🎯 Armed track: ${armedTrack?.id || 'none'}`);
-    if (!armedTrack) return alert('Please arm a track before recording.');
+    if (!armedTrack) return this.showError('Please arm a track before recording.');
 
     // Determine recording mode based on current playhead position
     if (this.state.playheadPosition > 0) {
@@ -1623,7 +1664,7 @@ export default class TapeFour {
       
     } catch (err) {
       console.error('Error setting up recording', err);
-      alert('Could not access microphone. Please check permissions and settings.');
+              this.showError('Could not access microphone. Please check permissions and settings.');
     }
   }
 
@@ -1993,6 +2034,73 @@ export default class TapeFour {
     }
   }
 
+  private showError(message: string) {
+    const modal = document.getElementById('error-modal');
+    const messageElement = document.getElementById('error-message');
+    
+    if (modal && messageElement) {
+      messageElement.textContent = message;
+      modal.style.display = 'flex';
+    }
+  }
+
+  private closeError() {
+    const modal = document.getElementById('error-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  private pendingTrackArmId: number | null = null;
+
+  private showWarning(trackId: number) {
+    this.pendingTrackArmId = trackId;
+    
+    const modal = document.getElementById('warning-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  }
+
+  private closeWarning() {
+    const modal = document.getElementById('warning-modal');
+    if (modal) modal.style.display = 'none';
+    this.pendingTrackArmId = null;
+  }
+
+  private continueWithArming() {
+    // Save the "don't show again" preference if checkbox is checked
+    const checkbox = document.getElementById('dont-show-warning-checkbox') as HTMLInputElement;
+    if (checkbox && checkbox.checked) {
+      this.saveWarningPreference(false);
+    }
+    
+    // Close the warning modal
+    this.closeWarning();
+    
+    // Continue with the original track arm operation
+    if (this.pendingTrackArmId !== null) {
+      this.doToggleTrackArm(this.pendingTrackArmId);
+    }
+  }
+
+  private shouldShowWarning(): boolean {
+    try {
+      const preference = localStorage.getItem('tapefour-show-feedback-warning');
+      return preference !== 'false';
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not load warning preference:', err);
+      return true; // Default to showing the warning
+    }
+  }
+
+  private saveWarningPreference(shouldShow: boolean) {
+    try {
+      localStorage.setItem('tapefour-show-feedback-warning', shouldShow.toString());
+      console.log(`[TAPEFOUR] 💾 Saved warning preference: ${shouldShow ? 'show' : 'hide'}`);
+    } catch (err) {
+      console.warn('[TAPEFOUR] ⚠️ Could not save warning preference:', err);
+    }
+  }
+
   private loadSavedAudioDevice() {
     try {
       const savedDeviceId = localStorage.getItem('tapefour-audio-input-device');
@@ -2097,7 +2205,7 @@ export default class TapeFour {
           console.log('[TAPEFOUR] ✅ New audio device is working');
         } catch (err) {
           console.error('[TAPEFOUR] ❌ New audio device failed:', err);
-          alert('Failed to connect to the selected audio device. Please try a different device or check your audio settings.');
+          this.showError('Failed to connect to the selected audio device. Please try a different device or check your audio settings.');
         }
       }
     }
@@ -2107,16 +2215,16 @@ export default class TapeFour {
 
   public async bounce() {
     if (!this.audioContext) {
-      return alert('No audio context available.');
+      return this.showError('No audio context available.');
     }
 
     // Check if we're in a valid state to bounce
     if (this.state.isRecording) {
-      return alert('Cannot bounce while recording. Stop recording first.');
+              return this.showError('Cannot bounce while recording. Stop recording first.');
     }
 
     if (this.state.isPlaying) {
-      return alert('Cannot bounce while playing. Stop playback first.');
+              return this.showError('Cannot bounce while playing. Stop playback first.');
     }
 
     // Get tracks that have audio and should be included in the mix
@@ -2125,7 +2233,7 @@ export default class TapeFour {
     const hasIndividualTracks = tracksToMix.length > 0;
     
     if (!hasMasterBuffer && !hasIndividualTracks) {
-      return alert('No tracks to bounce. Please record some audio first.');
+              return this.showError('No tracks to bounce. Please record some audio first.');
     }
 
     try {
@@ -2290,7 +2398,7 @@ export default class TapeFour {
       
     } catch (err) {
       console.error('[TAPEFOUR] ❌ Bounce error:', err);
-      alert('Error bouncing tracks. Please try again.');
+      this.showError('Error bouncing tracks. Please try again.');
     }
   }
 
@@ -2409,7 +2517,7 @@ export default class TapeFour {
   }
 
   public async export() {
-    if (!this.audioContext) return alert('No audio to export. Please record something first.');
+    if (!this.audioContext) return this.showError('No audio to export. Please record something first.');
     
     // Prefer master buffer if available (from bounce), otherwise mix tracks on-the-fly
     if (this.state.masterBuffer) {
@@ -2419,7 +2527,7 @@ export default class TapeFour {
     }
     
     const tracksWithAudio = this.tracks.filter((t) => t.audioBuffer);
-    if (!tracksWithAudio.length) return alert('No recorded tracks to export.');
+    if (!tracksWithAudio.length) return this.showError('No recorded tracks to export.');
 
     try {
       console.log('[TAPEFOUR] 📁 Exporting live mix (no bounce available)');
@@ -2453,7 +2561,7 @@ export default class TapeFour {
       this.downloadWav(rendered);
     } catch (err) {
       console.error('export error', err);
-      alert('Error exporting audio. Please try again.');
+      this.showError('Error exporting audio. Please try again.');
     }
   }
 
@@ -2534,7 +2642,7 @@ export default class TapeFour {
       console.warn('Microphone permission denied or not available:', err);
       // Show a user-friendly message
       setTimeout(() => {
-        alert('TapeFour needs microphone access to record audio. Please allow microphone access when prompted, or check your browser settings.');
+        this.showError('TapeFour needs microphone access to record audio. Please allow microphone access when prompted, or check your browser settings.');
       }, 1000);
     }
   }
