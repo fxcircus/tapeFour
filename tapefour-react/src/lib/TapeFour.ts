@@ -1877,26 +1877,25 @@ export default class TapeFour {
     const canvas = this.waveformCanvas;
     const ctx = this.waveformContext;
     const height = canvas.height;
-    const midY = height / 2;
     
     // Calculate current playhead position (same logic as updatePlayheadUI)
     const progress = this.state.playheadPosition / this.state.maxRecordingTime;
     const maxWidth = canvas.width; // Use full canvas width instead of fixed 120px
     const currentX = Math.min(progress * maxWidth, maxWidth);
     
-    // Set waveform style to match track color
-    ctx.fillStyle = '#8A7156'; // var(--track) color to match brown elements
-    ctx.strokeStyle = '#8A7156';
+    // Set waveform style to bright orange for visual pop
+    ctx.fillStyle = '#D18C33'; // var(--color-accent-warm) - burnt orange for highlights
+    ctx.strokeStyle = '#D18C33';
     ctx.lineWidth = 1;
     ctx.globalAlpha = 1;
     
-    // Only draw positive amplitude (mirrored upward from center)
-    const peakHeight = peak * (height / 2);
-    const peakWidth = 10; // Width of each peak line
+    // Draw waveform from bottom upward for better visual alignment
+    const peakHeight = peak * (height * 0.8); // Use 80% of height for better proportions
+    const peakWidth = 3; // Slightly thinner for cleaner look
     
-    // Draw peak as vertical line from center upward at current playhead position
+    // Draw peak as vertical line from bottom upward at current playhead position
     if (currentX < canvas.width && currentX >= 0) {
-      ctx.fillRect(currentX, midY - peakHeight, peakWidth, peakHeight);
+      ctx.fillRect(currentX, height - peakHeight, peakWidth, peakHeight);
     }
   }
 

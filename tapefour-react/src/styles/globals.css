@@ -166,7 +166,7 @@ body {
 .cassette-display {
   background: var(--color-control-surface);
   border-radius: 6px;
-  padding: 32px; /* Increased padding by 8px */
+  padding: 48px 40px; /* Increased padding for better breathing room */
   border: 1px solid var(--color-text-primary);
   /* Inset border for hardware feel */
   box-shadow: 
@@ -174,10 +174,10 @@ body {
     inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between; /* Better distribution of elements */
   align-items: center;
-  gap: 20px; /* Aligned to 4pt grid */
-  min-height: 128px; /* 4pt grid aligned */
+  gap: 28px; /* Increased gap for better separation */
+  min-height: 180px; /* More height for better proportions */
   position: relative;
 }
 
@@ -198,11 +198,11 @@ body {
 }
 
 .left-reel {
-  left: 72px; /* Adjusted for larger size while keeping centered */
+  left: 80px; /* Better positioning with increased padding */
 }
 
 .right-reel {
-  right: 72px; /* Adjusted for larger size while keeping centered */
+  right: 80px; /* Better positioning with increased padding */
 }
 
 .reel-center {
@@ -757,23 +757,60 @@ body {
   .playhead {
     position: absolute;
     left: 50%;
-    bottom: 5px; /* Position under the reels */
-    transform: translateX(-41%);
-    width: 60%; /* Span between reel centers */
-    height: 30px; /* Increased height for better waveform visualization */
-    background: transparent; /* Remove brown background, show only waveform */
+    bottom: 12px; /* More space from bottom with increased padding */
+    transform: translateX(-50%); /* Perfect center alignment */
+    width: 55%; /* Slightly narrower for better proportions */
+    height: 48px; /* Increased height to match larger container */
+    background: var(--color-track-well); /* Dark brown tape well background */
+    border: 1px solid var(--color-text-primary);
     border-radius: 4px;
+    box-shadow: 
+      inset 0 1px 3px var(--color-shadow-inset),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   }
 
 .playhead-indicator {
   position: absolute;
-  bottom: 0;
+  top: -2px; /* Position above the playhead area */
   left: 0;
-  width: 5px;
-  height: 5px;
-  background: var(--color-record); /* Brown color to match theme */
-  border-radius: 1px;
+  width: 3px;
+  height: calc(100% + 2px); /* Extend through entire playhead height plus overhang */
+  background: var(--color-record);
   transition: left 0.1s ease;
+  z-index: 10;
+  border-radius: 10%;
+}
+
+/* Video editing style playhead with triangular top */
+.playhead-indicator::before {
+  content: '';
+  position: absolute;
+  top: -2px; /* Position above the line */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 10px solid var(--color-record);
+  z-index: 11;
+  border-radius: 50%;
+  /* Add subtle shadow for depth */
+  /* filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2)); */
+}
+
+/* Optional: Add a small handle at the top for better grab indication */
+.playhead-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 4px;
+  background: var(--color-record);
+  border-radius: 50%;
+  z-index: 12;
 }
 
 /* Waveform Canvas - positioned above playhead indicator */
@@ -781,10 +818,11 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%;
-  height: 50px; /* Increased height for better visualization */
+  width: 100%; /* Full width to match playhead */
+  height: 100%; /* Full height to match playhead */
   display: block;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.1); /* Subtle dark overlay for waveform visibility */
+  border-radius: 3px; /* Slightly smaller radius to create inset effect */
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
@@ -795,10 +833,10 @@ body {
 .display-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px; /* Reduced gap to balance with other spacing */
   align-items: center;
-  padding: 16px;
-  min-width: 120px;
+  padding: 8px; /* Reduced padding since parent has more padding now */
+  min-width: 140px; /* Match volume meter width */
 }
 
 /* Timecode Display - Monospace Counter */
@@ -809,11 +847,12 @@ body {
   font-size: 24px;
   color: var(--color-text-primary);
   background: var(--color-chassis);
-  padding: 8px 16px;
+  padding: 12px 20px; /* Increased padding for better visual weight */
   border: 1px solid var(--color-text-primary);
   border-radius: 6px;
-  min-width: 100px;
+  min-width: 120px; /* Slightly wider for better proportions */
   text-align: center;
+  margin-bottom: 8px; /* Add space below timecode */
   box-shadow: 
     inset 0 1px 2px var(--color-shadow-inset),
     0 1px 2px rgba(0, 0, 0, 0.05);
@@ -825,12 +864,13 @@ body {
   flex-direction: row;
   align-items: center;
   gap: 1px; /* 1px gap between bars */
-  height: 16px;
-  width: 120px;
-  padding: 2px;
+  height: 18px; /* Slightly taller for better proportion */
+  width: 140px; /* Wider to match timecode proportions */
+  padding: 3px; /* Increased padding */
   background: var(--color-track-well);
-  border-radius: 2px;
+  border-radius: 3px;
   border: 1px solid var(--color-text-primary);
+  margin-top: 4px; /* Add space above volume meter */
   /* Inset shadow for depth */
   box-shadow: inset 0 1px 2px var(--color-shadow-inset);
 }
