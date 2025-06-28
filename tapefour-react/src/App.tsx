@@ -89,10 +89,7 @@ function App() {
                   </div>
                   <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
                   <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="11,17 6,12 11,7"></polyline>
-                      <polyline points="18,17 13,12 18,7"></polyline>
-                    </svg>
+                    ⇄
                   </button>
                   <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} title={`Arm Track ${id} (${id})`} />
                 </div>

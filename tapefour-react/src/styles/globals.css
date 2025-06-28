@@ -1506,11 +1506,11 @@ body {
 .track-controls {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   justify-content: flex-start;
-  padding-top: 8px;
-  width: 50px;
+  padding-top: 6px;
+  width: 42px;
 }
 
 .fader-section, .master-fader-section {
