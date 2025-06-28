@@ -20,6 +20,10 @@ export default class TapeFour {
   private volumeMeterAnimationId: number | null = null;
   private analyserNode: AnalyserNode | null = null;
   private reelAnimationActive = false;
+  
+  // Input monitoring nodes
+  private inputSourceNode: MediaStreamAudioSourceNode | null = null;
+  private inputMonitoringGainNode: GainNode | null = null;
 
   private state = {
     isPlaying: false,
@@ -29,6 +33,7 @@ export default class TapeFour {
     selectedInputDeviceId: null as string | null,
     maxRecordingTime: 60000, // 60 seconds
     inputMuted: false,
+    isMonitoring: false, // Whether input monitoring is active
     // Audio processing settings - default to false for more raw recording
     echoCancellation: false,
     noiseSuppression: false,
@@ -78,11 +83,15 @@ export default class TapeFour {
 
       // master chain
       this.masterGainNode = this.audioContext.createGain();
-      this.masterGainNode.gain.value = 0.75;
+      this.masterGainNode.gain.value = 1.0; // 0 dB (80% with logarithmic taper)
 
       // Create monitoring gain node for playback during recording (lower volume)
       this.monitoringGainNode = this.audioContext.createGain();
       this.monitoringGainNode.gain.value = 0.3; // Lower volume for monitoring
+
+      // Create input monitoring gain node for hearing live input
+      this.inputMonitoringGainNode = this.audioContext.createGain();
+      this.inputMonitoringGainNode.gain.value = 0.5; // Moderate volume for input monitoring
 
       this.masterGainNode.connect(this.audioContext.destination);
 
@@ -90,10 +99,13 @@ export default class TapeFour {
       this.masterGainNode.connect(this.monitoringGainNode);
       this.monitoringGainNode.connect(this.audioContext.destination);
 
+      // Input monitoring path: input -> input monitoring gain -> destination
+      this.inputMonitoringGainNode.connect(this.audioContext.destination);
+
       // track gain and pan nodes
       this.tracks.forEach((track) => {
         track.gainNode = this.audioContext!.createGain();
-        track.gainNode.gain.value = 0.75;
+        track.gainNode.gain.value = 1.0; // 0 dB (80% with logarithmic taper)
         
         track.panNode = this.audioContext!.createStereoPanner();
         track.panNode.pan.value = 0; // Start at center (0 = center, -1 = left, 1 = right)
@@ -114,9 +126,9 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
       if (fader) {
-        fader.value = '75';
+        fader.value = '80'; // 0 dB = 80% fader position (logarithmic taper)
         // Initialize CSS custom property for volume indicator line
-        fader.style.setProperty('--fader-value', '75');
+        fader.style.setProperty('--fader-value', '80');
       }
       
       const panKnob = document.getElementById(`pan-${track.id}`) as HTMLInputElement | null;
@@ -125,9 +137,9 @@ export default class TapeFour {
     
     const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
     if (masterFader) {
-      masterFader.setAttribute('value', '75');
+      masterFader.setAttribute('value', '80'); // 0 dB = 80% fader position (logarithmic taper)
       // Initialize CSS custom property for master fader volume indicator line
-      masterFader.style.setProperty('--master-fader-value', '75');
+      masterFader.style.setProperty('--master-fader-value', '80');
     }
   }
 
@@ -162,8 +174,8 @@ export default class TapeFour {
     this.tracks.forEach((track) => {
       const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
       fader?.addEventListener('input', (e) => this.updateTrackGain(track.id, +(e.target as HTMLInputElement).value));
-      // Double-click to reset to default value (75)
-      fader?.addEventListener('dblclick', (e) => this.resetTrackFader(track.id));
+      // Double-click to reset to default value (80% = 0 dB)
+      fader?.addEventListener('dblclick', () => this.resetTrackFader(track.id));
     });
 
     // Pan knobs
@@ -241,7 +253,7 @@ export default class TapeFour {
     // Master fader
     const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
     masterFader?.addEventListener('input', (e) => this.updateMasterGain(+(e.target as HTMLInputElement).value));
-    // Double-click to reset to default value (75)
+    // Double-click to reset to default value (80% = 0 dB)
     masterFader?.addEventListener('dblclick', () => this.resetMasterFader());
 
     // Transport
@@ -484,8 +496,10 @@ export default class TapeFour {
     
     if (hasArmedTracks && !this.volumeMeterActive) {
       this.startVolumeMeter();
+      this.startInputMonitoring();
     } else if (!hasArmedTracks && this.volumeMeterActive) {
       this.stopVolumeMeter();
+      this.stopInputMonitoring();
     }
   }
 
@@ -582,11 +596,33 @@ export default class TapeFour {
         } else {
           // Get current fader value and apply it
           const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
-          const faderValue = fader ? parseInt(fader.value) : 75;
-          track.gainNode.gain.value = faderValue / 100;
+          const faderValue = fader ? parseInt(fader.value) : 80; // Default to 0 dB (80%)
+          track.gainNode.gain.value = this.faderToGain(faderValue);
         }
       }
     });
+  }
+
+  // Audio fader taper conversion functions
+  private faderToGain(faderValue: number): number {
+    if (faderValue === 0) return 0; // -∞ dB
+    
+    if (faderValue <= 80) {
+      // Logarithmic taper for 0-80% -> -60dB to 0dB
+      const ratio = faderValue / 80;
+      const dB = -60 + (60 * Math.pow(ratio, 0.25)); // Fourth root for audio taper
+      return Math.pow(10, dB / 20);
+    } else {
+      // Linear taper for 80-100% -> 0dB to +12dB
+      const ratio = (faderValue - 80) / 20;
+      const dB = ratio * 12;
+      return Math.pow(10, dB / 20);
+    }
+  }
+
+  private gainToDb(gain: number): number {
+    if (gain === 0) return -Infinity;
+    return 20 * Math.log10(gain);
   }
 
   private updateTrackGain(trackId: number, value: number) {
@@ -597,9 +633,10 @@ export default class TapeFour {
         track.gainNode.gain.value = 0;
         console.log(`🎚️ Track ${trackId} fader moved to ${value}% but track is muted (gain remains 0)`);
       } else {
-        const gainValue = value / 100;
+        const gainValue = this.faderToGain(value);
+        const dbValue = this.gainToDb(gainValue);
         track.gainNode.gain.value = gainValue;
-        console.log(`🎚️ Track ${trackId} gain set to ${gainValue} (${value}%)`);
+        console.log(`🎚️ Track ${trackId} fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
       }
     } else {
       console.warn(`⚠️ No gain node found for track ${trackId}`);
@@ -613,7 +650,12 @@ export default class TapeFour {
   }
 
   private updateMasterGain(value: number) {
-    if (this.masterGainNode) this.masterGainNode.gain.value = value / 100;
+    if (this.masterGainNode) {
+      const gainValue = this.faderToGain(value);
+      const dbValue = this.gainToDb(gainValue);
+      this.masterGainNode.gain.value = gainValue;
+      console.log(`🎚️ Master fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
+    }
     
     // Update the CSS custom property for the master fader volume indicator line position
     const masterFaderElement = document.getElementById('master-fader') as HTMLElement;
@@ -626,7 +668,7 @@ export default class TapeFour {
     const fader = document.getElementById(`fader-${trackId}`) as HTMLInputElement | null;
     if (fader) {
       const currentValue = parseInt(fader.value);
-      const targetValue = 75;
+      const targetValue = 80; // 0 dB with logarithmic taper
       
       // Only animate if there's a difference
       if (currentValue !== targetValue) {
@@ -644,7 +686,7 @@ export default class TapeFour {
         }, 200);
       }
       
-      console.log(`🎚️ Track ${trackId} fader reset to default (75%)`);
+      console.log(`🎚️ Track ${trackId} fader reset to default (80% = 0 dB)`);
     }
   }
 
@@ -652,7 +694,7 @@ export default class TapeFour {
     const masterFader = document.getElementById('master-fader') as HTMLInputElement | null;
     if (masterFader) {
       const currentValue = parseInt(masterFader.value);
-      const targetValue = 75;
+      const targetValue = 80; // 0 dB with logarithmic taper
       
       // Only animate if there's a difference
       if (currentValue !== targetValue) {
@@ -670,7 +712,7 @@ export default class TapeFour {
         }, 200);
       }
       
-      console.log(`🎚️ Master fader reset to default (75%)`);
+      console.log(`🎚️ Master fader reset to default (80% = 0 dB)`);
     }
   }
 
@@ -924,6 +966,13 @@ export default class TapeFour {
     console.log('[TAPEFOUR] 🎵 Starting monitoring playback during recording...');
     console.log('[TAPEFOUR] 🎧 Other tracks will play at reduced volume to minimize bleed');
     
+    // Keep input monitoring active during recording so you can hear yourself
+    // Note: Use headphones to prevent feedback between speakers and microphone
+    console.log(`[TAPEFOUR] 🎧 Input monitoring during recording: ${this.state.isMonitoring ? 'ACTIVE' : 'INACTIVE'}`);
+    if (this.state.isMonitoring) {
+      console.log('[TAPEFOUR] ✅ You should be able to hear your input while recording');
+    }
+    
     // Enable monitoring mode (lower volume playback during recording)
     this.enableMonitoringMode();
     
@@ -949,13 +998,20 @@ export default class TapeFour {
 
   private async setupRecording() {
     try {
-      // Check if volume meter was active before stopping the stream
+      // Check if volume meter and monitoring were active before stopping the stream
       const wasVolumeMeterActive = this.volumeMeterActive;
+      const wasMonitoringActive = this.state.isMonitoring;
       
       // Stop volume meter first if it was active
       if (wasVolumeMeterActive) {
         console.log('[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
         this.stopVolumeMeter();
+      }
+      
+      // Stop input monitoring if it was active
+      if (wasMonitoringActive) {
+        console.log('[TAPEFOUR] 🔇 Stopping input monitoring before recreating media stream');
+        this.stopInputMonitoring();
       }
       
       // Always stop and clean up existing media stream before creating a new one
@@ -965,6 +1021,12 @@ export default class TapeFour {
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
         this.mediaRecorder = null;
+        
+        // Clean up input source node since the stream is changing
+        if (this.inputSourceNode) {
+          this.inputSourceNode.disconnect();
+          this.inputSourceNode = null;
+        }
       }
 
       const constraints: MediaStreamConstraints = {
@@ -1024,6 +1086,12 @@ export default class TapeFour {
         await this.startVolumeMeter();
       }
       
+      // Restart input monitoring if it was previously active
+      if (wasMonitoringActive) {
+        console.log('[TAPEFOUR] 🎧 Restarting input monitoring with new media stream');
+        await this.startInputMonitoring();
+      }
+      
     } catch (err) {
       console.error('Error setting up recording', err);
       alert('Could not access microphone. Please check permissions and settings.');
@@ -1053,6 +1121,8 @@ export default class TapeFour {
         }
       });
     }
+    
+    // Input monitoring continues as long as tracks are armed
     
     // Ensure recording buffer is cleared if recording was interrupted
     setTimeout(() => {
@@ -1326,6 +1396,12 @@ export default class TapeFour {
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
         this.mediaRecorder = null;
+        
+        // Clean up input source node since the stream is changing
+        if (this.inputSourceNode) {
+          this.inputSourceNode.disconnect();
+          this.inputSourceNode = null;
+        }
       }
       
       // Stop volume meter and restart it to pick up new device
@@ -1511,12 +1587,7 @@ export default class TapeFour {
     }
   }
 
-  private setupVolumeMeter() {
-    // This method is deprecated in favor of startVolumeMeter()
-    // Keeping for backward compatibility but redirect to proper method
-    console.log('[TAPEFOUR] ⚠️ setupVolumeMeter() is deprecated, using startVolumeMeter() instead');
-    this.startVolumeMeter();
-  }
+
 
   private async startVolumeMeter() {
     if (this.volumeMeterActive) return;
@@ -1527,11 +1598,15 @@ export default class TapeFour {
     
     if (!this.mediaStream || !this.audioContext) return;
 
+    // Create or reuse input source node (only one per MediaStream allowed)
+    if (!this.inputSourceNode) {
+      this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    }
+
     // Create analyser for volume monitoring
-    const source = this.audioContext.createMediaStreamSource(this.mediaStream);
     this.analyserNode = this.audioContext.createAnalyser();
     this.analyserNode.fftSize = 256;
-    source.connect(this.analyserNode);
+    this.inputSourceNode.connect(this.analyserNode);
 
     const dataArray = new Uint8Array(this.analyserNode.frequencyBinCount);
     this.volumeMeterActive = true;
@@ -1562,8 +1637,71 @@ export default class TapeFour {
       cancelAnimationFrame(this.volumeMeterAnimationId);
       this.volumeMeterAnimationId = null;
     }
-    this.analyserNode = null;
+    
+    // Disconnect analyser but keep input source node if monitoring is active
+    if (this.analyserNode) {
+      try {
+        if (this.inputSourceNode) {
+          this.inputSourceNode.disconnect(this.analyserNode);
+        }
+      } catch (e) {
+        // Ignore disconnect errors - might already be disconnected
+      }
+      this.analyserNode = null;
+    }
+    
+    // Only clean up input source node if monitoring is not active
+    if (!this.state.isMonitoring && this.inputSourceNode) {
+      this.inputSourceNode.disconnect();
+      this.inputSourceNode = null;
+    }
+    
     this.updateVolumeMeter(0);
+  }
+
+  private async startInputMonitoring() {
+    if (this.state.isMonitoring) return;
+    
+    // Ensure we have audio context and media stream
+    await this.initializeAudio();
+    await this.ensureInputStream();
+    
+    if (!this.mediaStream || !this.audioContext || !this.inputMonitoringGainNode) return;
+
+    // Create or reuse input source node (only one per MediaStream allowed)
+    if (!this.inputSourceNode) {
+      this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    }
+    
+    // Connect input source to monitoring gain
+    this.inputSourceNode.connect(this.inputMonitoringGainNode);
+    
+    this.state.isMonitoring = true;
+    
+    console.log('[TAPEFOUR] 🎧 Input monitoring started - you can now hear live input');
+  }
+
+  private stopInputMonitoring() {
+    if (!this.state.isMonitoring) return;
+    
+    // Disconnect monitoring gain but keep input source node if volume meter is active
+    if (this.inputSourceNode && this.inputMonitoringGainNode) {
+      try {
+        this.inputSourceNode.disconnect(this.inputMonitoringGainNode);
+      } catch (e) {
+        // Ignore disconnect errors - might already be disconnected
+      }
+    }
+    
+    // Only clean up input source node if nothing else is using it
+    if (!this.volumeMeterActive && this.inputSourceNode) {
+      this.inputSourceNode.disconnect();
+      this.inputSourceNode = null;
+    }
+    
+    this.state.isMonitoring = false;
+    
+    console.log('[TAPEFOUR] 🔇 Input monitoring stopped');
   }
 
   private enableMonitoringMode() {
@@ -1656,51 +1794,5 @@ export default class TapeFour {
     requestAnimationFrame(animate);
   }
 
-  // Add this method for debugging
-  private async debugAudioInterface() {
-    console.log('[TAPEFOUR] 🔍 Audio Interface Debug Test');
-    
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const scarlettDevice = devices.find(d => 
-        d.kind === 'audioinput' && 
-        d.label.toLowerCase().includes('scarlett')
-      );
-      
-      if (scarlettDevice) {
-        console.log('[TAPEFOUR] 🎤 Found Scarlett device:', scarlettDevice);
-        
-        // Test with different constraints
-        const testConstraints = {
-          audio: {
-            deviceId: { exact: scarlettDevice.deviceId },
-            sampleRate: 48000,
-            channelCount: { min: 1, ideal: 2, max: 6 }, // Scarlett 6i6 has 6 inputs
-            autoGainControl: false,
-            noiseSuppression: false,
-            echoCancellation: false
-          }
-        };
-        
-        const testStream = await navigator.mediaDevices.getUserMedia(testConstraints);
-        console.log('[TAPEFOUR] ✅ Test stream created');
-        
-        testStream.getAudioTracks().forEach((track, i) => {
-          console.log(`[TAPEFOUR] Test Track ${i}:`, {
-            label: track.label,
-            enabled: track.enabled,
-            settings: track.getSettings(),
-            capabilities: track.getCapabilities()
-          });
-        });
-        
-        // Clean up test stream
-        testStream.getTracks().forEach(track => track.stop());
-      } else {
-        console.log('[TAPEFOUR] ⚠️ No Scarlett device found in device list');
-      }
-    } catch (err) {
-      console.error('[TAPEFOUR] ❌ Debug test failed:', err);
-    }
-  }
+
 } 

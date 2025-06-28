@@ -99,22 +99,22 @@ function App() {
                   <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} />
                 </div>
                 <div className="fader-section">
-                  <input
-                    type="range"
-                    className="fader"
-                    id={`fader-${id}`}
-                    min={0}
-                    max={100}
-                    defaultValue={75}
-                  />
+                                  <input
+                  type="range"
+                  className="fader"
+                  id={`fader-${id}`}
+                  min={0}
+                  max={100}
+                  defaultValue={80}
+                />
                   <div className="fader-markings">
-                    <div className="marking" data-db="-60">-60</div>
-                    <div className="marking" data-db="-48">-48</div>
-                    <div className="marking" data-db="-36">-36</div>
-                    <div className="marking" data-db="-24">-24</div>
-                    <div className="marking" data-db="-12">-12</div>
-                    <div className="marking" data-db="-6">-6</div>
                     <div className="marking" data-db="0">0</div>
+                    <div className="marking dash">-</div>
+                    <div className="marking" data-db="-12">-12</div>
+                    <div className="marking dash">-</div>
+                    <div className="marking" data-db="-36">-36</div>
+                    <div className="marking dash">-</div>
+                    <div className="marking" data-db="-60">-60</div>
                   </div>
                 </div>
               </div>
@@ -140,15 +140,15 @@ function App() {
                   id="master-fader"
                   min={0}
                   max={100}
-                  defaultValue={75}
+                  defaultValue={80}
                 />
                 <div className="fader-markings">
                   <div className="marking" data-db="0">0</div>
-                  <div className="marking" data-db="-6">-6</div>
+                  <div className="marking dash">-</div>
                   <div className="marking" data-db="-12">-12</div>
-                  <div className="marking" data-db="-24">-24</div>
+                  <div className="marking dash">-</div>
                   <div className="marking" data-db="-36">-36</div>
-                  <div className="marking" data-db="-48">-48</div>
+                  <div className="marking dash">-</div>
                   <div className="marking" data-db="-60">-60</div>
                 </div>
               </div>
@@ -309,6 +309,7 @@ function App() {
             </div>
             <div className="tips-content collapsed" id="tips-options">
               <p className="tip-item">Double-click pan knobs or faders to reset to default values</p>
+              <p className="tip-item">Use headphones when recording to avoid feedback from speakers</p>
             </div>
           </div>
           

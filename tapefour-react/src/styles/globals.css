@@ -1354,7 +1354,7 @@ body {
   position: relative;
 }
 
-/* Fader Markings - 4pt Grid Aligned */
+/* Fader Markings - Clean Layout */
 .marking {
   font-size: 10px;
   font-family: 'Inter', sans-serif;
@@ -1363,39 +1363,51 @@ body {
   line-height: 1;
   white-space: nowrap;
   position: absolute;
-  right: 0;
+  left: 0;
   letter-spacing: 0.02em;
+  margin-left: 5px;
 }
 
-/* Position markings based on fader scale - 4pt grid aligned */
+/* Dash markings for visual separation */
+.marking.dash {
+  font-size: 8px;
+  font-weight: 400;
+  opacity: 0.5;
+  color: var(--color-text-primary);
+}
+
+/* Position markings for clean visual layout - evenly distributed */
 .marking[data-db="0"] {
-  top: 44px; /* 4pt grid aligned */
+  top: 40px; /* 0 dB aligned with 80% fader position */
   font-weight: 600;
   color: var(--color-accent-warm);
 }
 
-.marking[data-db="-6"] {
-  top: 64px; /* 4pt grid aligned */
+.marking.dash:nth-of-type(2) {
+  top: 65px; /* First dash */
 }
 
 .marking[data-db="-12"] {
-  top: 84px; /* 4pt grid aligned */
+  top: 90px; /* -12 dB */
+  font-weight: 500;
 }
 
-.marking[data-db="-24"] {
-  top: 104px; /* 4pt grid aligned */
+.marking.dash:nth-of-type(4) {
+  top: 115px; /* Second dash */
 }
 
 .marking[data-db="-36"] {
-  top: 124px; /* 4pt grid aligned */
+  top: 140px; /* -36 dB */
+  font-weight: 500;
 }
 
-.marking[data-db="-48"] {
-  top: 144px; /* 4pt grid aligned */
+.marking.dash:nth-of-type(6) {
+  top: 155px; /* Third dash */
 }
 
 .marking[data-db="-60"] {
-  top: 164px; /* 4pt grid aligned */
+  top: 170px; /* -60 dB at bottom */
+  font-weight: 500;
 }
 
 /* Master section layout updates */
