@@ -323,6 +323,7 @@ export default class TapeFour {
     document.getElementById('record-btn')?.addEventListener('click', () => this.record());
     document.getElementById('export-btn')?.addEventListener('click', () => this.export());
     document.getElementById('bounce-btn')?.addEventListener('click', () => this.bounce());
+    document.getElementById('clear-btn')?.addEventListener('click', () => this.clearEverything());
     document.getElementById('settings-btn')?.addEventListener('click', () => this.openSettings());
 
     // Settings modal buttons
@@ -505,6 +506,13 @@ export default class TapeFour {
           e.preventDefault();
           console.log('[TAPEFOUR] ⌨️ B key pressed - triggering bounce');
           this.bounce();
+          break;
+        
+        case 'KeyN':
+          // N key for clear everything
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ N key pressed - triggering clear everything');
+          this.clearEverything();
           break;
         
         case 'Digit1':
@@ -1386,6 +1394,39 @@ export default class TapeFour {
     this.updateBounceButtonState();
     
     console.log('✅ Stop complete');
+  }
+
+  public clearEverything() {
+    console.log('[TAPEFOUR] 🗑️ Clear everything requested');
+    
+    // First stop all transport activity
+    this.stop();
+    
+    // Clear all track audio buffers
+    this.tracks.forEach((track) => {
+      track.audioBuffer = null;
+      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer`);
+    });
+    
+    // Clear master buffer
+    this.state.masterBuffer = null;
+    this.state.duration = 0;
+    console.log('[TAPEFOUR] 🗑️ Cleared master buffer');
+    
+    // Clear all waveforms
+    this.trackWaveforms.clear();
+    this.masterWaveform = [];
+    this.clearWaveform(); // Clear the canvas
+    
+    // Reset playhead position to 0
+    this.state.playheadPosition = 0;
+    this.updatePlayheadUI();
+    this.updateTimecode();
+    
+    // Update bounce button state since there's no audio to bounce
+    this.updateBounceButtonState();
+    
+    console.log('[TAPEFOUR] 🗑️ Everything cleared - project reset');
   }
 
   public pause() {

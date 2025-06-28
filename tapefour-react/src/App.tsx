@@ -187,6 +187,14 @@ function App() {
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </button>
+        <button className="transport-button clear-button" id="clear-btn" title="Clear everything (N)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3,6 5,6 21,6" />
+            <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6M8,6V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
+          </svg>
+        </button>
         <button className="transport-button settings-button" id="settings-btn" title="Settings (,)" onClick={handleOpenSettings}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />
@@ -286,20 +294,12 @@ function App() {
                     <td>Bounce to master</td>
                   </tr>
                   <tr>
-                    <td><kbd>1</kbd></td>
-                    <td>Arm Track 1</td>
+                    <td><kbd>N</kbd></td>
+                    <td>Clear everything</td>
                   </tr>
                   <tr>
-                    <td><kbd>2</kbd></td>
-                    <td>Arm Track 2</td>
-                  </tr>
-                  <tr>
-                    <td><kbd>3</kbd></td>
-                    <td>Arm Track 3</td>
-                  </tr>
-                  <tr>
-                    <td><kbd>4</kbd></td>
-                    <td>Arm Track 4</td>
+                    <td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></td>
+                    <td>Arm tracks</td>
                   </tr>
                 </tbody>
               </table>

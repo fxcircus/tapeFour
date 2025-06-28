@@ -787,6 +787,20 @@ body {
   transform: none;
 }
 
+.clear-button {
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+}
+
+.clear-button:hover {
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-text-primary) 15%);
+}
+
+.clear-button:active {
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
+  transform: translateY(1px);
+}
+
 /* Playhead */
   .playhead {
     position: absolute;
