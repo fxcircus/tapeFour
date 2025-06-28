@@ -172,18 +172,19 @@ function App() {
             <circle cx="12" cy="12" r="10" />
           </svg>
         </button>
+        <button className="transport-button bounce-button" id="bounce-btn" title="Bounce to Master (B)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 6 C2 6, 6 4, 12 6 C18 8, 22 6, 22 6" />
+            <path d="M2 10 C2 10, 6 8, 12 10 C18 12, 22 10, 22 10" />
+            <path d="M2 14 C2 14, 6 12, 12 14 C18 16, 22 14, 22 14" />
+            <path d="M2 18 C2 18, 6 16, 12 18 C18 20, 22 18, 22 18" />
+          </svg>
+        </button>
         <button className="transport-button" id="export-btn">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7,10 12,15 17,10" />
             <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </button>
-        <button className="transport-button bounce-button" id="bounce-btn" title="Bounce to Master (B)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="7,14 12,9 17,14" />
-            <polyline points="7,19 12,14 17,19" />
-            <line x1="12" y1="5" x2="12" y2="14" />
           </svg>
         </button>
         <button className="transport-button settings-button" id="settings-btn" onClick={handleOpenSettings}>
