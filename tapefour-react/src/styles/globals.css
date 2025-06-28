@@ -801,6 +801,33 @@ body {
   transform: translateY(1px);
 }
 
+.clear-button.clearing {
+  background: var(--color-record);
+  box-shadow: 0 0 8px rgba(210, 50, 25, 0.3);
+}
+
+.clear-button.clearing svg {
+  stroke: var(--color-chassis);
+}
+
+.bounce-button.bouncing {
+  background: var(--color-accent-warm);
+  box-shadow: 0 0 8px rgba(210, 135, 51, 0.3);
+}
+
+.bounce-button.bouncing svg {
+  stroke: var(--color-chassis);
+}
+
+.settings-button.opening {
+  background: var(--color-accent-olive);
+  box-shadow: 0 0 8px rgba(133, 102, 58, 0.3);
+}
+
+.settings-button.opening svg {
+  stroke: var(--color-chassis);
+}
+
 /* Playhead */
   .playhead {
     position: absolute;

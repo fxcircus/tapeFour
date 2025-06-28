@@ -90,6 +90,7 @@ export default class TapeFour {
   // Scrubbing/timeline interaction
   private isDraggingPlayhead = false;
   private playheadContainer: HTMLElement | null = null;
+  private lastSettingsToggleTime = 0;
 
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
@@ -1399,6 +1400,16 @@ export default class TapeFour {
   public clearEverything() {
     console.log('[TAPEFOUR] 🗑️ Clear everything requested');
     
+    // Add visual feedback to clear button
+    const clearBtn = document.getElementById('clear-btn');
+    if (clearBtn) {
+      clearBtn.classList.add('clearing');
+      // Remove the class after animation
+      setTimeout(() => {
+        clearBtn.classList.remove('clearing');
+      }, 200);
+    }
+    
     // First stop all transport activity
     this.stop();
     
@@ -2042,6 +2053,16 @@ export default class TapeFour {
   }
 
   public async openSettings() {
+    // Add visual feedback to settings button
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+      settingsBtn.classList.add('opening');
+      // Remove the class after animation
+      setTimeout(() => {
+        settingsBtn.classList.remove('opening');
+      }, 200);
+    }
+
     const modal = document.getElementById('settings-modal') as HTMLElement | null;
     await this.populateAudioInputSelect();
     
@@ -2062,14 +2083,24 @@ export default class TapeFour {
   }
 
   private toggleSettings() {
+    // Debounce to prevent rapid toggling (100ms minimum between toggles)
+    const now = Date.now();
+    if (now - this.lastSettingsToggleTime < 100) {
+      console.log('[TAPEFOUR] ⌨️ Settings toggle debounced');
+      return;
+    }
+    this.lastSettingsToggleTime = now;
+
     const modal = document.getElementById('settings-modal') as HTMLElement | null;
     if (modal) {
       // Check computed style instead of inline style for more reliable detection
       const computedStyle = window.getComputedStyle(modal);
       const isVisible = computedStyle.display !== 'none';
       if (isVisible) {
+        console.log('[TAPEFOUR] ⌨️ Closing settings modal');
         this.closeSettings();
       } else {
+        console.log('[TAPEFOUR] ⌨️ Opening settings modal');
         this.openSettings();
       }
     }
@@ -2255,6 +2286,16 @@ export default class TapeFour {
   /* ---------- Bounce & Export ---------- */
 
   public async bounce() {
+    // Add visual feedback to bounce button
+    const bounceBtn = document.getElementById('bounce-btn');
+    if (bounceBtn) {
+      bounceBtn.classList.add('bouncing');
+      // Remove the class after animation
+      setTimeout(() => {
+        bounceBtn.classList.remove('bouncing');
+      }, 200);
+    }
+
     if (!this.audioContext) {
       return this.showError('No audio context available.');
     }
