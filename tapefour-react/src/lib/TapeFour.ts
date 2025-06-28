@@ -1091,9 +1091,11 @@ export default class TapeFour {
       return false;
     }
     
-    // Need at least one track with audio to bounce to master
+    // Need either individual tracks with audio OR an existing master buffer
     const tracksToMix = this.getTracksForMixdown();
-    return tracksToMix.length >= 1;
+    const hasMasterBuffer = !!this.state.masterBuffer;
+    
+    return tracksToMix.length >= 1 || hasMasterBuffer;
   }
 
   /* ---------- Transport ---------- */
@@ -2119,16 +2121,25 @@ export default class TapeFour {
 
     // Get tracks that have audio and should be included in the mix
     const tracksToMix = this.getTracksForMixdown();
+    const hasMasterBuffer = !!this.state.masterBuffer;
+    const hasIndividualTracks = tracksToMix.length > 0;
     
-    if (tracksToMix.length < 1) {
+    if (!hasMasterBuffer && !hasIndividualTracks) {
       return alert('No tracks to bounce. Please record some audio first.');
     }
 
     try {
       console.log('[TAPEFOUR] 🎯 Starting bounce operation...');
+      console.log(`[TAPEFOUR] 📊 Master buffer: ${hasMasterBuffer ? 'Yes' : 'No'}, Individual tracks: ${tracksToMix.length}`);
       
-      // Calculate the duration of the longest track
-      const maxDuration = Math.max(...tracksToMix.map(track => track.audioBuffer!.duration));
+      // Calculate the duration considering both master buffer and individual tracks
+      let maxDuration = 0;
+      if (hasMasterBuffer) {
+        maxDuration = Math.max(maxDuration, this.state.masterBuffer!.duration);
+      }
+      if (hasIndividualTracks) {
+        maxDuration = Math.max(maxDuration, ...tracksToMix.map(track => track.audioBuffer!.duration));
+      }
       
       // Create offline context for rendering
       const offline = new OfflineAudioContext(
@@ -2142,8 +2153,18 @@ export default class TapeFour {
       offlineMaster.gain.value = this.masterGainNode!.gain.value;
       offlineMaster.connect(offline.destination);
 
-      // Set up each track in the offline context
+      // Include existing master buffer if it exists
+      if (hasMasterBuffer) {
+        console.log('[TAPEFOUR] 🏆 Adding existing master buffer to bounce');
+        const masterSrc = offline.createBufferSource();
+        masterSrc.buffer = this.state.masterBuffer!;
+        masterSrc.connect(offlineMaster);
+        masterSrc.start(0);
+      }
+
+      // Set up each individual track in the offline context
       tracksToMix.forEach((track) => {
+        console.log(`[TAPEFOUR] 🎵 Adding track ${track.id} to bounce`);
         const src = offline.createBufferSource();
         const gain = offline.createGain();
         const pan = offline.createStereoPanner();
@@ -2193,7 +2214,13 @@ export default class TapeFour {
       
       // Generate master waveform that preserves the original timeline positioning
       // (Do this BEFORE clearing track waveforms since we need the position data)
-      this.generateMasterWaveformFromTracks(rendered, tracksToMix);
+      if (hasIndividualTracks) {
+        // If we have individual tracks, generate waveform from their positions
+        this.generateMasterWaveformFromTracks(rendered, tracksToMix);
+      } else {
+        // If only master buffer (no new tracks), regenerate from the rendered buffer
+        this.generateMasterWaveform(rendered);
+      }
       
       // Clear all track waveforms AFTER generating master waveform
       this.trackWaveforms.clear();
@@ -2253,7 +2280,13 @@ export default class TapeFour {
       // Update the waveform display
       this.redrawAllTrackWaveforms();
       
-      console.log('[TAPEFOUR] ✅ Destructive bounce complete - bounced mix is now on Track 1');
+      if (hasMasterBuffer && hasIndividualTracks) {
+        console.log('[TAPEFOUR] ✅ Additive bounce complete - combined previous master with new tracks');
+      } else if (hasMasterBuffer) {
+        console.log('[TAPEFOUR] ✅ Master-only bounce complete - regenerated master buffer');
+      } else {
+        console.log('[TAPEFOUR] ✅ Initial bounce complete - tracks bounced to master');
+      }
       
     } catch (err) {
       console.error('[TAPEFOUR] ❌ Bounce error:', err);
