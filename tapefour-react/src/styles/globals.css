@@ -761,6 +761,32 @@ body {
   transform: translateY(1px);
 }
 
+/* Bounce Button - Golden theme for master mix */
+.bounce-button {
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px;
+}
+
+.bounce-button:hover {
+  background: color-mix(in srgb, var(--color-chassis) 85%, #d2a75b 15%);
+}
+
+.bounce-button:active {
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
+  transform: translateY(1px);
+}
+
+.bounce-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bounce-button:disabled:hover {
+  background: var(--color-chassis);
+  transform: none;
+}
+
 /* Playhead */
   .playhead {
     position: absolute;

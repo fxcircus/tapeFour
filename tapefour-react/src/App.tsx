@@ -179,6 +179,13 @@ function App() {
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </button>
+        <button className="transport-button bounce-button" id="bounce-btn" title="Bounce to Master (B)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="7,14 12,9 17,14" />
+            <polyline points="7,19 12,14 17,19" />
+            <line x1="12" y1="5" x2="12" y2="14" />
+          </svg>
+        </button>
         <button className="transport-button settings-button" id="settings-btn" onClick={handleOpenSettings}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="3" />

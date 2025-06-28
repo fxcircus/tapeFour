@@ -34,13 +34,15 @@ export default class TapeFour {
   
   // Track-specific waveform storage: array of {position, peak} objects for each track
   private trackWaveforms: Map<number, Array<{position: number, peak: number}>> = new Map();
+  private masterWaveform: Array<{position: number, peak: number}> = [];
   
   // Track colors for waveform visualization - distinct colors for each track
   private trackColors = {
     1: '#D18C33', // Burnt orange (track 1)
     2: '#2ECC71', // Emerald green (track 2) 
     3: '#3498DB', // Bright blue (track 3)
-    4: '#C8A8E9'  // Light lavender purple (track 4) - light enough for black text
+    4: '#C8A8E9', // Light lavender purple (track 4) - light enough for black text
+    master: '#d2a75b', // Golden for master mix
   };
 
   private state = {
@@ -59,6 +61,9 @@ export default class TapeFour {
     // Punch-in recording state
     recordMode: 'fresh' as 'fresh' | 'punchIn',
     punchInStartPosition: 0, // Position where punch-in recording started (in ms)
+    // Bounce to master
+    masterBuffer: null as AudioBuffer | null,
+    duration: 0, // Total duration in milliseconds
   };
 
   private tracks: Array<{
@@ -180,6 +185,7 @@ export default class TapeFour {
     // Update existing mute button styling immediately if tracks exist
     setTimeout(() => {
       this.tracks.forEach(track => this.updateMuteButtonStyling(track.id));
+      this.updateBounceButtonState(); // Initialize bounce button state
     }, 100);
   }
 
@@ -302,6 +308,7 @@ export default class TapeFour {
     document.getElementById('pause-btn')?.addEventListener('click', () => this.pause());
     document.getElementById('record-btn')?.addEventListener('click', () => this.record());
     document.getElementById('export-btn')?.addEventListener('click', () => this.export());
+    document.getElementById('bounce-btn')?.addEventListener('click', () => this.bounce());
     document.getElementById('settings-btn')?.addEventListener('click', () => this.openSettings());
 
     // Settings modal buttons
@@ -455,6 +462,13 @@ export default class TapeFour {
           e.preventDefault();
           console.log('[TAPEFOUR] ⌨️ E key pressed - triggering export');
           this.export();
+          break;
+        
+        case 'KeyB':
+          // B key for bounce
+          e.preventDefault();
+          console.log('[TAPEFOUR] ⌨️ B key pressed - triggering bounce');
+          this.bounce();
           break;
         
         case 'Digit1':
@@ -1042,6 +1056,39 @@ export default class TapeFour {
     return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
   }
 
+  private updateBounceButtonState() {
+    const bounceBtn = document.getElementById('bounce-btn') as HTMLButtonElement | null;
+    if (!bounceBtn) return;
+
+    // Check if bounce should be enabled
+    const canBounce = this.canBounce();
+    
+    bounceBtn.disabled = !canBounce;
+    
+    if (!canBounce) {
+      if (this.state.isRecording) {
+        bounceBtn.title = 'Stop recording first to bounce';
+      } else if (this.state.isPlaying) {
+        bounceBtn.title = 'Stop playback first to bounce';
+      } else {
+        bounceBtn.title = 'No tracks to bounce. Record some audio first.';
+      }
+    } else {
+      bounceBtn.title = 'Bounce to Master Track (B)';
+    }
+  }
+
+  private canBounce(): boolean {
+    // Cannot bounce while recording or playing
+    if (this.state.isRecording || this.state.isPlaying) {
+      return false;
+    }
+    
+    // Need at least one track with audio to bounce to master
+    const tracksToMix = this.getTracksForMixdown();
+    return tracksToMix.length >= 1;
+  }
+
   /* ---------- Transport ---------- */
 
   public async play() {
@@ -1100,21 +1147,30 @@ export default class TapeFour {
     
     console.log(`🕐 Scheduling synchronized playback at audio context time: ${startTime}`);
 
-    // Prepare all tracks to start simultaneously
-    const tracksToPlay = this.tracks.filter(t => t.audioBuffer);
-    console.log(`🎵 Preparing ${tracksToPlay.length} tracks for synchronized playback`);
-    
-    this.tracks.forEach((t) => {
-      if (t.audioBuffer) {
-        console.log(`🎶 Playing track ${t.id} - buffer length: ${t.audioBuffer.length} samples`);
-        this.playTrack(t, startTime);
-      } else {
-        console.log(`⚪ Track ${t.id} has no audio buffer`);
-      }
-    });
+    // Play master buffer if available (from bounce)
+    if (this.state.masterBuffer) {
+      console.log('🏆 Playing master buffer from bounce');
+      this.playMasterTrack(startTime);
+    } else {
+      // Prepare all tracks to start simultaneously
+      const tracksToPlay = this.tracks.filter(t => t.audioBuffer);
+      console.log(`🎵 Preparing ${tracksToPlay.length} tracks for synchronized playback`);
+      
+      this.tracks.forEach((t) => {
+        if (t.audioBuffer) {
+          console.log(`🎶 Playing track ${t.id} - buffer length: ${t.audioBuffer.length} samples`);
+          this.playTrack(t, startTime);
+        } else {
+          console.log(`⚪ Track ${t.id} has no audio buffer`);
+        }
+      });
+    }
 
     this.startPlayheadTimer();
     document.getElementById('play-btn')?.classList.add('playing');
+    
+    // Update bounce button state
+    this.updateBounceButtonState();
     
     // Initialize timecode display
     this.updateTimecode();
@@ -1157,6 +1213,44 @@ export default class TapeFour {
     console.log(`  - Started playback at audio context time: ${actualStartTime}, offset: ${offset}s`);
 
     track.sourceNode = source;
+  }
+
+  private playMasterTrack(startTime?: number) {
+    if (!this.state.masterBuffer || !this.audioContext) return;
+    
+    console.log(`🏆 playMasterTrack() called`);
+    
+    // Stop any existing master source
+    if ((this as any).masterSourceNode) {
+      try {
+        (this as any).masterSourceNode.stop();
+        (this as any).masterSourceNode.disconnect();
+      } catch (e) {
+        console.log('  - Master source already stopped');
+      }
+      (this as any).masterSourceNode = null;
+    }
+    
+    // Create a dedicated source for the master buffer
+    const source = this.audioContext.createBufferSource();
+    source.buffer = this.state.masterBuffer;
+    
+    // Connect directly to master gain (no individual track processing needed)
+    source.connect(this.masterGainNode!);
+    
+    const actualStartTime = startTime || this.audioContext.currentTime;
+    const startOffset = this.state.playheadPosition / 1000; // Convert ms to seconds
+    
+    console.log(`  - Starting master source at time ${actualStartTime} from position ${startOffset.toFixed(2)}s`);
+    source.start(actualStartTime, startOffset);
+    
+    // Store reference for cleanup during stop()
+    (this as any).masterSourceNode = source;
+    
+    source.onended = () => {
+      console.log(`  - Master source ended naturally`);
+      (this as any).masterSourceNode = null;
+    };
   }
 
   public stop() {
@@ -1202,6 +1296,18 @@ export default class TapeFour {
       }
     });
 
+    // Stop master source if playing
+    if ((this as any).masterSourceNode) {
+      console.log('🛑 Stopping master source');
+      try {
+        (this as any).masterSourceNode.stop();
+        (this as any).masterSourceNode.disconnect();
+      } catch (e) {
+        console.log('  - Master source already stopped');
+      }
+      (this as any).masterSourceNode = null;
+    }
+
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
 
     // Unmute input when stopping
@@ -1223,6 +1329,9 @@ export default class TapeFour {
     
     // Keep waveform visible after recording for visual reference
     // (waveform will only clear when starting new recording)
+    
+    // Update bounce button state
+    this.updateBounceButtonState();
     
     console.log('✅ Stop complete');
   }
@@ -1257,18 +1366,36 @@ export default class TapeFour {
       }
     });
 
+    // Stop master source if playing
+    if ((this as any).masterSourceNode) {
+      console.log('🛑 Stopping master source to restart from current position');
+      try {
+        (this as any).masterSourceNode.stop();
+        (this as any).masterSourceNode.disconnect();
+      } catch (e) {
+        console.log('  - Master source already stopped');
+      }
+      (this as any).masterSourceNode = null;
+    }
+
     await this.audioContext!.resume();
     this.state.isPaused = false;
     this.state.isPlaying = true;
     
-    // Restart all tracks from the current playhead position (accounting for any scrubbing during pause)
+    // Restart playback from the current playhead position (accounting for any scrubbing during pause)
     const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
-    this.tracks.forEach((t) => {
-      if (t.audioBuffer) {
-        console.log(`🎶 Restarting track ${t.id} from scrubbed position`);
-        this.playTrack(t, startTime);
-      }
-    });
+    
+    if (this.state.masterBuffer) {
+      console.log('🏆 Restarting master buffer from scrubbed position');
+      this.playMasterTrack(startTime);
+    } else {
+      this.tracks.forEach((t) => {
+        if (t.audioBuffer) {
+          console.log(`🎶 Restarting track ${t.id} from scrubbed position`);
+          this.playTrack(t, startTime);
+        }
+      });
+    }
 
     this.startPlayheadTimer();
     document.getElementById('play-btn')?.classList.add('playing');
@@ -1325,6 +1452,9 @@ export default class TapeFour {
         recordBtn.title = 'Recording - Armed tracks will be replaced from beginning';
       }
     }
+    
+    // Update bounce button state
+    this.updateBounceButtonState();
     
     // Update playhead cursor to show scrubbing is disabled
     this.updatePlayheadCursor();
@@ -1579,6 +1709,9 @@ export default class TapeFour {
 
     this.mediaStream?.getTracks().forEach((t) => t.stop());
     console.log('[TAPEFOUR] 🔌 Media stream tracks stopped');
+    
+    // Update bounce button state since new audio may be available
+    this.updateBounceButtonState();
   }
 
   private mergeBuffersForPunchIn(existingBuffer: AudioBuffer | null, newBuffer: AudioBuffer, punchInStartMs: number): AudioBuffer {
@@ -1954,14 +2087,295 @@ export default class TapeFour {
     }
   }
 
-  /* ---------- Export ---------- */
+  /* ---------- Bounce & Export ---------- */
+
+  public async bounce() {
+    if (!this.audioContext) {
+      return alert('No audio context available.');
+    }
+
+    // Check if we're in a valid state to bounce
+    if (this.state.isRecording) {
+      return alert('Cannot bounce while recording. Stop recording first.');
+    }
+
+    if (this.state.isPlaying) {
+      return alert('Cannot bounce while playing. Stop playback first.');
+    }
+
+    // Get tracks that have audio and should be included in the mix
+    const tracksToMix = this.getTracksForMixdown();
+    
+    if (tracksToMix.length < 1) {
+      return alert('No tracks to bounce. Please record some audio first.');
+    }
+
+    try {
+      console.log('[TAPEFOUR] 🎯 Starting bounce operation...');
+      
+      // Calculate the duration of the longest track
+      const maxDuration = Math.max(...tracksToMix.map(track => track.audioBuffer!.duration));
+      
+      // Create offline context for rendering
+      const offline = new OfflineAudioContext(
+        2, // Stereo output
+        Math.ceil(this.audioContext.sampleRate * maxDuration),
+        this.audioContext.sampleRate
+      );
+
+      // Create master gain node for the offline context
+      const offlineMaster = offline.createGain();
+      offlineMaster.gain.value = this.masterGainNode!.gain.value;
+      offlineMaster.connect(offline.destination);
+
+      // Set up each track in the offline context
+      tracksToMix.forEach((track) => {
+        const src = offline.createBufferSource();
+        const gain = offline.createGain();
+        const pan = offline.createStereoPanner();
+        
+        // Set up the audio chain: source -> gain -> pan -> master
+        src.buffer = track.audioBuffer!;
+        gain.gain.value = track.gainNode!.gain.value;
+        
+        // Convert track pan value (0-100) to StereoPanner value (-1 to 1)
+        const panPosition = (track.panValue - 50) / 50;
+        pan.pan.value = panPosition;
+        
+        // Connect the audio chain
+        src.connect(gain);
+        gain.connect(pan);
+        pan.connect(offlineMaster);
+        src.start(0);
+      });
+
+      // Render the mix
+      console.log('[TAPEFOUR] 🎯 Rendering bounce...');
+      const rendered = await offline.startRendering();
+      
+      // Store the master buffer and update duration
+      this.state.masterBuffer = rendered;
+      this.state.duration = Math.max(this.state.duration, rendered.duration * 1000); // Convert to ms
+      
+      console.log(`[TAPEFOUR] ✅ Bounce complete! Duration: ${rendered.duration.toFixed(2)}s`);
+      
+      // DESTRUCTIVE BOUNCE: Replace original tracks with master mix
+      console.log('[TAPEFOUR] 🔄 Performing destructive bounce - clearing original tracks');
+      
+      // Clear all original tracks
+      this.tracks.forEach(track => {
+        track.audioBuffer = null;
+        // Stop any playing sources
+        if (track.sourceNode) {
+          try {
+            track.sourceNode.stop();
+            track.sourceNode.disconnect();
+          } catch (e) {
+            // Ignore if already stopped
+          }
+          track.sourceNode = null;
+        }
+      });
+      
+      // Generate master waveform that preserves the original timeline positioning
+      // (Do this BEFORE clearing track waveforms since we need the position data)
+      this.generateMasterWaveformFromTracks(rendered, tracksToMix);
+      
+      // Clear all track waveforms AFTER generating master waveform
+      this.trackWaveforms.clear();
+      
+      // Reset all track controls to default positions
+      this.tracks.forEach((track, index) => {
+        // Reset faders to 0dB (80%)
+        const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
+        if (fader) {
+          fader.value = '80';
+          fader.style.setProperty('--fader-value', '80');
+          if (track.gainNode) {
+            track.gainNode.gain.value = 1.0; // 0 dB
+          }
+        }
+        
+        // Reset pan to center (50)
+        const panKnob = document.getElementById(`pan-${track.id}`) as HTMLInputElement | null;
+        if (panKnob) {
+          panKnob.value = '50';
+          track.panValue = 50;
+          if (track.panNode) {
+            track.panNode.pan.value = 0; // Center
+          }
+          // Update knob rotation visual
+          const panContainer = panKnob.parentElement;
+          if (panContainer) {
+            panContainer.style.setProperty('--rotation', '0deg');
+          }
+        }
+        
+        // Disarm all tracks except Track 1
+        track.isArmed = false;
+        const armButton = document.getElementById(`track-${track.id}`) as HTMLInputElement | null;
+        if (armButton) {
+          armButton.checked = false;
+        }
+        
+        // Clear solo and mute states
+        track.isSolo = false;
+        track.isMuted = false;
+        track.isManuallyMuted = false;
+        
+        const soloButton = document.getElementById(`solo-${track.id}`) as HTMLInputElement | null;
+        const muteButton = document.getElementById(`mute-${track.id}`) as HTMLInputElement | null;
+        
+        if (soloButton) soloButton.checked = false;
+        if (muteButton) muteButton.checked = false;
+        
+        // Update mute button styling
+        this.updateMuteButtonStyling(track.id);
+      });
+      
+      // Update audio routing to reflect the reset state
+      this.updateAudioRouting();
+      
+      // Update the waveform display
+      this.redrawAllTrackWaveforms();
+      
+      console.log('[TAPEFOUR] ✅ Destructive bounce complete - bounced mix is now on Track 1');
+      
+    } catch (err) {
+      console.error('[TAPEFOUR] ❌ Bounce error:', err);
+      alert('Error bouncing tracks. Please try again.');
+    }
+  }
+
+  private getTracksForMixdown() {
+    // Get tracks with audio buffers
+    const tracksWithAudio = this.tracks.filter(track => track.audioBuffer);
+    
+    // Apply solo logic: if any tracks are soloed, only include soloed tracks
+    const soloedTracks = tracksWithAudio.filter(track => track.isSolo);
+    const tracksToMix = soloedTracks.length > 0 ? soloedTracks : tracksWithAudio;
+    
+    return tracksToMix;
+  }
+
+  private generateMasterWaveform(audioBuffer: AudioBuffer) {
+    const samples = audioBuffer.getChannelData(0); // Use left channel for waveform
+    const waveformData: Array<{position: number, peak: number}> = [];
+    
+    // Sample every N samples to create manageable waveform data
+    const sampleRate = audioBuffer.sampleRate;
+    const duration = audioBuffer.duration;
+    const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
+    
+    for (let i = 0; i < this.waveformBufferSize; i++) {
+      const start = i * samplesPerPixel;
+      const end = Math.min(start + samplesPerPixel, samples.length);
+      
+      let peak = 0;
+      for (let j = start; j < end; j++) {
+        peak = Math.max(peak, Math.abs(samples[j]));
+      }
+      
+      const position = (i / this.waveformBufferSize) * duration * 1000; // Convert to ms
+      waveformData.push({ position, peak });
+    }
+    
+    this.masterWaveform = waveformData;
+  }
+
+  private generateTrackWaveform(audioBuffer: AudioBuffer, trackId: number) {
+    const samples = audioBuffer.getChannelData(0); // Use left channel for waveform
+    const waveformData: Array<{position: number, peak: number}> = [];
+    
+    // Sample every N samples to create manageable waveform data
+    const sampleRate = audioBuffer.sampleRate;
+    const duration = audioBuffer.duration;
+    const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
+    
+    for (let i = 0; i < this.waveformBufferSize; i++) {
+      const start = i * samplesPerPixel;
+      const end = Math.min(start + samplesPerPixel, samples.length);
+      
+      let peak = 0;
+      for (let j = start; j < end; j++) {
+        peak = Math.max(peak, Math.abs(samples[j]));
+      }
+      
+      const position = (i / this.waveformBufferSize) * duration * 1000; // Convert to ms
+      waveformData.push({ position, peak });
+    }
+    
+    // Store waveform data for the specified track
+    this.trackWaveforms.set(trackId, waveformData);
+    console.log(`[WAVEFORM] 🎨 Generated waveform for track ${trackId} with ${waveformData.length} peaks`);
+  }
+
+  private generateMasterWaveformFromTracks(rendered: AudioBuffer, originalTracks: any[]) {
+    // Collect ALL waveform points from original tracks to preserve exact positioning
+    const allOriginalPoints: Array<{position: number, peak: number}> = [];
+    
+    originalTracks.forEach(track => {
+      const waveformData = this.trackWaveforms.get(track.id);
+      if (waveformData && waveformData.length > 0) {
+        allOriginalPoints.push(...waveformData);
+      }
+    });
+    
+    // If no existing waveforms found, fall back to time-based generation
+    if (allOriginalPoints.length === 0) {
+      this.generateMasterWaveform(rendered);
+      return;
+    }
+    
+    // Sort by position to maintain timeline order
+    allOriginalPoints.sort((a, b) => a.position - b.position);
+    
+    // Get canvas dimensions for position mapping
+    const canvasInternalWidth = this.waveformCanvas?.width || 800;
+    const samples = rendered.getChannelData(0);
+    const samplesPerPixel = samples.length / canvasInternalWidth;
+    
+    const waveformData: Array<{position: number, peak: number}> = [];
+    
+    // For each original canvas position, calculate the corresponding peak in the bounced audio
+    allOriginalPoints.forEach(originalPoint => {
+      const canvasX = originalPoint.position; // This is already in canvas coordinates (0-800)
+      const sampleIndex = Math.floor(canvasX * samplesPerPixel);
+      
+      // Sample a small window around this position to get the peak
+      const windowSize = Math.max(1, Math.floor(samplesPerPixel)); // At least 1 sample
+      const startSample = Math.max(0, sampleIndex - Math.floor(windowSize / 2));
+      const endSample = Math.min(samples.length, startSample + windowSize);
+      
+      let peak = 0;
+      for (let i = startSample; i < endSample; i++) {
+        peak = Math.max(peak, Math.abs(samples[i]));
+      }
+      
+      if (peak > 0.01) { // Only add significant peaks
+        waveformData.push({ position: canvasX, peak });
+      }
+    });
+    
+    this.masterWaveform = waveformData;
+    console.log(`[WAVEFORM] 🏆 Generated master waveform with ${waveformData.length} peaks at original canvas positions`);
+  }
 
   public async export() {
     if (!this.audioContext) return alert('No audio to export. Please record something first.');
+    
+    // Prefer master buffer if available (from bounce), otherwise mix tracks on-the-fly
+    if (this.state.masterBuffer) {
+      console.log('[TAPEFOUR] 📁 Exporting bounced master mix');
+      this.downloadWav(this.state.masterBuffer);
+      return;
+    }
+    
     const tracksWithAudio = this.tracks.filter((t) => t.audioBuffer);
     if (!tracksWithAudio.length) return alert('No recorded tracks to export.');
 
     try {
+      console.log('[TAPEFOUR] 📁 Exporting live mix (no bounce available)');
       const offline = new OfflineAudioContext(2, this.audioContext.sampleRate * (this.state.maxRecordingTime / 1000), this.audioContext.sampleRate);
       const offlineMaster = offline.createGain();
       offlineMaster.gain.value = this.masterGainNode!.gain.value;
@@ -2496,6 +2910,23 @@ export default class TapeFour {
     const armedTrack = this.tracks.find(t => t.isArmed);
     const isPunchInRecording = this.state.isRecording && this.state.recordMode === 'punchIn';
     
+    // Draw master waveform first (in background) if it exists
+    if (this.masterWaveform.length > 0) {
+      ctx.fillStyle = this.trackColors.master;
+      ctx.strokeStyle = this.trackColors.master;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3; // Lower opacity so it stays in background
+      
+      const peakWidth = 2; // Slightly thinner for master
+      for (const { position, peak } of this.masterWaveform) {
+        const peakHeight = peak * (height * 0.9); // Slightly taller to be visible
+        if (position < canvasInternalWidth && position >= 0) {
+          ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
+        }
+      }
+      console.log(`[WAVEFORM] 🏆 Drew master waveform with ${this.masterWaveform.length} peaks`);
+    }
+    
     // Draw waveforms for all tracks with data (in order: 1, 2, 3, 4)
     for (let trackId = 1; trackId <= 4; trackId++) {
       const waveformData = this.trackWaveforms.get(trackId);
@@ -2536,8 +2967,8 @@ export default class TapeFour {
     // Reset alpha
     ctx.globalAlpha = 1;
     
-    if (totalTracksDrawn > 0) {
-      console.log(`[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks`);
+    if (totalTracksDrawn > 0 || this.masterWaveform.length > 0) {
+      console.log(`[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks + master`);
     }
   }
 
