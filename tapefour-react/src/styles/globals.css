@@ -1723,6 +1723,41 @@ body {
   opacity: 0;
 }
 
+/* Audio Content Section */
+.audio-content {
+  display: block;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 400px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.audio-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.audio-input-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 20%, transparent 80%);
+}
+
+.audio-processing-section {
+  margin-top: 16px;
+}
+
+.processing-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.5px;
+  color: var(--ink);
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
 .keyboard-shortcuts-table {
   display: block;
   overflow: hidden;
@@ -2150,38 +2185,96 @@ body {
 /* ===== TASCAM 424 MKII THEME OVERRIDES ===== */
 /* ========================================== */
 
-/* Transport Button Styling for Indie Theme - Flat Design */
+/* Transport Button Styling for Indie Theme - TASCAM Professional */
 :root[data-theme="indie"] .transport-button {
-  background: hsl(200, 35%, 40%);
-  border: 1px solid hsl(200, 45%, 30%);
-  color: hsl(200, 20%, 85%);
+  background: linear-gradient(145deg, hsl(0, 0%, 92%), hsl(0, 0%, 82%));
+  border: 2px solid hsl(0, 0%, 70%);
+  color: hsl(0, 0%, 25%);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  font-weight: 600;
 }
 
 :root[data-theme="indie"] .transport-button:hover {
-  background: hsl(200, 40%, 45%);
-  border-color: hsl(200, 50%, 35%);
-  color: hsl(200, 10%, 95%);
+  background: linear-gradient(145deg, hsl(0, 0%, 95%), hsl(0, 0%, 85%));
+  border-color: hsl(0, 0%, 65%);
+  color: hsl(0, 0%, 20%);
+  box-shadow: 
+    0 3px 6px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 :root[data-theme="indie"] .transport-button:active {
-  background: hsl(200, 50%, 30%);
+  background: linear-gradient(145deg, hsl(0, 0%, 78%), hsl(0, 0%, 88%));
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  transform: translateY(1px);
 }
 
-/* Specific button states for indie theme - Flat */
-:root[data-theme="indie"] #play-btn.playing {
-  background: hsl(120, 55%, 35%);
-  border-color: hsl(120, 65%, 25%);
+/* Record Button - Red Circle in Center */
+:root[data-theme="indie"] #record-btn {
+  position: relative;
 }
 
-:root[data-theme="indie"] #record-btn.recording {
-  background: hsl(15, 75%, 40%);
-  border-color: hsl(15, 85%, 30%);
+:root[data-theme="indie"] #record-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  background: hsl(0, 80%, 55%);
+  border-radius: 50%;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-:root[data-theme="indie"] #pause-btn.paused {
-  background: hsl(45, 85%, 45%);
-  border-color: hsl(45, 95%, 35%);
-  color: hsl(45, 30%, 15%);
+:root[data-theme="indie"] #record-btn svg {
+  display: none; /* Hide the SVG icon since we're using the red circle */
+}
+
+/* Pressed Down Effect for Active States */
+:root[data-theme="indie"] #play-btn.playing,
+:root[data-theme="indie"] #record-btn.recording,
+:root[data-theme="indie"] #pause-btn.paused,
+:root[data-theme="indie"] #stop-btn.stopping {
+  background: linear-gradient(145deg, hsl(0, 0%, 75%), hsl(0, 0%, 85%));
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  transform: translateY(2px);
+  border-color: hsl(0, 0%, 60%);
+}
+
+/* Record button red circle stays visible when recording */
+:root[data-theme="indie"] #record-btn.recording::before {
+  background: hsl(0, 85%, 50%);
+  box-shadow: 
+    0 0 8px rgba(220, 38, 38, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Other Button Active States - Pressed Down Effect */
+:root[data-theme="indie"] .bounce-button.bouncing,
+:root[data-theme="indie"] .clear-button.clearing,
+:root[data-theme="indie"] .settings-button.opening {
+  background: linear-gradient(145deg, hsl(0, 0%, 75%), hsl(0, 0%, 85%));
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  transform: translateY(2px);
+  border-color: hsl(0, 0%, 60%);
+}
+
+/* Remove any color overrides for button icons in active states */
+:root[data-theme="indie"] .bounce-button.bouncing svg,
+:root[data-theme="indie"] .clear-button.clearing svg,
+:root[data-theme="indie"] .settings-button.opening svg {
+  stroke: hsl(0, 0%, 25%); /* Keep dark text color */
 }
 
 /* Professional steel blue track controls - Flat */

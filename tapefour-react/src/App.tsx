@@ -374,19 +374,48 @@ function App() {
           <h3 className="settings-title">Settings</h3>
           
           <div className="settings-group">
-            <label className="settings-label" htmlFor="audio-input-select">🎤 Audio Input</label>
-            <select id="audio-input-select" className="settings-select">
-              <option value="">Select Audio Input Device...</option>
-            </select>
-            <button className="scan-devices-btn" id="scan-devices-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-              Scan Devices
-            </button>
+            <div className="settings-toggle-header" id="audio-processing-toggle">
+              <h4 className="settings-subtitle">🎤 Audio</h4>
+              <div className="toggle-arrow" id="audio-processing-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="audio-content collapsed" id="audio-processing-options">
+              <div className="audio-input-section">
+                <label className="settings-label" htmlFor="audio-input-select">Audio Input Device</label>
+                <select id="audio-input-select" className="settings-select">
+                  <option value="">Select Audio Input Device...</option>
+                </select>
+                <button className="scan-devices-btn" id="scan-devices-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                  Scan Devices
+                </button>
+              </div>
+              <div className="audio-processing-section">
+                <h5 className="processing-subtitle">Audio Processing Options</h5>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
+                    Echo Cancellation
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
+                    Noise Suppression
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" id="auto-gain-control-checkbox" className="settings-checkbox" />
+                    Auto Gain Control
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="settings-group">
@@ -435,31 +464,6 @@ function App() {
                   HipHop
                 </button>
               </div>
-            </div>
-          </div>
-          
-          <div className="settings-group">
-            <div className="settings-toggle-header" id="audio-processing-toggle">
-              <h4 className="settings-subtitle">🎛️ Audio Processing</h4>
-              <div className="toggle-arrow" id="audio-processing-arrow">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="6,9 12,15 18,9"></polyline>
-                </svg>
-              </div>
-            </div>
-            <div className="checkbox-group collapsed" id="audio-processing-options">
-              <label className="checkbox-label">
-                <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
-                Echo Cancellation
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
-                Noise Suppression
-              </label>
-              <label className="checkbox-label">
-                <input type="checkbox" id="auto-gain-control-checkbox" className="settings-checkbox" />
-                Auto Gain Control
-              </label>
             </div>
           </div>
 
