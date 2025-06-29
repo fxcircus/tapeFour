@@ -1,39 +1,236 @@
-/* TapeFour Color System - 1970s Tape Machine Inspired */
+/* ======================================== */
+/* ===== TAPEFOUR THEME SYSTEM BASE ===== */
+/* ======================================== */
 :root {
-  /* Primary chassis colors */
+  /* ===== THEME-INDEPENDENT SYSTEM COLORS ===== */
+  /* Transparent and common overlay colors */
+  --color-transparent: transparent;
+  --color-black: #000000;
+  --color-white: #ffffff;
+  
+  /* Opacity variants for overlays and effects */
+  --overlay-light: rgba(255, 255, 255, 0.1);
+  --overlay-medium: rgba(255, 255, 255, 0.08);
+  --overlay-dark: rgba(0, 0, 0, 0.1);
+  --overlay-shadow: rgba(0, 0, 0, 0.2);
+  --overlay-subtle: rgba(0, 0, 0, 0.05);
+  --overlay-hover: rgba(0, 0, 0, 0.08);
+  
+  /* ===== TEXTURE & GRAIN COLORS ===== */
+  --grain-primary: rgba(50, 40, 25, 0.04);
+  --grain-secondary: rgba(50, 40, 25, 0.02);
+  --grain-fine: rgba(50, 40, 25, 0.015);
+  --grain-coarse: rgba(50, 40, 25, 0.01);
+  --grain-detail: rgba(107, 79, 51, 0.03);
+  
+  /* ===== MODAL & BACKDROP COLORS ===== */
+  --modal-backdrop: rgba(50, 40, 25, 0.5);
+  --waveform-overlay: rgba(0, 0, 0, 0.1);
+  
+  /* ===== GLOW & EFFECT COLORS ===== */
+  --glow-play: rgba(34, 197, 94, 0.3);
+  --glow-stop: rgba(245, 158, 11, 0.3);
+  --glow-record: rgba(210, 50, 25, 0.4);
+  --glow-record-subtle: rgba(210, 50, 25, 0.3);
+  --glow-bounce: rgba(210, 135, 51, 0.3);
+  --glow-settings: rgba(133, 102, 58, 0.3);
+  --glow-solo: rgba(33, 117, 255, 0.3);
+  --glow-reverse: rgba(147, 51, 234, 0.3);
+  --glow-half-speed: rgba(209, 140, 51, 0.3);
+  --glow-volume: rgba(34, 197, 94, 0.3);
+  --glow-accent: rgba(209, 140, 51, 0.4);
+  
+  /* ===== SVG & STROKE COLORS ===== */
+  --svg-stroke-dark: #4e3924;
+  --svg-stroke-medium: #8a7156;
+  --svg-stroke-light: #5a4936;
+  --svg-stroke-highlight: #ffffff40;
+  --svg-fill-dark: #5a4936;
+  --svg-fill-outline: #3d2e1f;
+  
+  /* ===== TABLE & UI TEXT COLORS ===== */
+  --table-header-color: #DCCDB7;
+  --table-text-color: #DCCDB7;
+  --table-muted-color: #6B4F33;
+  --kbd-text-color: #DCCDB7;
+}
+
+/* ========================================= */
+/* ===== DEFAULT VINTAGE THEME COLORS ===== */
+/* ========================================= */
+:root,
+:root[data-theme="vintage"] {
+  /* ===== PRIMARY CHASSIS COLORS ===== */
   --color-chassis: hsl(42, 25%, 78%);           /* Main background - warm paper */
   --color-control-surface: hsl(35, 18%, 65%);   /* Panel backgrounds */
   --color-track-well: hsl(28, 36%, 40%);        /* Dark brown for tracks/wells */
   --color-text-primary: hsl(35, 28%, 15%);      /* Main text - dark ink */
   
-  /* Vintage accent colors */
+  /* ===== VINTAGE ACCENT COLORS ===== */
   --color-accent-warm: hsl(28, 65%, 52%);       /* Burnt orange for highlights */
   --color-accent-olive: hsl(52, 20%, 45%);      /* Muted olive for secondary */
   --color-accent-purple: hsl(271, 81%, 56%);    /* Purple for reverse buttons */
   
-  /* Functional colors */
+  /* ===== FUNCTIONAL COLORS ===== */
   --color-record: hsl(18, 75%, 48%);            /* Warm orange for REC */
   --color-solo: hsl(208, 100%, 55%);            /* Blue for SOLO */
   --color-mute: hsl(35, 45%, 58%);              /* Desaturated clay for MUTE */
   --color-play: hsl(142, 71%, 45%);             /* Green for PLAY */
   --color-stop: hsl(43, 88%, 50%);              /* Amber for STOP */
   
-  /* Interactive states */
+  /* ===== INTERACTIVE STATES ===== */
   --color-hover-overlay: hsla(0, 0%, 100%, 0.08);
   --color-active-overlay: hsla(0, 0%, 0%, 0.04);
   --color-shadow-inset: hsla(0, 0%, 0%, 0.12);
   
-  /* Divider color */
-  --divider: #8a7156; /* one shade darker than the chassis brown */
+  /* ===== DIVIDER & STRUCTURAL COLORS ===== */
+  --color-divider: #8a7156; /* one shade darker than the chassis brown */
+  --color-border: var(--color-text-primary);
   
-  /* Reel colors */
-  --reel-light: hsl(35,15%,80%);
-  --reel-mid: hsl(35,15%,68%);
-  --reel-dark: hsl(35,15%,55%);
-  --reel-hub: var(--divider);   /* bronze-brown */
-  --reel-screw: var(--divider);
-  --tape: hsl(30,25%,30%);
+  /* ===== REEL COLORS ===== */
+  --color-reel-light: hsl(35,15%,80%);
+  --color-reel-mid: hsl(35,15%,68%);
+  --color-reel-dark: hsl(35,15%,55%);
+  --color-reel-hub: var(--color-divider);   /* bronze-brown */
+  --color-reel-screw: var(--color-divider);
+  --color-tape: hsl(30,25%,30%);
   
+  /* ===== LEGACY COMPATIBILITY ===== */
+  --paper: var(--color-chassis);
+  --panel: var(--color-control-surface);
+  --track: var(--color-track-well);
+  --accent: var(--color-accent-warm);
+  --ink: var(--color-text-primary);
+  --green: var(--color-play);
+  --orange: var(--color-stop);
+  --red: var(--color-record);
+  --sky: var(--color-solo);
+  --divider: var(--color-divider);
+}
+
+/* ============================================= */
+/* ===== TASCAM 424 MKII INSPIRED THEME ===== */
+/* ============================================= */
+:root[data-theme="indie"] {
+  /* ===== CHASSIS & PANEL COLORS (STEEL BLUE) ===== */
+  --color-chassis: hsl(207, 30%, 50%);           /* Deep TASCAM blue background */
+  --color-control-surface: hsl(207, 35%, 42%);   /* Darker panel sections */
+  --color-track-well: hsl(207, 40%, 35%);        /* Dark wells and faders */
+
+  /* ===== PRIMARY TEXT COLOR ===== */
+  --color-text-primary: hsl(210, 10%, 92%);      /* Light grey text for contrast */
+
+  /* ===== FUNCTIONAL & BUTTON COLORS ===== */
+  --color-record: hsl(5, 80%, 55%);              /* TASCAM red-orange REC button */
+  --color-play: hsl(135, 65%, 45%);              /* Green PLAY button */
+  --color-stop: hsl(10, 25%, 85%);               /* Light grey STOP button */
+  --color-solo: hsl(47, 90%, 60%);               /* Amber-yellow SOLO button */
+  --color-mute: hsl(210, 15%, 65%);              /* Muted steel-blue-grey MUTE button */
+
+  /* ===== ACCENT COLORS (KNOBS & METERS) ===== */
+  --color-accent-warm: hsl(16, 75%, 60%);        /* Warm orange-red for highlights */
+  --color-accent-purple: hsl(260, 45%, 65%);     /* Purple accent (TASCAM knob-like) */
+  --color-accent-olive: hsl(170, 40%, 60%);      /* Muted teal/olive knobs */
+
+  /* ===== INTERACTIVE STATES ===== */
+  --color-hover-overlay: hsla(210, 20%, 95%, 0.12);
+  --color-active-overlay: hsla(210, 10%, 5%, 0.15);
+  --color-shadow-inset: hsla(210, 30%, 20%, 0.3);
+
+  /* ===== DIVIDERS & STRUCTURAL ELEMENTS ===== */
+  --color-divider: hsl(207, 25%, 40%);
+  --color-border: hsl(207, 25%, 30%);
+
+  /* ===== CASSETTE REEL & TAPE COLORS ===== */
+  --color-reel-light: hsl(210, 15%, 70%);
+  --color-reel-mid: hsl(210, 20%, 55%);
+  --color-reel-dark: hsl(210, 25%, 40%);
+  --color-reel-hub: hsl(210, 30%, 30%);
+  --color-tape: hsl(210, 30%, 25%);
+
+  /* ===== LEGACY COMPATIBILITY ===== */
+  --paper: var(--color-chassis);
+  --panel: var(--color-control-surface);
+  --track: var(--color-track-well);
+  --accent: var(--color-accent-warm);
+  --ink: var(--color-text-primary);
+  --green: var(--color-play);
+  --orange: var(--color-stop);
+  --red: var(--color-record);
+  --sky: var(--color-solo);
+  --divider: var(--color-divider);
+}
+
+
+:root[data-theme="disco"] {
+  --color-chassis: hsl(320, 85%, 20%);               /* Vibrant pink-magenta base */
+  --color-control-surface: hsl(330, 90%, 28%);       /* High energy neon pink */
+  --color-track-well: hsl(310, 90%, 18%);            /* Dark violet for contrast */
+
+  --color-text-primary: hsl(0, 0%, 100%);            /* Pure white for maximum clarity */
+
+  --color-record: hsl(350, 100%, 80%);               /* Neon pink-red */
+  --color-play: hsl(180, 100%, 90%);                 /* Icy aqua */
+  --color-stop: hsl(60, 100%, 85%);                  /* Soft neon yellow */
+  --color-solo: hsl(330, 100%, 90%);                 /* Bright bubblegum */
+  --color-mute: hsl(195, 100%, 85%);                 /* Light neon cyan */
+
+  --color-accent-warm: hsl(340, 100%, 88%);
+  --color-accent-purple: hsl(300, 100%, 90%);
+  --color-accent-olive: hsl(170, 100%, 85%);
+
+  --color-hover-overlay: hsla(340, 100%, 95%, 0.3);  /* Soft glow */
+  --color-active-overlay: hsla(330, 100%, 85%, 0.5); /* Vivid flash */
+  --color-shadow-inset: hsla(310, 100%, 8%, 0.9);    /* Subtle depth */
+
+  --color-divider: hsl(330, 100%, 60%);
+  --color-border: hsl(320, 100%, 70%);               /* Bright and visible */
+
+  /* Reels */
+  --color-reel-light: hsl(330, 100%, 70%);
+  --color-reel-mid: hsl(320, 100%, 50%);
+  --color-reel-dark: hsl(310, 100%, 35%);
+  --color-reel-hub: hsl(300, 100%, 25%);
+  --color-reel-screw: hsl(340, 100%, 90%);
+  --color-tape: hsl(330, 100%, 20%);
+
+  /* Legacy fallbacks */
+  --paper: var(--color-chassis);
+  --panel: var(--color-control-surface);
+  --track: var(--color-track-well);
+  --accent: var(--color-accent-warm);
+  --ink: var(--color-text-primary);
+  --green: var(--color-play);
+  --orange: var(--color-stop);
+  --red: var(--color-record);
+  --sky: var(--color-solo);
+  --divider: var(--color-divider);
+}
+
+
+:root[data-theme="dark"] {
+  --color-chassis: hsl(215, 12%, 15%);
+  --color-control-surface: hsl(215, 12%, 10%);
+  --color-track-well: hsl(215, 10%, 12%);
+  --color-text-primary: hsl(215, 5%, 95%);
+
+  --color-record: hsl(10, 85%, 60%);
+  --color-play: hsl(130, 85%, 50%);
+  --color-stop: hsl(220, 15%, 85%);
+  --color-solo: hsl(45, 90%, 60%);
+  --color-mute: hsl(210, 10%, 70%);
+
+  --color-accent-warm: hsl(195, 85%, 65%);
+  --color-accent-purple: hsl(270, 60%, 65%);
+  --color-accent-olive: hsl(165, 70%, 60%);
+
+  --color-hover-overlay: hsla(210, 15%, 95%, 0.1);
+  --color-active-overlay: hsla(210, 15%, 5%, 0.2);
+  --color-shadow-inset: hsla(0, 0%, 0%, 0.35);
+
+  --color-divider: hsl(215, 10%, 25%);
+  --color-border: hsl(215, 10%, 20%);
+
   /* Legacy compatibility */
   --paper: var(--color-chassis);
   --panel: var(--color-control-surface);
@@ -44,11 +241,61 @@
   --orange: var(--color-stop);
   --red: var(--color-record);
   --sky: var(--color-solo);
+  --divider: var(--color-divider);
 }
 
-/* Typography - 1970s Equipment Aesthetic */
+/* ===== TR-808 DRUM MACHINE INSPIRED THEME ===== */
+:root[data-theme="808"] {
+  --color-chassis: hsl(0, 0%, 12%);               /* Dark charcoal background */
+  --color-control-surface: hsl(0, 0%, 16%);       /* Panel base */
+  --color-track-well: hsl(0, 0%, 10%);            /* Darker wells */
+  --color-text-primary: hsl(45, 100%, 85%);       /* Creamy vintage label */
+
+  --color-record: hsl(10, 85%, 60%);              /* Bright red pad */
+  --color-play: hsl(45, 95%, 55%);                /* Yellow pad */
+  --color-stop: hsl(35, 90%, 50%);                /* Warm amber pad */
+  --color-solo: hsl(25, 80%, 55%);                /* Orange step key */
+  --color-mute: hsl(0, 0%, 65%);                  /* White step key */
+
+  --color-accent-warm: hsl(20, 100%, 55%);        /* TR-808 orange print */
+  --color-accent-purple: hsl(260, 45%, 55%);      /* Not prominent in 808, muted */
+  --color-accent-olive: hsl(60, 20%, 55%);        /* Used for panel contrast text */
+
+  --color-hover-overlay: hsla(0, 0%, 100%, 0.08);
+  --color-active-overlay: hsla(0, 0%, 100%, 0.15);
+  --color-shadow-inset: hsla(0, 0%, 0%, 0.3);
+
+  --color-divider: hsl(0, 0%, 30%);
+  --color-border: hsl(0, 0%, 20%);
+
+  --color-reel-light: hsl(0, 0%, 40%);
+  --color-reel-mid: hsl(0, 0%, 30%);
+  --color-reel-dark: hsl(0, 0%, 20%);
+  --color-reel-hub: hsl(0, 0%, 10%);
+  --color-reel-screw: hsl(0, 0%, 60%);
+  --color-tape: hsl(0, 0%, 5%);
+
+  /* Legacy compatibility */
+  --paper: var(--color-chassis);
+  --panel: var(--color-control-surface);
+  --track: var(--color-track-well);
+  --accent: var(--color-accent-warm);
+  --ink: var(--color-text-primary);
+  --green: var(--color-play);
+  --orange: var(--color-stop);
+  --red: var(--color-record);
+  --sky: var(--color-solo);
+  --divider: var(--color-divider);
+}
+
+
+/* Typography - Theme-Specific Fonts */
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Audiowide:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+@import url('https://api.fontsource.org/v1/fonts/satoshi/css?subset=latin&weights=400,500,600,700');
 
 * {
   margin: 0;
@@ -62,21 +309,21 @@ html {
   /* Coarse paper grain overlay for authentic analogue feel */
   background-image: 
     /* Fine paper grain */
-    radial-gradient(circle at 20% 50%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
-    radial-gradient(circle at 80% 20%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
-    radial-gradient(circle at 40% 80%, rgba(50, 40, 25, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 20% 50%, var(--grain-primary) 1px, var(--color-transparent) 1px),
+    radial-gradient(circle at 80% 20%, var(--grain-primary) 1px, var(--color-transparent) 1px),
+    radial-gradient(circle at 40% 80%, var(--grain-primary) 1px, var(--color-transparent) 1px),
     /* Coarse grain overlay */
     repeating-linear-gradient(
       45deg,
-      transparent 0px,
-      rgba(50, 40, 25, 0.02) 1px,
-      transparent 2px
+      var(--color-transparent) 0px,
+      var(--grain-secondary) 1px,
+      var(--color-transparent) 2px
     ),
     repeating-linear-gradient(
       -45deg,
-      transparent 0px,
-      rgba(50, 40, 25, 0.02) 1px,
-      transparent 2px
+      var(--color-transparent) 0px,
+      var(--grain-secondary) 1px,
+      var(--color-transparent) 2px
     );
   background-size: 
     50px 50px, 
@@ -101,6 +348,43 @@ body {
   letter-spacing: -0.01em; /* Subtle letter spacing for readability */
 }
 
+/* ===== THEME-SPECIFIC TYPOGRAPHY ===== */
+
+/* Vintage Theme - IBM Plex Mono */
+:root body,
+:root[data-theme="vintage"] body {
+  font-family: 'IBM Plex Mono', 'SF Mono', Monaco, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Indie Theme - Press Start 2P */
+:root[data-theme="indie"] body {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.1em;
+  font-size: 13px; /* Smaller size for pixelated font readability */
+}
+
+/* Disco Theme - Audiowide */
+:root[data-theme="disco"] body {
+  font-family: 'Audiowide', sans-serif;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+}
+
+/* Dark Theme - Satoshi */
+:root[data-theme="dark"] body {
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+  font-weight: 400;
+}
+
+/* HipHop Theme - Russo One */
+:root[data-theme="808"] body {
+  font-family: 'Russo One', sans-serif;
+  letter-spacing: 0.03em;
+  font-weight: 400;
+}
+
 /* The rest of the styles are unchanged from the original index.html */
 
 /* Main Chassis Container */
@@ -109,8 +393,8 @@ body {
   border-radius: 12px;
   border: 1px solid var(--color-text-primary);
   box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 2px 4px var(--overlay-hover),
+    inset 0 1px 0 var(--overlay-light);
   max-width: 800px;
   margin: 0 auto;
   padding: 40px; /* Increased padding by 8px */
@@ -131,14 +415,14 @@ body {
   width: 100%;
   height: 100%;
   background-image: 
-    repeating-linear-gradient(0deg, transparent, rgba(50, 40, 25, 0.015) 1px, transparent 2px),
-    repeating-linear-gradient(90deg, transparent, rgba(50, 40, 25, 0.015) 1px, transparent 2px),
-    repeating-linear-gradient(45deg, transparent, rgba(50, 40, 25, 0.01) 1px, transparent 2px),
-    repeating-linear-gradient(-45deg, transparent, rgba(50, 40, 25, 0.01) 1px, transparent 2px),
-    radial-gradient(circle at 25% 25%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
-    radial-gradient(circle at 75% 25%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
-    radial-gradient(circle at 25% 75%, transparent 60%, rgba(107, 79, 51, 0.03) 100%),
-    radial-gradient(circle at 75% 75%, transparent 60%, rgba(107, 79, 51, 0.03) 100%);
+    repeating-linear-gradient(0deg, var(--color-transparent), var(--grain-fine) 1px, var(--color-transparent) 2px),
+    repeating-linear-gradient(90deg, var(--color-transparent), var(--grain-fine) 1px, var(--color-transparent) 2px),
+    repeating-linear-gradient(45deg, var(--color-transparent), var(--grain-coarse) 1px, var(--color-transparent) 2px),
+    repeating-linear-gradient(-45deg, var(--color-transparent), var(--grain-coarse) 1px, var(--color-transparent) 2px),
+    radial-gradient(circle at 25% 25%, var(--color-transparent) 60%, var(--grain-detail) 100%),
+    radial-gradient(circle at 75% 25%, var(--color-transparent) 60%, var(--grain-detail) 100%),
+    radial-gradient(circle at 25% 75%, var(--color-transparent) 60%, var(--grain-detail) 100%),
+    radial-gradient(circle at 75% 75%, var(--color-transparent) 60%, var(--grain-detail) 100%);
   background-size: 2px 2px, 2px 2px, 3px 3px, 3px 3px, 100px 100px, 100px 100px, 100px 100px, 100px 100px;
   pointer-events: none;
   z-index: 1;
@@ -152,15 +436,30 @@ body {
   z-index: 2;
 }
 
-/* Main Title - Rounded Grotesk Style */
+/* Main Title - Theme-Specific Typography */
 .header {
   font-size: 28px;
   font-weight: 500;
-  font-family: 'IBM Plex Mono', 'SF Mono', Monaco, monospace;
-  letter-spacing: 0.08em; /* Consistent letter spacing */
-  text-align: center;
+  font-family: inherit; /* Inherit from body theme font */
+  letter-spacing: inherit; /* Inherit theme-specific letter spacing */
   color: var(--color-text-primary);
   margin-bottom: 4px; /* 4pt grid alignment */
+  text-align: center; /* Center the title */
+}
+
+/* Theme-specific header adjustments */
+:root[data-theme="indie"] .header {
+  font-size: 18px; /* Smaller for Press Start 2P readability */
+}
+
+:root[data-theme="disco"] .header {
+  font-size: 32px; /* Larger for futuristic Audiowide impact */
+  text-transform: uppercase;
+}
+
+:root[data-theme="808"] .header {
+  font-size: 30px; /* Bold impact for Russo One */
+  text-transform: uppercase;
 }
 
 /* Cassette Counter/Reel Panel with Inset Border */
@@ -172,7 +471,7 @@ body {
   /* Inset border for hardware feel */
   box-shadow: 
     inset 0 1px 3px var(--color-shadow-inset),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 -1px 0 var(--overlay-light);
   display: flex;
   flex-direction: column;
   justify-content: space-between; /* Better distribution of elements */
@@ -189,13 +488,6 @@ body {
   transform: translateY(-50%);
   width: 104px; /* Increased further from 88px */
   height: 104px; /* Increased further from 88px */
-  background: var(--color-control-surface);
-  border-radius: 50%;
-  border: 1px solid var(--color-text-primary);
-  /* Enhanced vintage look with deeper shadows */
-  box-shadow: 
-    inset 0 4px 8px var(--color-shadow-inset),
-    0 3px 6px rgba(0, 0, 0, 0.2);
 }
 
 .left-reel {
@@ -213,7 +505,7 @@ body {
   transform: translate(-50%, -50%);
   width: 28px; /* Increased from 24px */
   height: 28px; /* Increased from 24px */
-  background: var(--color-track-well);
+  background: var(--color-reel-hub);
   border-radius: 50%;
   border: 1px solid var(--color-text-primary);
   box-shadow: inset 0 3px 4px var(--color-shadow-inset);
@@ -233,9 +525,9 @@ body {
   position: absolute;
   width: 5px; /* Increased from 4px */
   height: 5px; /* Increased from 4px */
-  background: var(--color-chassis);
+  background: var(--color-reel-mid);
   border-radius: 50%;
-  border: 1px solid var(--color-track-well);
+  border: 1px solid var(--color-reel-dark);
   box-shadow: inset 0 1px 1px var(--color-shadow-inset);
 }
 
@@ -336,40 +628,56 @@ body {
   transition: none !important;
 }
 
-/* SVG Reel Styles */
+/* SVG Reel Styles - Authentic Cassette Tape Appearance */
+.reel-base {
+  fill: var(--color-track-well) !important; /* Dark brown for tape area */
+}
+
+.reel-face {
+  fill: var(--color-control-surface) !important; /* Match cassette display background */
+  stroke: var(--color-text-primary);
+  stroke-width: 1;
+}
+
+.reel-rim {
+  fill: none !important;
+  stroke: var(--color-text-primary);
+  stroke-width: 2;
+}
+
+.reel-hub {
+  fill: var(--color-reel-hub) !important; /* Bronze-brown center hub */
+  stroke: var(--color-text-primary);
+  stroke-width: 1;
+}
+
 .reel-shadow {
   opacity: 0.3;
 }
 
 .tape-ring {
   fill: none;
-  stroke: #4e3924;
+  stroke: var(--svg-stroke-dark);
   stroke-width: 8;
   filter: blur(0.8px);
   opacity: 0.8;
 }
 
-.reel-rim {
-  fill: none;
-  stroke: #8a7156;
-  stroke-width: 2;
-}
-
 .hub-rim {
   fill: none;
-  stroke: #5a4936;
+  stroke: var(--svg-stroke-light);
   stroke-width: 1;
 }
 
 .reel-highlight {
   fill: none;
-  stroke: #ffffff40;
+  stroke: var(--svg-stroke-highlight);
   stroke-width: 1.5;
 }
 
 .screw {
-  fill: #5a4936;
-  stroke: #3d2e1f;
+  fill: var(--svg-fill-dark);
+  stroke: var(--svg-fill-outline);
   stroke-width: 0.5;
 }
 
@@ -402,17 +710,17 @@ body {
   0% {
     box-shadow: 
       inset 0 1px 3px var(--color-shadow-inset),
-      0 0 0 0 rgba(209, 140, 51, 0);
+      0 0 0 0 var(--color-transparent);
   }
   50% {
     box-shadow: 
       inset 0 1px 3px var(--color-shadow-inset),
-      0 0 8px 2px rgba(209, 140, 51, 0.4);
+      0 0 8px 2px var(--glow-accent);
   }
   100% {
     box-shadow: 
       inset 0 1px 3px var(--color-shadow-inset),
-      0 0 0 0 rgba(209, 140, 51, 0);
+      0 0 0 0 var(--color-transparent);
   }
 }
 
@@ -449,7 +757,7 @@ body {
   margin-left: -7px;
   position: relative;
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 1px 2px var(--overlay-shadow),
     inset 0 18px 0 0 var(--color-chassis),
     inset 0 -18px 0 0 var(--color-chassis);
 }
@@ -458,7 +766,7 @@ body {
   background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
   background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 1px 2px var(--overlay-shadow),
     inset 0 18px 0 0 var(--color-chassis),
     inset 0 -18px 0 0 var(--color-chassis);
 }
@@ -530,7 +838,7 @@ body {
   transition: all 0.15s ease;
   margin-left: -7px;
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 1px 2px var(--overlay-shadow),
     inset 0 18px 0 0 var(--color-chassis),
     inset 0 -18px 0 0 var(--color-chassis);
 }
@@ -539,7 +847,7 @@ body {
   background: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
   background-color: color-mix(in srgb, var(--color-accent-warm) 85%, white 15%) !important;
   box-shadow: 
-    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 1px 2px var(--overlay-shadow),
     inset 0 18px 0 0 var(--color-chassis),
     inset 0 -18px 0 0 var(--color-chassis);
 }
@@ -652,7 +960,7 @@ body {
   pointer-events: none;
   z-index: 12;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 1px var(--overlay-shadow);
 }
 
 .pan-knob-container:hover::before {
@@ -668,15 +976,10 @@ body {
   align-items: center;
   gap: 12px; /* Increased spacing */
   padding: 32px; /* Increased padding by 8px */
-  /* Darker background strip for hierarchy */
-  background: linear-gradient(180deg, 
-    var(--color-track-well) 0%, 
-    hsl(28, 36%, 38%) 100%);
+  /* Solid background color */
+  background: var(--color-track-well);
   border-radius: 6px;
   border: 2px solid var(--color-text-primary);
-  box-shadow: 
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 3px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Transport Buttons - Soft Rounded with Color Coding */
@@ -689,7 +992,7 @@ body {
   height: 56px;
   font-size: 16px;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit; /* Inherit theme font */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -717,7 +1020,7 @@ body {
 #play-btn.playing {
   background: var(--color-play);
   color: white;
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 8px var(--glow-play);
 }
 
 #play-btn.playing:hover {
@@ -729,7 +1032,7 @@ body {
   background: var(--color-stop);
   color: white;
   transition: background-color 0.05s ease;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 8px var(--glow-stop);
 }
 
 /* Pause Button States */
@@ -737,7 +1040,7 @@ body {
   background: var(--color-stop);
   color: white;
   transition: background-color 0.05s ease;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 8px var(--glow-stop);
 }
 
 /* Record Button with Warm Orange */
@@ -750,7 +1053,7 @@ body {
 .record-button.recording {
   background: var(--color-record);
   color: white;
-  box-shadow: 0 0 12px rgba(210, 50, 25, 0.4);
+  box-shadow: 0 0 12px var(--glow-record);
 }
 
 .record-button:hover:not(.recording) {
@@ -770,7 +1073,7 @@ body {
 }
 
 .bounce-button:hover {
-  background: color-mix(in srgb, var(--color-chassis) 85%, #d2a75b 15%);
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-accent-warm) 15%);
 }
 
 .bounce-button:active {
@@ -804,7 +1107,7 @@ body {
 
 .clear-button.clearing {
   background: var(--color-record);
-  box-shadow: 0 0 8px rgba(210, 50, 25, 0.3);
+  box-shadow: 0 0 8px var(--glow-record-subtle);
 }
 
 .clear-button.clearing svg {
@@ -813,7 +1116,7 @@ body {
 
 .bounce-button.bouncing {
   background: var(--color-accent-warm);
-  box-shadow: 0 0 8px rgba(210, 135, 51, 0.3);
+  box-shadow: 0 0 8px var(--glow-bounce);
 }
 
 .bounce-button.bouncing svg {
@@ -822,7 +1125,7 @@ body {
 
 .settings-button.opening {
   background: var(--color-accent-olive);
-  box-shadow: 0 0 8px rgba(133, 102, 58, 0.3);
+  box-shadow: 0 0 8px var(--glow-settings);
 }
 
 .settings-button.opening svg {
@@ -842,7 +1145,7 @@ body {
     border-radius: 4px;
     box-shadow: 
       inset 0 1px 3px var(--color-shadow-inset),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+      inset 0 -1px 0 var(--overlay-light);
   }
 
 .playhead-indicator {
@@ -897,7 +1200,7 @@ body {
   width: 100%; /* Full width to match playhead */
   height: 100%; /* Full height to match playhead */
   display: block;
-  background: rgba(0, 0, 0, 0.1); /* Subtle dark overlay for waveform visibility */
+  background: var(--waveform-overlay); /* Subtle dark overlay for waveform visibility */
   border-radius: 3px; /* Slightly smaller radius to create inset effect */
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
@@ -915,11 +1218,11 @@ body {
   min-width: 140px; /* Match volume meter width */
 }
 
-/* Timecode Display - Monospace Counter */
+/* Timecode Display - Theme-Specific Typography */
 .timecode {
-  font-family: 'IBM Plex Mono', 'SF Mono', Monaco, monospace;
+  font-family: inherit; /* Inherit theme font */
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: inherit; /* Inherit theme spacing */
   font-size: 24px;
   color: var(--color-text-primary);
   background: var(--color-chassis);
@@ -931,7 +1234,22 @@ body {
   margin-bottom: 8px; /* Add space below timecode */
   box-shadow: 
     inset 0 1px 2px var(--color-shadow-inset),
-    0 1px 2px rgba(0, 0, 0, 0.05);
+    0 1px 2px var(--overlay-subtle);
+}
+
+/* Theme-specific timecode adjustments */
+:root[data-theme="indie"] .timecode {
+  font-size: 16px; /* Smaller for pixel font readability */
+  min-width: 140px; /* Wider for pixel font spacing */
+}
+
+:root[data-theme="disco"] .timecode {
+  font-size: 26px; /* Larger for futuristic impact */
+  text-transform: uppercase;
+}
+
+:root[data-theme="808"] .timecode {
+  font-size: 26px; /* Bold impact for hip-hop style */
 }
 
 /* Volume Meter - Continuous Progress Bar */
@@ -959,7 +1277,7 @@ body {
   border-radius: 2px;
   transition: width 0.05s ease, background-color 0.1s ease;
   /* Subtle glow effect for active levels */
-  box-shadow: 0 0 3px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 0 3px var(--glow-volume);
   
   /* Create segmented appearance using CSS mask for clean separation */
   mask: repeating-linear-gradient(
@@ -1017,7 +1335,7 @@ body {
 
 .arm-button:checked {
   background: var(--color-record);
-  box-shadow: 0 0 8px rgba(210, 50, 25, 0.3);
+  box-shadow: 0 0 8px var(--glow-record-subtle);
 }
 
 .arm-button:checked::after {
@@ -1052,7 +1370,7 @@ body {
   transform: translate(-50%, -50%);
   font-size: 9px;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit; /* Inherit theme font */
   color: var(--color-text-primary);
   pointer-events: none;
   letter-spacing: 0;
@@ -1064,7 +1382,7 @@ body {
 
 .solo-button:checked {
   background: var(--color-solo);
-  box-shadow: 0 0 8px rgba(33, 117, 255, 0.3);
+  box-shadow: 0 0 8px var(--glow-solo);
 }
 
 .solo-button:checked::after {
@@ -1096,7 +1414,7 @@ body {
   height: 24px;
   font-size: 12px;
   font-weight: 500;
-  font-family: 'Inter', sans-serif;
+  font-family: inherit; /* Inherit theme font */
   cursor: pointer;
   position: relative;
   transition: all 0.15s ease;
@@ -1825,3 +2143,793 @@ body {
   background: var(--color-accent-olive) !important;
   border-color: var(--color-accent-olive) !important;
 }
+
+
+
+/* ========================================== */
+/* ===== TASCAM 424 MKII THEME OVERRIDES ===== */
+/* ========================================== */
+
+/* Transport Button Styling for Indie Theme - Flat Design */
+:root[data-theme="indie"] .transport-button {
+  background: hsl(200, 35%, 40%);
+  border: 1px solid hsl(200, 45%, 30%);
+  color: hsl(200, 20%, 85%);
+}
+
+:root[data-theme="indie"] .transport-button:hover {
+  background: hsl(200, 40%, 45%);
+  border-color: hsl(200, 50%, 35%);
+  color: hsl(200, 10%, 95%);
+}
+
+:root[data-theme="indie"] .transport-button:active {
+  background: hsl(200, 50%, 30%);
+}
+
+/* Specific button states for indie theme - Flat */
+:root[data-theme="indie"] #play-btn.playing {
+  background: hsl(120, 55%, 35%);
+  border-color: hsl(120, 65%, 25%);
+}
+
+:root[data-theme="indie"] #record-btn.recording {
+  background: hsl(15, 75%, 40%);
+  border-color: hsl(15, 85%, 30%);
+}
+
+:root[data-theme="indie"] #pause-btn.paused {
+  background: hsl(45, 85%, 45%);
+  border-color: hsl(45, 95%, 35%);
+  color: hsl(45, 30%, 15%);
+}
+
+/* Professional steel blue track controls - Flat */
+:root[data-theme="indie"] .arm-button:checked {
+  background: hsl(15, 80%, 50%);
+  border-color: hsl(15, 90%, 40%);
+}
+
+:root[data-theme="indie"] .solo-button:checked {
+  background: hsl(45, 90%, 50%);
+  border-color: hsl(45, 100%, 40%);
+  color: hsl(45, 30%, 15%);
+}
+
+/* Fader styling for professional look - Flat */
+:root[data-theme="indie"] .fader {
+  background: hsl(200, 30%, 45%);
+}
+
+:root[data-theme="indie"] .master-fader {
+  background: hsl(200, 30%, 45%);
+}
+
+/* Professional knob styling - Flat */
+:root[data-theme="indie"] .pan-knob-container::before {
+  background: hsl(200, 25%, 55%);
+  border: 2px solid hsl(200, 35%, 35%);
+}
+
+/* Settings modal styling for professional look - Flat */
+:root[data-theme="indie"] .settings-content {
+  background: hsl(200, 35%, 53%);
+  border: 1px solid hsl(200, 40%, 40%);
+}
+
+:root[data-theme="indie"] .settings-select,
+:root[data-theme="indie"] .scan-devices-btn,
+:root[data-theme="indie"] .close-settings-btn {
+  background: hsl(200, 30%, 45%);
+  border: 1px solid hsl(200, 35%, 35%);
+  color: hsl(200, 15%, 85%);
+}
+
+/* Disco theme - use bright text */
+:root[data-theme="disco"] .close-settings-btn {
+  color: var(--color-text-primary);
+}
+
+/* 808 theme - use vintage label text */
+:root[data-theme="808"] .close-settings-btn {
+  color: var(--color-text-primary);
+}
+
+/* Dark theme - use light text */
+:root[data-theme="dark"] .close-settings-btn {
+  color: var(--color-text-primary);
+}
+
+/* ===== DISCO THEME ROUNDED BORDERS ===== */
+/* Make all borders more rounded for disco theme only */
+:root[data-theme="disco"] .recorder-container {
+  border-radius: 20px;
+}
+
+:root[data-theme="disco"] .cassette-display {
+  border-radius: 18px;
+}
+
+:root[data-theme="disco"] .mixer-section {
+  border-radius: 16px;
+}
+
+:root[data-theme="disco"] .tracks-container {
+  border-radius: 14px;
+}
+
+:root[data-theme="disco"] .transport-button,
+:root[data-theme="disco"] .record-button,
+:root[data-theme="disco"] .bounce-button,
+:root[data-theme="disco"] .clear-button {
+  border-radius: 12px;
+}
+
+:root[data-theme="disco"] .playhead {
+  border-radius: 10px;
+}
+
+/* ===== THEME-BASED REEL SWITCHING ===== */
+
+/* Default (Vintage) theme - show vintage reels, hide others */
+:root .vintage-reel,
+:root[data-theme="vintage"] .vintage-reel {
+  display: block;
+}
+
+:root .indie-reel,
+:root[data-theme="vintage"] .indie-reel {
+  display: none;
+}
+
+:root .disco-reel,
+:root[data-theme="vintage"] .disco-reel {
+  display: none;
+}
+
+:root .turntable-reel,
+:root[data-theme="vintage"] .turntable-reel {
+  display: none;
+}
+
+:root .portal-reel,
+:root[data-theme="vintage"] .portal-reel {
+  display: none;
+}
+
+:root .radial-bars,
+:root[data-theme="vintage"] .radial-bars {
+  display: none;
+}
+
+:root .vintage-hub,
+:root[data-theme="vintage"] .vintage-hub {
+  display: block;
+}
+
+:root .indie-hub,
+:root[data-theme="vintage"] .indie-hub {
+  display: none;
+}
+
+:root .disco-hub,
+:root[data-theme="vintage"] .disco-hub {
+  display: none;
+}
+
+:root .turntable-hub,
+:root[data-theme="vintage"] .turntable-hub {
+  display: none;
+}
+
+:root .portal-hub,
+:root[data-theme="vintage"] .portal-hub {
+  display: none;
+}
+
+:root .radial-hub,
+:root[data-theme="vintage"] .radial-hub {
+  display: none;
+}
+
+/* Indie theme - show indie reels, hide others */
+:root[data-theme="indie"] .vintage-reel {
+  display: none;
+}
+
+:root[data-theme="indie"] .indie-reel {
+  display: block;
+}
+
+:root[data-theme="indie"] .disco-reel {
+  display: none;
+}
+
+:root[data-theme="indie"] .turntable-reel {
+  display: none;
+}
+
+:root[data-theme="indie"] .portal-reel {
+  display: none;
+}
+
+:root[data-theme="indie"] .radial-bars {
+  display: none;
+}
+
+:root[data-theme="indie"] .vintage-hub {
+  display: none;
+}
+
+:root[data-theme="indie"] .indie-hub {
+  display: block;
+}
+
+:root[data-theme="indie"] .disco-hub {
+  display: none;
+}
+
+:root[data-theme="indie"] .turntable-hub {
+  display: none;
+}
+
+:root[data-theme="indie"] .portal-hub {
+  display: none;
+}
+
+:root[data-theme="indie"] .radial-hub {
+  display: none;
+}
+
+/* Disco theme - show neon reels, hide others */
+:root[data-theme="disco"] .vintage-reel {
+  display: none;
+}
+
+:root[data-theme="disco"] .indie-reel {
+  display: none;
+}
+
+:root[data-theme="disco"] .disco-reel {
+  display: block;
+}
+
+:root[data-theme="disco"] .turntable-reel {
+  display: none;
+}
+
+:root[data-theme="disco"] .portal-reel {
+  display: none;
+}
+
+:root[data-theme="disco"] .radial-bars {
+  display: none;
+}
+
+:root[data-theme="disco"] .vintage-hub {
+  display: none;
+}
+
+:root[data-theme="disco"] .indie-hub {
+  display: none;
+}
+
+:root[data-theme="disco"] .disco-hub {
+  display: block;
+}
+
+:root[data-theme="disco"] .turntable-hub {
+  display: none;
+}
+
+:root[data-theme="disco"] .portal-hub {
+  display: none;
+}
+
+:root[data-theme="disco"] .radial-hub {
+  display: none;
+}
+
+/* ===== DISCO NEON REEL STYLING ===== */
+
+/* Circular shadow for cassette display in disco theme */
+:root[data-theme="disco"] .cassette-display {
+  box-shadow: 
+    inset 0 0 20px var(--color-shadow-inset),
+    inset 0 0 40px hsla(340, 100%, 70%, 0.1),
+    0 0 30px hsla(180, 100%, 60%, 0.2);
+  border-radius: 50px;
+}
+
+/* Remove square pseudo-element backgrounds from reels in disco theme */
+:root[data-theme="disco"] .tape-reel::before,
+:root[data-theme="disco"] .tape-reel::after {
+  display: none;
+}
+
+/* Make reel base transparent for pure neon effect */
+:root[data-theme="disco"] .reel-base {
+  fill: transparent !important;
+}
+
+/* Neon glow effects for disco reels */
+:root[data-theme="disco"] .disco-reel {
+  /* filter: drop-shadow(0 0 8px hsl(340, 100%, 70%)) drop-shadow(0 0 15px hsl(180, 100%, 60%)); */
+}
+
+/* Enhanced neon ring animations */
+:root[data-theme="disco"] .neon-ring-outer {
+  stroke: hsl(180, 100%, 75%);
+  filter: drop-shadow(0 0 4px hsl(180, 100%, 80%)) drop-shadow(0 0 8px hsl(180, 100%, 60%));
+  animation: neonPulse 3s ease-in-out infinite alternate;
+}
+
+:root[data-theme="disco"] .neon-ring-mid {
+  stroke: hsl(320, 100%, 70%);
+  filter: drop-shadow(0 0 3px hsl(320, 100%, 80%)) drop-shadow(0 0 6px hsl(320, 100%, 60%));
+  animation: neonPulse 2.5s ease-in-out infinite alternate-reverse;
+}
+
+:root[data-theme="disco"] .neon-ring-inner {
+  stroke: hsl(280, 100%, 80%);
+  filter: drop-shadow(0 0 2px hsl(280, 100%, 90%)) drop-shadow(0 0 4px hsl(280, 100%, 70%));
+  animation: neonPulse 2s ease-in-out infinite alternate;
+}
+
+:root[data-theme="disco"] .neon-plate {
+  stroke: hsl(340, 100%, 75%);
+  filter: drop-shadow(0 0 6px hsl(340, 100%, 80%)) drop-shadow(0 0 12px hsl(340, 100%, 60%));
+  animation: neonGlow 4s ease-in-out infinite alternate;
+}
+
+:root[data-theme="disco"] .disco-hub {
+  filter: drop-shadow(0 0 4px hsl(340, 100%, 85%)) drop-shadow(0 0 8px hsl(340, 100%, 70%));
+  animation: neonPulse 1.5s ease-in-out infinite alternate;
+}
+
+/* Neon pulsing animations */
+@keyframes neonPulse {
+  0% {
+    opacity: 0.6;
+    stroke-width: 0.5;
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 1;
+  }
+}
+
+@keyframes neonGlow {
+  0% {
+    opacity: 0.3;
+    stroke-width: 1;
+  }
+  50% {
+    opacity: 0.6;
+    stroke-width: 1.5;
+  }
+  100% {
+    opacity: 0.4;
+    stroke-width: 1.2;
+  }
+}
+
+/* Enhanced spinning animation for disco reels */
+:root[data-theme="disco"] .tape-reel.spinning .disco-reel {
+  transform-origin: 52px 52px;
+  animation: discoReelSpin 2.5s linear infinite;
+}
+
+@keyframes discoReelSpin {
+  from {
+    transform: rotate(0deg);
+    filter: drop-shadow(0 0 8px hsl(340, 100%, 70%)) drop-shadow(0 0 15px hsl(180, 100%, 60%));
+  }
+  25% {
+    filter: drop-shadow(0 0 10px hsl(320, 100%, 75%)) drop-shadow(0 0 18px hsl(280, 100%, 65%));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px hsl(280, 100%, 80%)) drop-shadow(0 0 20px hsl(340, 100%, 70%));
+  }
+  75% {
+    filter: drop-shadow(0 0 10px hsl(180, 100%, 75%)) drop-shadow(0 0 18px hsl(320, 100%, 65%));
+  }
+  to {
+    transform: rotate(360deg);
+    filter: drop-shadow(0 0 8px hsl(340, 100%, 70%)) drop-shadow(0 0 15px hsl(180, 100%, 60%));
+  }
+}
+
+/* Other themes - hide disco reels */
+:root[data-theme="future"] .disco-reel,
+:root[data-theme="808"] .disco-reel {
+  display: none;
+}
+
+:root[data-theme="future"] .disco-hub,
+:root[data-theme="808"] .disco-hub {
+  display: none;
+}
+
+/* Dark theme - show radial bars, hide other reels */
+:root[data-theme="dark"] .vintage-reel,
+:root[data-theme="dark"] .indie-reel,
+:root[data-theme="dark"] .disco-reel,
+:root[data-theme="dark"] .turntable-reel {
+  display: none;
+}
+
+:root[data-theme="dark"] .vintage-hub,
+:root[data-theme="dark"] .indie-hub,
+:root[data-theme="dark"] .disco-hub,
+:root[data-theme="dark"] .turntable-hub {
+  display: none;
+}
+
+:root[data-theme="dark"] .radial-bars {
+  display: block;
+}
+
+:root[data-theme="dark"] .radial-hub {
+  display: block;
+}
+
+/* 808 theme - show turntable reels, hide others */
+:root[data-theme="808"] .vintage-reel,
+:root[data-theme="808"] .indie-reel,
+:root[data-theme="808"] .disco-reel,
+:root[data-theme="808"] .portal-reel {
+  display: none;
+}
+
+:root[data-theme="808"] .radial-bars {
+  display: none;
+}
+
+:root[data-theme="808"] .vintage-hub,
+:root[data-theme="808"] .indie-hub,
+:root[data-theme="808"] .disco-hub,
+:root[data-theme="808"] .portal-hub {
+  display: none;
+}
+
+:root[data-theme="808"] .radial-hub {
+  display: none;
+}
+
+:root[data-theme="808"] .turntable-reel {
+  display: block;
+}
+
+:root[data-theme="808"] .turntable-hub {
+  display: block;
+}
+
+/* ===== 808 TURNTABLE STYLING ===== */
+
+/* Enhanced turntable record styling for 808 theme */
+:root[data-theme="808"] .turntable-reel {
+  filter: drop-shadow(0 4px 8px hsla(0, 0%, 0%, 0.5));
+}
+
+:root[data-theme="808"] .vinyl-record {
+  fill: hsl(0, 0%, 8%);
+  stroke: hsl(0, 0%, 15%);
+  filter: drop-shadow(0 2px 4px hsla(0, 0%, 0%, 0.3));
+}
+
+:root[data-theme="808"] .record-groove {
+  stroke: hsl(0, 0%, 12%);
+  filter: drop-shadow(0 1px 2px hsla(0, 0%, 0%, 0.2));
+}
+
+:root[data-theme="808"] .record-label {
+  fill: hsl(20, 100%, 55%);
+  stroke: hsl(20, 100%, 45%);
+  filter: drop-shadow(0 2px 4px hsla(20, 100%, 30%, 0.4));
+}
+
+:root[data-theme="808"] .label-ring {
+  stroke: hsl(20, 80%, 40%);
+}
+
+:root[data-theme="808"] .label-text {
+  fill: hsl(45, 100%, 85%);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: bold;
+  text-shadow: 0 1px 2px hsla(0, 0%, 0%, 0.5);
+}
+
+:root[data-theme="808"] .turntable-hub {
+  fill: hsl(0, 0%, 5%);
+  stroke: hsl(0, 0%, 20%);
+  filter: drop-shadow(0 1px 2px hsla(0, 0%, 0%, 0.4));
+}
+
+/* DJ-style spinning animation for 808 turntables */
+:root[data-theme="808"] .tape-reel.spinning .turntable-reel {
+  transform-origin: 52px 52px;
+  animation: turntableSpin 1.8s linear infinite;
+}
+
+@keyframes turntableSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== DARK THEME RADIAL BARS STYLING ===== */
+
+/* Hi-tech dashboard loading spinner style */
+:root[data-theme="dark"] .radial-bars {
+  filter: drop-shadow(0 2px 4px hsla(0, 0%, 0%, 0.4));
+}
+
+:root[data-theme="dark"] .radial-bar {
+  fill: hsl(215, 15%, 40%);
+  transition: fill 0.3s ease;
+}
+
+:root[data-theme="dark"] .radial-hub {
+  fill: hsl(215, 15%, 25%);
+  stroke: hsl(215, 15%, 45%);
+  filter: drop-shadow(0 0 2px hsl(215, 15%, 60%));
+}
+
+/* Spinning animation for radial bars */
+:root[data-theme="dark"] .tape-reel.spinning .radial-bars {
+  transform-origin: 52px 52px;
+  animation: radialSpin 2s linear infinite;
+}
+
+/* Individual bar fade animation during spinning */
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar {
+  animation: barFade 1.6s ease-in-out infinite;
+}
+
+/* Stagger the bar animations for wave effect */
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(2) {
+  animation-delay: 200ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(3) {
+  animation-delay: 400ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(4) {
+  animation-delay: 600ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(5) {
+  animation-delay: 800ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(6) {
+  animation-delay: 1000ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(7) {
+  animation-delay: 1200ms;
+}
+
+:root[data-theme="dark"] .tape-reel.spinning .radial-bar:nth-child(8) {
+  animation-delay: 1400ms;
+}
+
+/* Animation keyframes */
+@keyframes radialSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes barFade {
+  0% {
+    fill: hsl(215, 15%, 25%);
+    opacity: 0.3;
+  }
+  50% {
+    fill: hsl(215, 40%, 60%);
+    opacity: 0.9;
+  }
+  100% {
+    fill: hsl(215, 15%, 25%);
+    opacity: 0.3;
+  }
+}
+
+/* ===== ENHANCED CASSETTE TAPE STYLING ===== */
+
+/* Improved cassette reel depth and realism for indie theme */
+:root[data-theme="indie"] .indie-reel {
+  filter: drop-shadow(0 2px 4px hsla(200, 50%, 20%, 0.3));
+}
+
+:root[data-theme="indie"] .reel-base {
+  fill: var(--color-track-well);
+  filter: drop-shadow(inset 0 2px 4px hsla(200, 50%, 15%, 0.4));
+}
+
+:root[data-theme="indie"] .reel-rim {
+  fill: none;
+  stroke: var(--color-divider);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 1px 2px hsla(200, 40%, 25%, 0.5));
+}
+
+:root[data-theme="indie"] .indie-hub {
+  fill: var(--color-reel-hub);
+  filter: drop-shadow(0 1px 3px hsla(200, 50%, 15%, 0.6));
+}
+
+/* Add subtle texture to cassette reels */
+:root[data-theme="indie"] .tape-reel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    hsla(200, 20%, 80%, 0.1) 0%,
+    hsla(200, 30%, 60%, 0.05) 40%,
+    hsla(200, 40%, 40%, 0.1) 100%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Use the same reliable spinning animation for indie reels */
+:root[data-theme="indie"] .tape-reel.spinning .indie-reel {
+  transform-origin: 52px 52px; /* Center the rotation on the reel center */
+  animation: indieReelSpin 3s linear infinite;
+}
+
+/* Subtle rim lighting for 3D effect */
+:root[data-theme="indie"] .reel-rim {
+  stroke: hsl(200, 30%, 70%);
+  stroke-width: 1;
+  fill: none;
+  filter: drop-shadow(0 1px 2px hsla(200, 40%, 30%, 0.3));
+}
+
+@keyframes indieReelSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Professional cassette hub styling */
+:root[data-theme="indie"] .indie-hub {
+  fill: linear-gradient(135deg, 
+    hsl(200, 35%, 45%) 0%,
+    hsl(200, 40%, 35%) 50%,
+    hsl(200, 45%, 25%) 100%);
+}
+
+/* Precision engineering look for hole patterns */
+:root[data-theme="indie"] .indie-reel {
+  fill: var(--color-reel-mid);
+  stroke: var(--color-reel-dark);
+  stroke-width: 0.5;
+}
+
+
+
+/* Enhanced cassette reel surface texture */
+:root[data-theme="indie"] .left-reel .indie-reel {
+  fill: url(#cassette-gradient);
+}
+
+:root[data-theme="indie"] .right-reel .indie-reel {
+  fill: url(#cassette-gradient-right);
+}
+
+/* Add a subtle gradient for the cassette surface */
+:root[data-theme="indie"] .tape-reel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(
+    from 0deg,
+    hsla(200, 30%, 65%, 0.1) 0deg,
+    hsla(200, 40%, 60%, 0.15) 60deg,
+    hsla(200, 35%, 70%, 0.08) 120deg,
+    hsla(200, 45%, 55%, 0.12) 180deg,
+    hsla(200, 30%, 65%, 0.1) 240deg,
+    hsla(200, 40%, 60%, 0.15) 300deg,
+    hsla(200, 30%, 65%, 0.1) 360deg
+  );
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ===== THEME SELECTOR COMPONENT ===== */
+.theme-selector {
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.theme-selector:hover {
+  background: color-mix(in srgb, var(--color-chassis) 92%, var(--color-hover-overlay) 8%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px var(--overlay-shadow);
+}
+
+.theme-option {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.theme-option:hover {
+  opacity: 0.8;
+  background: var(--color-hover-overlay);
+}
+
+.theme-option.active {
+  opacity: 1;
+  font-weight: 600;
+  color: var(--color-accent-warm);
+  text-shadow: 0 0 2px var(--glow-accent);
+  background: color-mix(in srgb, var(--color-accent-warm) 20%, transparent 80%);
+}
+
+.theme-separator {
+  opacity: 0.4;
+  font-weight: 400;
+  pointer-events: none;
+}
+
+.theme-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.theme-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+

@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TapeFour from './lib/TapeFour'
+
+type Theme = 'vintage' | 'indie' | 'disco' | 'dark' | '808'
 
 function App() {
   const tapeFourRef = useRef<TapeFour | null>(null)
+  const [currentTheme, setCurrentTheme] = useState<Theme>('vintage')
 
   useEffect(() => {
     tapeFourRef.current = new TapeFour()
@@ -11,29 +14,115 @@ function App() {
     }
   }, [])
 
+  // Load saved theme from localStorage on component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('tapefour-theme') as Theme | null
+    if (savedTheme && ['vintage', 'indie', 'disco', 'dark', '808'].includes(savedTheme)) {
+      setCurrentTheme(savedTheme)
+      document.documentElement.setAttribute('data-theme', savedTheme)
+    }
+  }, [])
+
+  const handleThemeChange = (theme: Theme) => {
+    setCurrentTheme(theme)
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('tapefour-theme', theme)
+  }
+
   const handleOpenSettings = () => {
     tapeFourRef.current?.openSettings()
   }
 
   return (
     <div className="recorder-container">
-      <div className="header">TapeFour</div>
+      <div className="header">
+        <span>TapeFour</span>
+      </div>
 
       <div className="cassette-display">
         <svg className="tape-reel left-reel" id="left-reel" width="104" height="104" viewBox="0 0 104 104">
           <defs>
-            <mask id="reel-slots-left">
+            {/* Cassette reel gradient for realistic metallic appearance */}
+            <radialGradient id="cassette-gradient" cx="0.3" cy="0.3" r="0.8">
+              <stop offset="0%" stopColor="hsl(200, 35%, 75%)" />
+              <stop offset="40%" stopColor="hsl(200, 40%, 65%)" />
+              <stop offset="70%" stopColor="hsl(200, 45%, 55%)" />
+              <stop offset="100%" stopColor="hsl(200, 50%, 45%)" />
+            </radialGradient>
+            
+
+            
+            {/* Vintage theme - traditional reel slots */}
+            <mask id="vintage-slots-left">
               <rect width="104" height="104" fill="white" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(120 52 52)" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(240 52 52)" />
             </mask>
+            {/* Indie theme - simplified cassette cogwheel */}
+            <mask id="cassette-holes-left">
+              <rect width="104" height="104" fill="white" />
+              {/* Central cogwheel/gear hole - like real cassettes */}
+              <circle cx="52" cy="52" r="12" fill="black" />
+              {/* Gear teeth - 6 rectangular notches around the center */}
+              <rect x="50" y="28" width="4" height="8" fill="black" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(60 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(120 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(180 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(240 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(300 52 52)" />
+            </mask>
           </defs>
           <g className="reel">
             <circle className="reel-base" cx="52" cy="52" r="50" fill="var(--color-track-well)" />
-            <circle className="reel-face" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#reel-slots-left)" />
+            {/* Vintage reel face */}
+            <circle className="reel-face vintage-reel" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#vintage-slots-left)" />
+            {/* Indie reel face */}
+            <circle className="reel-face indie-reel" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#cassette-holes-left)" />
+            {/* Disco neon reel - transparent with glowing concentric rings */}
+            <g className="disco-reel">
+              <circle className="neon-ring-outer" cx="52" cy="52" r="48" fill="none" stroke="hsl(180, 100%, 75%)" strokeWidth="0.5" opacity="0.6" />
+              <circle className="neon-ring-mid" cx="52" cy="52" r="40" fill="none" stroke="hsl(320, 100%, 70%)" strokeWidth="0.3" opacity="0.8" />
+              <circle className="neon-ring-inner" cx="52" cy="52" r="32" fill="none" stroke="hsl(280, 100%, 80%)" strokeWidth="0.2" opacity="0.5" />
+              <circle className="neon-plate" cx="52" cy="52" r="50" fill="hsla(310, 80%, 20%, 0.1)" stroke="hsl(340, 100%, 75%)" strokeWidth="1" />
+            </g>
+            {/* 808 turntable record */}
+            <g className="turntable-reel">
+              {/* Vinyl record base */}
+              <circle className="vinyl-record" cx="52" cy="52" r="50" fill="hsl(0, 0%, 8%)" stroke="hsl(0, 0%, 15%)" strokeWidth="0.5" />
+              {/* Record grooves */}
+              <circle className="record-groove" cx="52" cy="52" r="45" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.6" />
+              <circle className="record-groove" cx="52" cy="52" r="40" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.4" />
+              <circle className="record-groove" cx="52" cy="52" r="35" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.3" />
+              <circle className="record-groove" cx="52" cy="52" r="30" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.2" />
+              {/* Center label */}
+              <circle className="record-label" cx="52" cy="52" r="20" fill="hsl(20, 100%, 55%)" stroke="hsl(20, 100%, 45%)" strokeWidth="1" />
+              <circle className="label-ring" cx="52" cy="52" r="15" fill="none" stroke="hsl(20, 80%, 40%)" strokeWidth="0.5" />
+              <text className="label-text" x="52" y="56" textAnchor="middle" fill="hsl(45, 100%, 85%)" fontSize="7" fontWeight="bold">Make</text>
+            </g>
+            {/* Dark theme radial bars */}
+            <g className="radial-bars">
+              {/* 8 radial bars positioned around the center */}
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(45 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(90 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(135 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(180 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(225 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(270 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(315 52 52)" />
+            </g>
             <circle className="reel-rim" cx="52" cy="52" r="50" />
-            <circle className="reel-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+            {/* Vintage hub (larger) */}
+            <circle className="reel-hub vintage-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+            {/* Indie hub (cogwheel center) */}
+            <circle className="reel-hub indie-hub" cx="52" cy="52" r="8" fill="var(--reel-hub)" />
+            {/* Disco neon hub */}
+            <circle className="reel-hub disco-hub" cx="52" cy="52" r="6" fill="hsla(340, 100%, 75%, 0.3)" stroke="hsl(340, 100%, 85%)" strokeWidth="1" />
+            {/* 808 turntable hub (center hole) */}
+            <circle className="reel-hub turntable-hub" cx="52" cy="52" r="4" fill="hsl(0, 0%, 5%)" stroke="hsl(0, 0%, 20%)" strokeWidth="0.5" />
+            {/* Dark theme radial hub */}
+            <circle className="reel-hub radial-hub" cx="52" cy="52" r="8" fill="hsl(215, 15%, 25%)" stroke="hsl(215, 15%, 45%)" strokeWidth="1" />
           </g>
         </svg>
         <div className="display-section">
@@ -46,18 +135,87 @@ function App() {
         </div>
         <svg className="tape-reel right-reel" id="right-reel" width="104" height="104" viewBox="0 0 104 104">
           <defs>
-            <mask id="reel-slots-right">
+            {/* Cassette reel gradient for realistic metallic appearance */}
+            <radialGradient id="cassette-gradient-right" cx="0.3" cy="0.3" r="0.8">
+              <stop offset="0%" stopColor="hsl(200, 35%, 75%)" />
+              <stop offset="40%" stopColor="hsl(200, 40%, 65%)" />
+              <stop offset="70%" stopColor="hsl(200, 45%, 55%)" />
+              <stop offset="100%" stopColor="hsl(200, 50%, 45%)" />
+            </radialGradient>
+            
+
+            
+            {/* Vintage theme - traditional reel slots */}
+            <mask id="vintage-slots-right">
               <rect width="104" height="104" fill="white" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(120 52 52)" />
               <rect x="44" y="10" width="16" height="22" rx="4" ry="4" fill="black" transform="rotate(240 52 52)" />
             </mask>
+            {/* Indie theme - simplified cassette cogwheel */}
+            <mask id="cassette-holes-right">
+              <rect width="104" height="104" fill="white" />
+              {/* Central cogwheel/gear hole - like real cassettes */}
+              <circle cx="52" cy="52" r="12" fill="black" />
+              {/* Gear teeth - 6 rectangular notches around the center */}
+              <rect x="50" y="28" width="4" height="8" fill="black" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(60 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(120 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(180 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(240 52 52)" />
+              <rect x="50" y="28" width="4" height="8" fill="black" transform="rotate(300 52 52)" />
+            </mask>
           </defs>
           <g className="reel">
             <circle className="reel-base" cx="52" cy="52" r="50" fill="var(--color-track-well)" />
-            <circle className="reel-face" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#reel-slots-right)" />
+            {/* Vintage reel face */}
+            <circle className="reel-face vintage-reel" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#vintage-slots-right)" />
+            {/* Indie reel face */}
+            <circle className="reel-face indie-reel" cx="52" cy="52" r="50" fill="var(--reel-mid)" mask="url(#cassette-holes-right)" />
+            {/* Disco neon reel - transparent with glowing concentric rings */}
+            <g className="disco-reel">
+              <circle className="neon-ring-outer" cx="52" cy="52" r="48" fill="none" stroke="hsl(180, 100%, 75%)" strokeWidth="0.5" opacity="0.6" />
+              <circle className="neon-ring-mid" cx="52" cy="52" r="40" fill="none" stroke="hsl(320, 100%, 70%)" strokeWidth="0.3" opacity="0.8" />
+              <circle className="neon-ring-inner" cx="52" cy="52" r="32" fill="none" stroke="hsl(280, 100%, 80%)" strokeWidth="0.2" opacity="0.5" />
+              <circle className="neon-plate" cx="52" cy="52" r="50" fill="hsla(310, 80%, 20%, 0.1)" stroke="hsl(340, 100%, 75%)" strokeWidth="1" />
+            </g>
+            {/* 808 turntable record */}
+            <g className="turntable-reel">
+              {/* Vinyl record base */}
+              <circle className="vinyl-record" cx="52" cy="52" r="50" fill="hsl(0, 0%, 8%)" stroke="hsl(0, 0%, 15%)" strokeWidth="0.5" />
+              {/* Record grooves */}
+              <circle className="record-groove" cx="52" cy="52" r="45" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.6" />
+              <circle className="record-groove" cx="52" cy="52" r="40" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.4" />
+              <circle className="record-groove" cx="52" cy="52" r="35" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.3" />
+              <circle className="record-groove" cx="52" cy="52" r="30" fill="none" stroke="hsl(0, 0%, 12%)" strokeWidth="0.3" opacity="0.2" />
+              {/* Center label */}
+              <circle className="record-label" cx="52" cy="52" r="20" fill="hsl(45, 100%, 50%)" stroke="hsl(45, 100%, 40%)" strokeWidth="1" />
+              <circle className="label-ring" cx="52" cy="52" r="15" fill="none" stroke="hsl(45, 80%, 35%)" strokeWidth="0.5" />
+              <text className="label-text" x="52" y="56" textAnchor="middle" fill="hsl(20, 100%, 85%)" fontSize="7" fontWeight="bold">Music</text>
+            </g>
+            {/* Dark theme radial bars */}
+            <g className="radial-bars">
+              {/* 8 radial bars positioned around the center */}
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(45 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(90 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(135 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(180 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(225 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(270 52 52)" />
+              <rect className="radial-bar" x="50" y="12" width="4" height="16" rx="2" ry="2" fill="hsl(215, 15%, 40%)" transform="rotate(315 52 52)" />
+            </g>
             <circle className="reel-rim" cx="52" cy="52" r="50" />
-            <circle className="reel-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+            {/* Vintage hub (larger) */}
+            <circle className="reel-hub vintage-hub" cx="52" cy="52" r="14" fill="var(--reel-hub)" />
+            {/* Indie hub (cogwheel center) */}
+            <circle className="reel-hub indie-hub" cx="52" cy="52" r="8" fill="var(--reel-hub)" />
+            {/* Disco neon hub */}
+            <circle className="reel-hub disco-hub" cx="52" cy="52" r="6" fill="hsla(340, 100%, 75%, 0.3)" stroke="hsl(340, 100%, 85%)" strokeWidth="1" />
+            {/* 808 turntable hub (center hole) */}
+            <circle className="reel-hub turntable-hub" cx="52" cy="52" r="4" fill="hsl(0, 0%, 5%)" stroke="hsl(0, 0%, 20%)" strokeWidth="0.5" />
+            {/* Dark theme radial hub */}
+            <circle className="reel-hub radial-hub" cx="52" cy="52" r="8" fill="hsl(215, 15%, 25%)" stroke="hsl(215, 15%, 45%)" strokeWidth="1" />
           </g>
         </svg>
         <div className="playhead" id="playhead">
@@ -214,6 +372,7 @@ function App() {
       <div id="settings-modal" className="settings-modal" style={{ display: 'none' }}>
         <div className="settings-content">
           <h3 className="settings-title">Settings</h3>
+          
           <div className="settings-group">
             <label className="settings-label" htmlFor="audio-input-select">🎤 Audio Input</label>
             <select id="audio-input-select" className="settings-select">
@@ -228,6 +387,55 @@ function App() {
               </svg>
               Scan Devices
             </button>
+          </div>
+          
+          <div className="settings-group">
+            <div className="settings-toggle-header" id="theme-toggle">
+              <h4 className="settings-subtitle">🎨 Theme</h4>
+              <div className="toggle-arrow" id="theme-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div className="theme-content collapsed" id="theme-options">
+              <div className="theme-selector">
+                <button 
+                  className={`theme-option ${currentTheme === 'vintage' ? 'active' : ''}`}
+                  onClick={() => handleThemeChange('vintage')}
+                >
+                  Vintage
+                </button>
+                <span className="theme-separator"> | </span>
+                <button 
+                  className={`theme-option ${currentTheme === 'disco' ? 'active' : ''}`}
+                  onClick={() => handleThemeChange('disco')}
+                >
+                  Disco
+                </button>
+                <span className="theme-separator"> | </span>
+                <button 
+                  className={`theme-option ${currentTheme === 'indie' ? 'active' : ''}`}
+                  onClick={() => handleThemeChange('indie')}
+                >
+                  Indie
+                </button>
+                <span className="theme-separator"> | </span>
+                <button 
+                  className={`theme-option ${currentTheme === 'dark' ? 'active' : ''}`}
+                  onClick={() => handleThemeChange('dark')}
+                >
+                  Dark
+                </button>
+                <span className="theme-separator"> | </span>
+                <button 
+                  className={`theme-option ${currentTheme === '808' ? 'active' : ''}`}
+                  onClick={() => handleThemeChange('808')}
+                >
+                  HipHop
+                </button>
+              </div>
+            </div>
           </div>
           
           <div className="settings-group">
