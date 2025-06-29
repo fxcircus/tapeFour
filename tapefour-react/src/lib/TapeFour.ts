@@ -6,6 +6,48 @@
 // behaviour identical while we incrementally migrate the codebase.
 
 export default class TapeFour {
+  // Debug configuration - reads from environment variables
+  private debug = {
+    // Global debug toggle
+    enabled: import.meta.env.VITE_DEBUG_ENABLED !== 'false', // Default to true unless explicitly disabled
+    
+    // Debug categories - CONFIGURED FOR AUDIO MONITORING DEBUG
+    transport: false, // Disable transport noise
+    input: true,      // ✅ ENABLE - Input monitoring, microphone access, volume meter setup
+    waveform: false,  // Disable - Very noisy during recording
+    meter: false,     // Disable - Extremely noisy meter updates
+    punchIn: false,   // Disable - Not relevant to monitoring
+    halfSpeed: false, // Disable - Not relevant to monitoring
+    ui: false,        // Disable - UI noise not needed
+    audio: true,      // ✅ ENABLE - Audio routing, gain, pan, mute/solo operations
+    bounce: false,    // Disable - Not relevant to monitoring
+    scrub: false,     // Disable - Scrubbing noise not needed
+    general: true,    // ✅ ENABLE - General application logs for context
+    duration: false,  // Disable - Not relevant to monitoring
+    processing: false,// Disable - Not relevant to monitoring
+    keyboard: false,  // Disable - Keyboard shortcuts not needed
+    settings: false,  // Disable - Settings noise not needed
+  };
+
+  // Debug helper methods
+  private debugLog(category: keyof typeof this.debug, message: string, ...args: any[]) {
+    if (this.debug.enabled && this.debug[category]) {
+      console.log(message, ...args);
+    }
+  }
+
+  private debugWarn(category: keyof typeof this.debug, message: string, ...args: any[]) {
+    if (this.debug.enabled && this.debug[category]) {
+      console.warn(message, ...args);
+    }
+  }
+
+  private debugError(category: keyof typeof this.debug, message: string, ...args: any[]) {
+    if (this.debug.enabled && this.debug[category]) {
+      console.error(message, ...args);
+    }
+  }
+
   private audioContext: AudioContext | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private mediaStream: MediaStream | null = null;
@@ -202,11 +244,11 @@ export default class TapeFour {
   private setupEventListeners() {
     // Prevent duplicate event listener initialization
     if (this.eventListenersInitialized) {
-      console.log('[TAPEFOUR] ⚠️ Event listeners already initialized, skipping...');
+      this.debugLog('general', '[TAPEFOUR] ⚠️ Event listeners already initialized, skipping...');
       return;
     }
     
-    console.log('[TAPEFOUR] 🎧 Setting up event listeners...');
+    this.debugLog('general', '[TAPEFOUR] 🎧 Setting up event listeners...');
     
     // Arming toggles
     this.tracks.forEach((track) => {
@@ -377,20 +419,20 @@ export default class TapeFour {
       
       if (options && arrow) {
         const isCollapsed = options.classList.contains('collapsed');
-        console.log(`[TAPEFOUR] 🔧 Audio processing toggle clicked, currently collapsed: ${isCollapsed}`);
+        this.debugLog('settings', `[TAPEFOUR] 🔧 Audio processing toggle clicked, currently collapsed: ${isCollapsed}`);
         
         if (isCollapsed) {
           options.classList.remove('collapsed');
           arrow.classList.add('rotated');
-          console.log('[TAPEFOUR] 🔧 Audio processing expanded');
-        } else {
-          options.classList.add('collapsed');
-          arrow.classList.remove('rotated');
-          console.log('[TAPEFOUR] 🔧 Audio processing collapsed');
+                      this.debugLog('settings', '[TAPEFOUR] 🔧 Audio processing expanded');
+          } else {
+            options.classList.add('collapsed');
+            arrow.classList.remove('rotated');
+            this.debugLog('settings', '[TAPEFOUR] 🔧 Audio processing collapsed');
         }
-      } else {
-        console.warn('[TAPEFOUR] ⚠️ Audio processing toggle elements not found');
-      }
+              } else {
+          this.debugWarn('settings', '[TAPEFOUR] ⚠️ Audio processing toggle elements not found');
+        }
     });
 
     // Keyboard shortcuts toggle - improved reliability
@@ -403,20 +445,20 @@ export default class TapeFour {
       
       if (options && arrow) {
         const isCollapsed = options.classList.contains('collapsed');
-        console.log(`[TAPEFOUR] ⌨️ Keyboard shortcuts toggle clicked, currently collapsed: ${isCollapsed}`);
+        this.debugLog('settings', `[TAPEFOUR] ⌨️ Keyboard shortcuts toggle clicked, currently collapsed: ${isCollapsed}`);
         
         if (isCollapsed) {
           options.classList.remove('collapsed');
           arrow.classList.add('rotated');
-          console.log('[TAPEFOUR] ⌨️ Keyboard shortcuts expanded');
+          this.debugLog('settings', '[TAPEFOUR] ⌨️ Keyboard shortcuts expanded');
         } else {
           options.classList.add('collapsed');
           arrow.classList.remove('rotated');
-          console.log('[TAPEFOUR] ⌨️ Keyboard shortcuts collapsed');
+          this.debugLog('settings', '[TAPEFOUR] ⌨️ Keyboard shortcuts collapsed');
         }
-      } else {
-        console.warn('[TAPEFOUR] ⚠️ Keyboard shortcuts toggle elements not found');
-      }
+              } else {
+          this.debugWarn('settings', '[TAPEFOUR] ⚠️ Keyboard shortcuts toggle elements not found');
+        }
     });
 
     // Tips toggle - same logic as other toggles
@@ -429,39 +471,39 @@ export default class TapeFour {
       
       if (options && arrow) {
         const isCollapsed = options.classList.contains('collapsed');
-        console.log(`[TAPEFOUR] 💡 Tips toggle clicked, currently collapsed: ${isCollapsed}`);
+        this.debugLog('settings', `[TAPEFOUR] 💡 Tips toggle clicked, currently collapsed: ${isCollapsed}`);
         
         if (isCollapsed) {
           options.classList.remove('collapsed');
           arrow.classList.add('rotated');
-          console.log('[TAPEFOUR] 💡 Tips expanded');
+          this.debugLog('settings', '[TAPEFOUR] 💡 Tips expanded');
         } else {
           options.classList.add('collapsed');
           arrow.classList.remove('rotated');
-          console.log('[TAPEFOUR] 💡 Tips collapsed');
+          this.debugLog('settings', '[TAPEFOUR] 💡 Tips collapsed');
         }
-      } else {
-        console.warn('[TAPEFOUR] ⚠️ Tips toggle elements not found');
-      }
+              } else {
+          this.debugWarn('settings', '[TAPEFOUR] ⚠️ Tips toggle elements not found');
+        }
     });
 
     // Audio processing settings checkboxes
     document.getElementById('echo-cancellation-checkbox')?.addEventListener('change', (e) => {
       this.state.echoCancellation = (e.target as HTMLInputElement).checked;
       this.saveAudioProcessingSettings();
-      console.log(`[TAPEFOUR] 🔧 Echo cancellation ${this.state.echoCancellation ? 'enabled' : 'disabled'}`);
+      this.debugLog('settings', `[TAPEFOUR] 🔧 Echo cancellation ${this.state.echoCancellation ? 'enabled' : 'disabled'}`);
     });
 
     document.getElementById('noise-suppression-checkbox')?.addEventListener('change', (e) => {
       this.state.noiseSuppression = (e.target as HTMLInputElement).checked;
       this.saveAudioProcessingSettings();
-      console.log(`[TAPEFOUR] 🔧 Noise suppression ${this.state.noiseSuppression ? 'enabled' : 'disabled'}`);
+      this.debugLog('settings', `[TAPEFOUR] 🔧 Noise suppression ${this.state.noiseSuppression ? 'enabled' : 'disabled'}`);
     });
 
     document.getElementById('auto-gain-control-checkbox')?.addEventListener('change', (e) => {
       this.state.autoGainControl = (e.target as HTMLInputElement).checked;
       this.saveAudioProcessingSettings();
-      console.log(`[TAPEFOUR] 🔧 Auto gain control ${this.state.autoGainControl ? 'enabled' : 'disabled'}`);
+      this.debugLog('settings', `[TAPEFOUR] 🔧 Auto gain control ${this.state.autoGainControl ? 'enabled' : 'disabled'}`);
     });
 
     // Dismiss modal on backdrop click
@@ -491,84 +533,84 @@ export default class TapeFour {
         case 'KeyA':
           // A key for play
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ A key pressed - triggering play');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ A key pressed - triggering play');
           this.play();
           break;
         
         case 'KeyP':
           // P key for pause
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ P key pressed - triggering pause');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ P key pressed - triggering pause');
           this.pause();
           break;
         
         case 'KeyQ':
           // Q key for record
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ Q key pressed - triggering record');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ Q key pressed - triggering record');
           this.record();
           break;
         
         case 'KeyS':
           // S key for stop
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ S key pressed - triggering stop');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ S key pressed - triggering stop');
           this.stop();
           break;
         
         case 'KeyE':
           // E key for export
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ E key pressed - triggering export');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ E key pressed - triggering export');
           this.export();
           break;
         
         case 'KeyB':
           // B key for bounce
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ B key pressed - triggering bounce');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ B key pressed - triggering bounce');
           this.bounce();
           break;
         
         case 'KeyN':
           // N key for clear everything
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ N key pressed - triggering clear everything');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ N key pressed - triggering clear everything');
           this.clearEverything();
           break;
         
         case 'Digit1':
           // 1 key for track 1
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ 1 key pressed - toggling track 1 arm');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ 1 key pressed - toggling track 1 arm');
           this.toggleTrackArm(1);
           break;
         
         case 'Digit2':
           // 2 key for track 2
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ 2 key pressed - toggling track 2 arm');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ 2 key pressed - toggling track 2 arm');
           this.toggleTrackArm(2);
           break;
         
         case 'Digit3':
           // 3 key for track 3
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ 3 key pressed - toggling track 3 arm');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ 3 key pressed - toggling track 3 arm');
           this.toggleTrackArm(3);
           break;
         
         case 'Digit4':
           // 4 key for track 4
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ 4 key pressed - toggling track 4 arm');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ 4 key pressed - toggling track 4 arm');
           this.toggleTrackArm(4);
           break;
         
         case 'Comma':
           // Comma key for settings (both , and < which is shift+comma)
           e.preventDefault();
-          console.log('[TAPEFOUR] ⌨️ Comma key pressed - toggling settings');
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ Comma key pressed - toggling settings');
           this.toggleSettings();
           break;
       }
@@ -581,7 +623,7 @@ export default class TapeFour {
     
     // Mark event listeners as initialized
     this.eventListenersInitialized = true;
-    console.log('[TAPEFOUR] ✅ Event listeners setup complete');
+    this.debugLog('general', '[TAPEFOUR] ✅ Event listeners setup complete');
   }
 
   private setupPlayheadScrubbing() {
@@ -590,11 +632,11 @@ export default class TapeFour {
     const playheadIndicator = document.getElementById('playhead-indicator') as HTMLElement | null;
     
     if (!this.playheadContainer || !playheadIndicator) {
-      console.warn('[SCRUB] ⚠️ Playhead elements not found, scrubbing disabled');
+      this.debugWarn('scrub', '[SCRUB] ⚠️ Playhead elements not found, scrubbing disabled');
       return;
     }
     
-    console.log('[SCRUB] 🎯 Setting up playhead scrubbing...');
+    this.debugLog('scrub', '[SCRUB] 🎯 Setting up playhead scrubbing...');
     
     // Add mouse event listeners for scrubbing
     const onMouseDown = (e: MouseEvent) => {
@@ -602,7 +644,7 @@ export default class TapeFour {
       if (e.button !== 0) return;
       
       this.isDraggingPlayhead = true;
-      console.log('[SCRUB] 🎯 Started playhead dragging');
+      this.debugLog('scrub', '[SCRUB] 🎯 Started playhead dragging');
       
       // Handle the initial position
       this.handlePlayheadDrag(e);
@@ -625,7 +667,7 @@ export default class TapeFour {
     const onMouseUp = () => {
       if (this.isDraggingPlayhead) {
         this.isDraggingPlayhead = false;
-        console.log('[SCRUB] 🎯 Stopped playhead dragging');
+        this.debugLog('scrub', '[SCRUB] 🎯 Stopped playhead dragging');
         
         // If we were playing during the drag, restart audio from new position
         if (this.state.isPlaying && !this.state.isPaused) {
@@ -647,7 +689,7 @@ export default class TapeFour {
       // Only handle clicks if not dragging (to avoid double-triggering)
       if (!this.isDraggingPlayhead) {
         this.handlePlayheadDrag(e);
-        console.log('[SCRUB] 🎯 Playhead clicked to seek');
+        this.debugLog('scrub', '[SCRUB] 🎯 Playhead clicked to seek');
       }
     };
     
@@ -656,7 +698,7 @@ export default class TapeFour {
     // Add visual feedback with CSS cursor
     this.updatePlayheadCursor();
     
-    console.log('[SCRUB] ✅ Playhead scrubbing setup complete');
+    this.debugLog('scrub', '[SCRUB] ✅ Playhead scrubbing setup complete');
   }
 
   private handlePlayheadDrag(e: MouseEvent) {
@@ -664,7 +706,7 @@ export default class TapeFour {
     
     // Disable scrubbing while recording to prevent accidental repositioning
     if (this.state.isRecording) {
-      console.log('[SCRUB] ⚠️ Scrubbing disabled during recording');
+      this.debugLog('scrub', '[SCRUB] ⚠️ Scrubbing disabled during recording');
       return;
     }
     
@@ -682,7 +724,7 @@ export default class TapeFour {
     // Update UI immediately
     this.updatePlayheadUI();
     
-    console.log(`[SCRUB] 🎯 Scrubbed to ${(newPosition / 1000).toFixed(2)}s (${(progress * 100).toFixed(1)}%)`);
+    this.debugLog('scrub', `[SCRUB] 🎯 Scrubbed to ${(newPosition / 1000).toFixed(2)}s (${(progress * 100).toFixed(1)}%)`);
   }
 
   private updatePlayheadCursor() {
@@ -704,18 +746,18 @@ export default class TapeFour {
   }
 
   private restartPlaybackFromCurrentPosition() {
-    console.log('[SCRUB] 🔄 Restarting playback from scrubbed position');
+    this.debugLog('scrub', '[SCRUB] 🔄 Restarting playback from scrubbed position');
     
     // Stop any existing audio sources with proper cleanup
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
-        console.log(`🛑 Stopping track ${t.id} source to restart from scrubbed position`);
+        this.debugLog('transport', `🛑 Stopping track ${t.id} source to restart from scrubbed position`);
         try {
           t.sourceNode.stop();
           t.sourceNode.disconnect();
         } catch (e) {
           // Source might already be stopped, ignore errors
-          console.log(`  - Track ${t.id} source already stopped`);
+          this.debugLog('transport', `  - Track ${t.id} source already stopped`);
         }
         t.sourceNode = null;
       }
@@ -731,12 +773,12 @@ export default class TapeFour {
         const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
         this.tracks.forEach((t) => {
           if (t.audioBuffer) {
-            console.log(`🎶 Restarting track ${t.id} from position ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+            this.debugLog('scrub', `🎶 Restarting track ${t.id} from position ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
             this.playTrack(t, startTime);
           }
         });
         
-        console.log(`✅ Restarted playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+        this.debugLog('scrub', `✅ Restarted playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
       }
     }, 10); // 10ms delay to ensure cleanup is complete
   }
@@ -755,7 +797,7 @@ export default class TapeFour {
     this.doToggleTrackArm(trackId);
   }
 
-  private doToggleTrackArm(trackId: number) {
+  private async doToggleTrackArm(trackId: number) {
     const track = this.tracks.find((t) => t.id === trackId)!;
     const el = document.getElementById(`track-${trackId}`) as HTMLInputElement;
 
@@ -780,15 +822,15 @@ export default class TapeFour {
     }
     
     // Start/stop volume meter monitoring when tracks are armed/disarmed
-    this.manageVolumeMeter();
+    await this.manageVolumeMeter();
   }
 
-  private manageVolumeMeter() {
+  private async manageVolumeMeter() {
     const hasArmedTracks = this.tracks.some(t => t.isArmed);
     
     if (hasArmedTracks && !this.volumeMeterActive) {
-      this.startVolumeMeter();
-      this.startInputMonitoring();
+      await this.startVolumeMeter(); // Wait for volume meter and media stream setup
+      await this.startInputMonitoring(); // Then start input monitoring
     } else if (!hasArmedTracks && this.volumeMeterActive) {
       this.stopVolumeMeter();
       this.stopInputMonitoring();
@@ -819,7 +861,7 @@ export default class TapeFour {
         this.updateMuteButtonStyling(t.id);
       });
       
-      console.log(`[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states:`, this.previousMuteStates);
+      this.debugLog('audio', `[TAPEFOUR] 🔇 Track ${trackId} unsolo - restored previous mute states:`, this.previousMuteStates);
     } else {
       // Only store current manual mute states if no track is currently soloed
       // This prevents overwriting the original states when switching between solo tracks
@@ -827,7 +869,7 @@ export default class TapeFour {
         this.tracks.forEach((t, index) => {
           this.previousMuteStates[index] = t.isManuallyMuted;
         });
-        console.log(`[TAPEFOUR] 💾 Stored original manual mute states before first solo:`, this.previousMuteStates);
+        this.debugLog('audio', `[TAPEFOUR] 💾 Stored original manual mute states before first solo:`, this.previousMuteStates);
       }
       
       // Unsolo all other tracks first
@@ -851,7 +893,7 @@ export default class TapeFour {
       track.isSolo = true;
       if (el) el.checked = true;
       
-      console.log(`[TAPEFOUR] 🔊 Track ${trackId} soloed - all other tracks muted`);
+      this.debugLog('audio', `[TAPEFOUR] 🔊 Track ${trackId} soloed - all other tracks muted`);
     }
     
     // Update audio routing
@@ -865,7 +907,7 @@ export default class TapeFour {
     // If any track is currently soloed, don't allow manual mute changes
     const hasSoloedTrack = this.tracks.some(t => t.isSolo);
     if (hasSoloedTrack) {
-      console.log(`[TAPEFOUR] ⚠️ Cannot manually mute/unmute while a track is soloed`);
+      this.debugLog('audio', `[TAPEFOUR] ⚠️ Cannot manually mute/unmute while a track is soloed`);
       // Reset the checkbox to current manual mute state
       if (el) el.checked = track.isManuallyMuted;
       return;
@@ -876,7 +918,7 @@ export default class TapeFour {
     track.isMuted = track.isManuallyMuted; // Sync internal state with manual state
     if (el) el.checked = track.isManuallyMuted;
     
-    console.log(`[TAPEFOUR] ${track.isManuallyMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isManuallyMuted ? 'manually muted' : 'manually unmuted'}`);
+    this.debugLog('audio', `[TAPEFOUR] ${track.isManuallyMuted ? '🔇' : '🔊'} Track ${trackId} ${track.isManuallyMuted ? 'manually muted' : 'manually unmuted'}`);
     
     // Update mute button styling based on new state
     this.updateMuteButtonStyling(trackId);
@@ -930,15 +972,15 @@ export default class TapeFour {
       // If track is muted, keep gain at 0 regardless of fader position
       if (track.isMuted) {
         track.gainNode.gain.value = 0;
-        console.log(`🎚️ Track ${trackId} fader moved to ${value}% but track is muted (gain remains 0)`);
+        this.debugLog('audio', `🎚️ Track ${trackId} fader moved to ${value}% but track is muted (gain remains 0)`);
       } else {
         const gainValue = this.faderToGain(value);
         const dbValue = this.gainToDb(gainValue);
         track.gainNode.gain.value = gainValue;
-        console.log(`🎚️ Track ${trackId} fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
+        this.debugLog('audio', `🎚️ Track ${trackId} fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
       }
     } else {
-      console.warn(`⚠️ No gain node found for track ${trackId}`);
+      this.debugWarn('audio', `⚠️ No gain node found for track ${trackId}`);
     }
     
     // Update the CSS custom property for the volume indicator line position
@@ -953,7 +995,7 @@ export default class TapeFour {
       const gainValue = this.faderToGain(value);
       const dbValue = this.gainToDb(gainValue);
       this.masterGainNode.gain.value = gainValue;
-      console.log(`🎚️ Master fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
+      this.debugLog('audio', `🎚️ Master fader at ${value}% = ${dbValue.toFixed(1)} dB (gain: ${gainValue.toFixed(3)})`);
     }
     
     // Update the CSS custom property for the master fader volume indicator line position
@@ -985,7 +1027,7 @@ export default class TapeFour {
         }, 200);
       }
       
-      console.log(`🎚️ Track ${trackId} fader reset to default (80% = 0 dB)`);
+      this.debugLog('audio', `🎚️ Track ${trackId} fader reset to default (80% = 0 dB)`);
     }
   }
 
@@ -1011,7 +1053,7 @@ export default class TapeFour {
         }, 200);
       }
       
-      console.log(`🎚️ Master fader reset to default (80% = 0 dB)`);
+      this.debugLog('audio', `🎚️ Master fader reset to default (80% = 0 dB)`);
     }
   }
 
@@ -1053,9 +1095,9 @@ export default class TapeFour {
       const panValue = (value - 50) / 50;
       track.panNode.pan.value = panValue;
       track.panValue = value;
-      console.log(`🎛️ Track ${trackId} pan set to ${value} (${panValue.toFixed(2)})`);
+      this.debugLog('audio', `🎛️ Track ${trackId} pan set to ${value} (${panValue.toFixed(2)})`);
     } else {
-      console.warn(`⚠️ No pan node found for track ${trackId}`);
+      this.debugWarn('audio', `⚠️ No pan node found for track ${trackId}`);
     }
   }
 
@@ -1064,7 +1106,7 @@ export default class TapeFour {
     if (panKnob) {
       panKnob.value = '50'; // Reset to center
       this.updateTrackPan(trackId, 50); // Update the pan
-      console.log(`🎛️ Track ${trackId} pan reset to center (50)`);
+      this.debugLog('audio', `🎛️ Track ${trackId} pan reset to center (50)`);
     }
   }
 
@@ -1076,20 +1118,20 @@ export default class TapeFour {
   }
 
   private toggleTrackReverse(trackId: number) {
-    console.log(`[TAPEFOUR] 🔄 Toggling reverse for track ${trackId}`);
+    this.debugLog('processing', `[TAPEFOUR] 🔄 Toggling reverse for track ${trackId}`);
     
     const track = this.tracks[trackId - 1];
     if (!track) return;
 
     // Safety check: Stop transport if playing or recording
     if (this.state.isPlaying || this.state.isRecording) {
-      console.log('[TAPEFOUR] 🛑 Stopping transport before reversing track');
+      this.debugLog('processing', '[TAPEFOUR] 🛑 Stopping transport before reversing track');
       this.stop();
     }
 
     // Check if track has audio
     if (!track.audioBuffer) {
-      console.log(`[TAPEFOUR] ⚠️ Track ${trackId} has no audio to reverse`);
+      this.debugLog('processing', `[TAPEFOUR] ⚠️ Track ${trackId} has no audio to reverse`);
       return;
     }
 
@@ -1097,13 +1139,13 @@ export default class TapeFour {
       if (track.isReversed) {
         // Track is currently reversed, restore original
         if (track.originalBuffer) {
-          console.log(`[TAPEFOUR] ⏮️ Restoring original audio for track ${trackId}`);
+          this.debugLog('processing', `[TAPEFOUR] ⏮️ Restoring original audio for track ${trackId}`);
           track.audioBuffer = track.originalBuffer;
           track.isReversed = false;
         }
       } else {
         // Track is not reversed, reverse it
-        console.log(`[TAPEFOUR] 🔄 Reversing audio for track ${trackId}`);
+        this.debugLog('processing', `[TAPEFOUR] 🔄 Reversing audio for track ${trackId}`);
         
         // Store original buffer if not already stored
         if (!track.originalBuffer) {
@@ -1122,10 +1164,10 @@ export default class TapeFour {
       // Redraw waveforms with visual flip for reversed tracks
       this.redrawAllTrackWaveforms();
       
-      console.log(`[TAPEFOUR] ✅ Track ${trackId} reverse toggle complete. Reversed: ${track.isReversed}`);
+      this.debugLog('processing', `[TAPEFOUR] ✅ Track ${trackId} reverse toggle complete. Reversed: ${track.isReversed}`);
       
     } catch (error) {
-      console.error(`[TAPEFOUR] ❌ Error reversing track ${trackId}:`, error);
+      this.debugError('processing', `[TAPEFOUR] ❌ Error reversing track ${trackId}:`, error);
       this.showError(`Failed to reverse track ${trackId}. Please try again.`);
     }
   }
@@ -1180,35 +1222,35 @@ export default class TapeFour {
   }
 
   private async toggleTrackHalfSpeed(trackId: number) {
-    console.log(`[HALF-SPEED] 🐌 toggleTrackHalfSpeed() called for track ${trackId}`);
+    this.debugLog('halfSpeed', `[HALF-SPEED] 🐌 toggleTrackHalfSpeed() called for track ${trackId}`);
     
     // Transport safety - stop all activity first
     if (this.state.isPlaying || this.state.isRecording || this.state.isPaused) {
-      console.log('[HALF-SPEED] 🛑 Stopping transport for safety');
+      this.debugLog('halfSpeed', '[HALF-SPEED] 🛑 Stopping transport for safety');
       this.stop();
     }
     
     const track = this.tracks.find(t => t.id === trackId);
     if (!track || !track.audioBuffer) {
-      console.warn(`[HALF-SPEED] ⚠️ Track ${trackId} has no audio buffer to process`);
+      this.debugWarn('halfSpeed', `[HALF-SPEED] ⚠️ Track ${trackId} has no audio buffer to process`);
       return;
     }
     
     try {
       if (track.isHalfSpeed) {
         // Disable half-speed: restore original buffer
-        console.log(`[HALF-SPEED] ⏮️ Disabling half-speed for track ${trackId}`);
+        this.debugLog('halfSpeed', `[HALF-SPEED] ⏮️ Disabling half-speed for track ${trackId}`);
         if (track.originalBufferForSpeed) {
           track.audioBuffer = track.originalBufferForSpeed;
           track.originalBufferForSpeed = null;
           track.isHalfSpeed = false;
-          console.log(`[HALF-SPEED] ✅ Restored original buffer for track ${trackId}`);
+          this.debugLog('halfSpeed', `[HALF-SPEED] ✅ Restored original buffer for track ${trackId}`);
         } else {
-          console.warn(`[HALF-SPEED] ⚠️ No original buffer found for track ${trackId}`);
+          this.debugWarn('halfSpeed', `[HALF-SPEED] ⚠️ No original buffer found for track ${trackId}`);
         }
       } else {
         // Enable half-speed: create half-speed buffer
-        console.log(`[HALF-SPEED] 🐌 Enabling half-speed for track ${trackId}`);
+        this.debugLog('halfSpeed', `[HALF-SPEED] 🐌 Enabling half-speed for track ${trackId}`);
         
         // Store original buffer for restoration
         track.originalBufferForSpeed = track.audioBuffer;
@@ -1221,14 +1263,14 @@ export default class TapeFour {
         
         const processingTime = Date.now() - startTime;
         if (processingTime > 200) {
-          console.log(`[HALF-SPEED] ⏰ Processing took ${processingTime}ms`);
+          this.debugLog('halfSpeed', `[HALF-SPEED] ⏰ Processing took ${processingTime}ms`);
         }
         
         // Apply the half-speed buffer
         track.audioBuffer = halfSpeedBuffer;
         track.isHalfSpeed = true;
         
-        console.log(`[HALF-SPEED] ✅ Created half-speed buffer for track ${trackId}: ${halfSpeedBuffer.duration.toFixed(2)}s (2x original)`);
+        this.debugLog('halfSpeed', `[HALF-SPEED] ✅ Created half-speed buffer for track ${trackId}: ${halfSpeedBuffer.duration.toFixed(2)}s (2x original)`);
       }
       
       // Update button styling
@@ -1240,16 +1282,16 @@ export default class TapeFour {
       // Update project duration
       this.updateProjectDuration();
       
-      console.log(`[HALF-SPEED] ✅ Half-speed toggle complete for track ${trackId}`);
+      this.debugLog('halfSpeed', `[HALF-SPEED] ✅ Half-speed toggle complete for track ${trackId}`);
       
     } catch (error) {
-      console.error(`[HALF-SPEED] ❌ Error toggling half-speed for track ${trackId}:`, error);
+      this.debugError('halfSpeed', `[HALF-SPEED] ❌ Error toggling half-speed for track ${trackId}:`, error);
       this.showError(`Failed to process half-speed for track ${trackId}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   private async createHalfSpeedBuffer(originalBuffer: AudioBuffer): Promise<AudioBuffer> {
-    console.log(`[HALF-SPEED] 🔧 Creating half-speed buffer from ${originalBuffer.duration.toFixed(2)}s original`);
+    this.debugLog('halfSpeed', `[HALF-SPEED] 🔧 Creating half-speed buffer from ${originalBuffer.duration.toFixed(2)}s original`);
     
     if (!this.audioContext) {
       throw new Error('AudioContext not available');
@@ -1274,7 +1316,7 @@ export default class TapeFour {
     source.start(0);
     const renderedBuffer = await offlineContext.startRendering();
     
-    console.log(`[HALF-SPEED] ✅ Half-speed buffer created: ${renderedBuffer.duration.toFixed(2)}s`);
+    this.debugLog('halfSpeed', `[HALF-SPEED] ✅ Half-speed buffer created: ${renderedBuffer.duration.toFixed(2)}s`);
     return renderedBuffer;
   }
 
@@ -1319,7 +1361,7 @@ export default class TapeFour {
     }
     
     this.state.duration = maxDuration;
-    console.log(`[DURATION] 📏 Project duration updated to ${(maxDuration / 1000).toFixed(2)}s`);
+    this.debugLog('duration', `[DURATION] 📏 Project duration updated to ${(maxDuration / 1000).toFixed(2)}s`);
   }
 
   private updateMuteButtonStyling(trackId: number) {
@@ -1338,7 +1380,7 @@ export default class TapeFour {
         muteLabel.style.color = 'var(--color-text-primary)'; // Default text color
         muteLabel.style.fontWeight = '600'; // Normal weight
         
-        console.log(`🎨 Applied muted (disabled) styling to track ${trackId} mute button`);
+        this.debugLog('ui', `🎨 Applied muted (disabled) styling to track ${trackId} mute button`);
       } else {
         // Unmuted state: use track color
         muteButton.style.backgroundColor = color;
@@ -1349,7 +1391,7 @@ export default class TapeFour {
         muteLabel.style.color = textColor;
         muteLabel.style.fontWeight = '700'; // Bold for better visibility
         
-        console.log(`🎨 Applied active color ${color} with ${textColor} text to track ${trackId} mute button`);
+        this.debugLog('ui', `🎨 Applied active color ${color} with ${textColor} text to track ${trackId} mute button`);
       }
     }
   }
@@ -1412,6 +1454,7 @@ export default class TapeFour {
     // Need either individual tracks with audio OR an existing master buffer
     const tracksToMix = this.getTracksForMixdown();
     const hasMasterBuffer = !!this.state.masterBuffer;
+    const hasIndividualTracks = tracksToMix.length > 0;
     
     return tracksToMix.length >= 1 || hasMasterBuffer;
   }
@@ -1419,17 +1462,17 @@ export default class TapeFour {
   /* ---------- Transport ---------- */
 
   public async play() {
-    console.log('▶️ PLAY button pressed');
+    this.debugLog('transport', '▶️ PLAY button pressed');
     
     // If recording, stop it first
     if (this.state.isRecording) {
-      console.log('🛑 Stopping active recording before playback');
+      this.debugLog('transport', '🛑 Stopping active recording before playback');
       this.stopRecording();
     }
     
     // If already playing, restart from the beginning
     if (this.state.isPlaying && !this.state.isPaused) {
-      console.log('🔄 Already playing, restarting from beginning');
+      this.debugLog('transport', '🔄 Already playing, restarting from beginning');
       // Call stop method to properly clean up everything
       this.stop();
       // Now continue with normal play logic below
@@ -1445,7 +1488,7 @@ export default class TapeFour {
       return;
     }
 
-    console.log('🎵 Starting fresh playback');
+    this.debugLog('transport', '🎵 Starting fresh playback');
     
     // Disable monitoring mode for full volume playback
     this.disableMonitoringMode();
@@ -1453,13 +1496,13 @@ export default class TapeFour {
     // Stop any existing sources before starting new ones
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
-        console.log(`🛑 Stopping existing source for track ${t.id} before starting new playback`);
+        this.debugLog('transport', `🛑 Stopping existing source for track ${t.id} before starting new playback`);
         try {
           t.sourceNode.stop();
           t.sourceNode.disconnect();
         } catch (e) {
           // Source might already be stopped, ignore errors
-          console.log(`  - Track ${t.id} source already stopped`);
+          this.debugLog('transport', `  - Track ${t.id} source already stopped`);
         }
         t.sourceNode = null;
       }
@@ -1472,25 +1515,25 @@ export default class TapeFour {
     const startTime = this.audioContext!.currentTime + 0.1; // 100ms in the future
     this.playStartTime = Date.now() + 100; // Adjust playhead timer accordingly
     
-    console.log(`🕐 Scheduling synchronized playback at audio context time: ${startTime}`);
+    this.debugLog('transport', `🕐 Scheduling synchronized playback at audio context time: ${startTime}`);
 
     // Play master buffer if available (from bounce)
     if (this.state.masterBuffer) {
-      console.log('🏆 Playing master buffer from bounce');
+      this.debugLog('transport', '🏆 Playing master buffer from bounce');
       this.playMasterTrack(startTime);
     }
     
     // ALSO play any individual tracks (for layering new recordings on top of master)
     const tracksToPlay = this.tracks.filter(t => t.audioBuffer);
     if (tracksToPlay.length > 0) {
-      console.log(`🎵 Preparing ${tracksToPlay.length} individual tracks for playback${this.state.masterBuffer ? ' (layered with master)' : ''}`);
+      this.debugLog('transport', `🎵 Preparing ${tracksToPlay.length} individual tracks for playback${this.state.masterBuffer ? ' (layered with master)' : ''}`);
       
       this.tracks.forEach((t) => {
         if (t.audioBuffer) {
-          console.log(`🎶 Playing track ${t.id} - buffer length: ${t.audioBuffer.length} samples`);
+          this.debugLog('transport', `🎶 Playing track ${t.id} - buffer length: ${t.audioBuffer.length} samples`);
           this.playTrack(t, startTime);
         } else {
-          console.log(`⚪ Track ${t.id} has no audio buffer`);
+          this.debugLog('transport', `⚪ Track ${t.id} has no audio buffer`);
         }
       });
     }
@@ -1503,31 +1546,31 @@ export default class TapeFour {
     
     // Initialize timecode display
     this.updateTimecode();
-    console.log('✅ Playback started');
+    this.debugLog('transport', '✅ Playback started');
   }
 
   private playTrack(track: typeof this.tracks[number], startTime?: number) {
     if (!track.audioBuffer || !this.audioContext) return;
     
-    console.log(`🎵 playTrack() called for track ${track.id}`);
+    this.debugLog('transport', `🎵 playTrack() called for track ${track.id}`);
     
     // Calculate track's timeline boundaries
     const trackStartMs = track.recordStartTime;
     const trackEndMs = track.recordStartTime + (track.audioBuffer.duration * 1000);
     const currentPlayheadMs = this.state.playheadPosition;
     
-    console.log(`  - Track ${track.id} timeline: ${trackStartMs}ms - ${trackEndMs}ms, playhead at ${currentPlayheadMs}ms`);
-    console.log(`  - Track ${track.id} is ${track.isReversed ? 'REVERSED' : 'NORMAL'}, buffer duration: ${track.audioBuffer.duration.toFixed(3)}s`);
+    this.debugLog('transport', `  - Track ${track.id} timeline: ${trackStartMs}ms - ${trackEndMs}ms, playhead at ${currentPlayheadMs}ms`);
+    this.debugLog('transport', `  - Track ${track.id} is ${track.isReversed ? 'REVERSED' : 'NORMAL'}, buffer duration: ${track.audioBuffer.duration.toFixed(3)}s`);
     
     // Ensure any existing source is properly stopped and cleaned up
     if (track.sourceNode) {
-      console.log(`  - Stopping existing source for track ${track.id}`);
+      this.debugLog('transport', `  - Stopping existing source for track ${track.id}`);
       try {
         track.sourceNode.stop();
         track.sourceNode.disconnect();
       } catch (e) {
         // Source might already be stopped/disconnected, ignore errors
-        console.log(`  - Source for track ${track.id} already stopped`);
+        this.debugLog('transport', `  - Source for track ${track.id} already stopped`);
       }
       track.sourceNode = null;
     }
@@ -1540,21 +1583,21 @@ export default class TapeFour {
       const delaySeconds = (trackStartMs - currentPlayheadMs) / 1000;
       actualStartTime += delaySeconds;
       bufferOffset = 0; // Start from beginning of track
-      console.log(`  - Track ${track.id} scheduled to start in ${delaySeconds.toFixed(3)}s at timeline position ${trackStartMs}ms`);
+      this.debugLog('transport', `  - Track ${track.id} scheduled to start in ${delaySeconds.toFixed(3)}s at timeline position ${trackStartMs}ms`);
     } else if (currentPlayheadMs >= trackEndMs) {
       // Case 2: Playhead is past track end - don't play
-      console.log(`  - Track ${track.id} not playing: playhead past end of track`);
+      this.debugLog('transport', `  - Track ${track.id} not playing: playhead past end of track`);
       return;
     } else {
       // Case 3: Playhead is within track timeline - start immediately with offset
       const timeFromTrackStart = currentPlayheadMs - trackStartMs;
       bufferOffset = timeFromTrackStart / 1000;
-      console.log(`  - Track ${track.id} starting immediately with offset ${bufferOffset.toFixed(3)}s`);
+      this.debugLog('transport', `  - Track ${track.id} starting immediately with offset ${bufferOffset.toFixed(3)}s`);
     }
 
     // For reversed tracks, the buffer is already reversed, so we use the same offset logic
     if (track.isReversed) {
-      console.log(`  - Track ${track.id} is REVERSED: using offset ${bufferOffset.toFixed(3)}s in reversed buffer`);
+      this.debugLog('transport', `  - Track ${track.id} is REVERSED: using offset ${bufferOffset.toFixed(3)}s in reversed buffer`);
     }
     
     // Ensure offset is within valid bounds
@@ -1562,11 +1605,11 @@ export default class TapeFour {
 
     const source = this.audioContext!.createBufferSource();
     source.buffer = track.audioBuffer!;
-    console.log(`  - Created source node for track ${track.id}`);
-    console.log(`  - Connecting: source -> gainNode(${track.gainNode!.gain.value}) -> panNode(${track.panNode!.pan.value}) -> master`);
+    this.debugLog('transport', `  - Created source node for track ${track.id}`);
+    this.debugLog('transport', `  - Connecting: source -> gainNode(${track.gainNode!.gain.value}) -> panNode(${track.panNode!.pan.value}) -> master`);
     source.connect(track.gainNode!);
     source.onended = () => {
-      console.log(`  - Track ${track.id} source ended naturally`);
+      this.debugLog('transport', `  - Track ${track.id} source ended naturally`);
       if (track.sourceNode === source) {
         track.sourceNode = null;
       }
@@ -1574,16 +1617,16 @@ export default class TapeFour {
     
     // Add debug logging for scheduled sources
     if (actualStartTime > this.audioContext!.currentTime + 0.2) {
-      console.log(`  - Track ${track.id} scheduled to start at ${actualStartTime.toFixed(3)}, current time is ${this.audioContext!.currentTime.toFixed(3)} (delay: ${(actualStartTime - this.audioContext!.currentTime).toFixed(3)}s)`);
+      this.debugLog('transport', `  - Track ${track.id} scheduled to start at ${actualStartTime.toFixed(3)}, current time is ${this.audioContext!.currentTime.toFixed(3)} (delay: ${(actualStartTime - this.audioContext!.currentTime).toFixed(3)}s)`);
       
       // Add a timeout to check if the source actually starts
       setTimeout(() => {
-        console.log(`  - Checking scheduled track ${track.id}: sourceNode is ${track.sourceNode ? 'still active' : 'null'}`);
+        this.debugLog('transport', `  - Checking scheduled track ${track.id}: sourceNode is ${track.sourceNode ? 'still active' : 'null'}`);
       }, (actualStartTime - this.audioContext!.currentTime) * 1000 + 100);
     }
     
     source.start(actualStartTime, bufferOffset);
-    console.log(`  - Started track ${track.id} playback at audio context time: ${actualStartTime.toFixed(3)}, buffer offset: ${bufferOffset.toFixed(3)}s`);
+    this.debugLog('transport', `  - Started track ${track.id} playback at audio context time: ${actualStartTime.toFixed(3)}, buffer offset: ${bufferOffset.toFixed(3)}s`);
 
     track.sourceNode = source;
   }
@@ -1591,7 +1634,7 @@ export default class TapeFour {
   private playMasterTrack(startTime?: number) {
     if (!this.state.masterBuffer || !this.audioContext) return;
     
-    console.log(`🏆 playMasterTrack() called`);
+    this.debugLog('transport', `🏆 playMasterTrack() called`);
     
     // Stop any existing master source
     if ((this as any).masterSourceNode) {
@@ -1599,7 +1642,7 @@ export default class TapeFour {
         (this as any).masterSourceNode.stop();
         (this as any).masterSourceNode.disconnect();
       } catch (e) {
-        console.log('  - Master source already stopped');
+        this.debugLog('transport', '  - Master source already stopped');
       }
       (this as any).masterSourceNode = null;
     }
@@ -1614,20 +1657,20 @@ export default class TapeFour {
     const actualStartTime = startTime || this.audioContext.currentTime;
     const startOffset = this.state.playheadPosition / 1000; // Convert ms to seconds
     
-    console.log(`  - Starting master source at time ${actualStartTime} from position ${startOffset.toFixed(2)}s`);
+    this.debugLog('transport', `  - Starting master source at time ${actualStartTime} from position ${startOffset.toFixed(2)}s`);
     source.start(actualStartTime, startOffset);
     
     // Store reference for cleanup during stop()
     (this as any).masterSourceNode = source;
     
     source.onended = () => {
-      console.log(`  - Master source ended naturally`);
+      this.debugLog('transport', `  - Master source ended naturally`);
       (this as any).masterSourceNode = null;
     };
   }
 
   public stop() {
-    console.log('⏹️ STOP button pressed');
+    this.debugLog('transport', '⏹️ STOP button pressed');
     
     // Add visual feedback to stop button
     const stopBtn = document.getElementById('stop-btn');
@@ -1641,10 +1684,10 @@ export default class TapeFour {
     
     // Stop recording if active
     if (this.state.isRecording) {
-      console.log('🛑 Stopping active recording');
+      this.debugLog('transport', '🛑 Stopping active recording');
       // Force the MediaRecorder to stop and process the recording
       if (this.mediaRecorder?.state === 'recording') {
-        console.log('[TAPEFOUR] 🎬 Forcing MediaRecorder to stop and process recording');
+        this.debugLog('transport', '[TAPEFOUR] 🎬 Forcing MediaRecorder to stop and process recording');
         this.mediaRecorder.stop(); // This will trigger processRecording()
       }
       this.stopRecording();
@@ -1654,16 +1697,16 @@ export default class TapeFour {
     this.state.isPaused = false;
     this.state.playheadPosition = 0; // Reset playhead to beginning on stop
 
-    console.log('🛑 Stopping all track sources');
+    this.debugLog('transport', '🛑 Stopping all track sources');
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
-        console.log(`  - Stopping track ${t.id} source`);
+        this.debugLog('transport', `  - Stopping track ${t.id} source`);
         try {
           t.sourceNode.stop();
           t.sourceNode.disconnect();
         } catch (e) {
           // Source might already be stopped, ignore errors
-          console.log(`  - Track ${t.id} source already stopped`);
+          this.debugLog('transport', `  - Track ${t.id} source already stopped`);
         }
         t.sourceNode = null;
       }
@@ -1671,12 +1714,12 @@ export default class TapeFour {
 
     // Stop master source if playing
     if ((this as any).masterSourceNode) {
-      console.log('🛑 Stopping master source');
+      this.debugLog('transport', '🛑 Stopping master source');
       try {
         (this as any).masterSourceNode.stop();
         (this as any).masterSourceNode.disconnect();
       } catch (e) {
-        console.log('  - Master source already stopped');
+        this.debugLog('transport', '  - Master source already stopped');
       }
       (this as any).masterSourceNode = null;
     }
@@ -1706,11 +1749,11 @@ export default class TapeFour {
     // Update bounce button state
     this.updateBounceButtonState();
     
-    console.log('✅ Stop complete');
+    this.debugLog('transport', '✅ Stop complete');
   }
 
   public clearEverything() {
-    console.log('[TAPEFOUR] 🗑️ Clear everything requested');
+    this.debugLog('general', '[TAPEFOUR] 🗑️ Clear everything requested');
     
     // Add visual feedback to clear button
     const clearBtn = document.getElementById('clear-btn');
@@ -1733,7 +1776,7 @@ export default class TapeFour {
       track.isReversed = false;
       track.isHalfSpeed = false;
       track.recordStartTime = 0;
-      console.log(`[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset all states`);
+      this.debugLog('general', `[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset all states`);
       // Update button styling
       this.updateReverseButtonStyling(track.id);
       this.updateHalfSpeedButtonStyling(track.id);
@@ -1742,7 +1785,7 @@ export default class TapeFour {
     // Clear master buffer
     this.state.masterBuffer = null;
     this.state.duration = 0;
-    console.log('[TAPEFOUR] 🗑️ Cleared master buffer');
+    this.debugLog('general', '[TAPEFOUR] 🗑️ Cleared master buffer');
     
     // Clear all waveforms
     this.trackWaveforms.clear();
@@ -1757,7 +1800,7 @@ export default class TapeFour {
     // Update bounce button state since there's no audio to bounce
     this.updateBounceButtonState();
     
-    console.log('[TAPEFOUR] 🗑️ Everything cleared - project reset');
+    this.debugLog('general', '[TAPEFOUR] 🗑️ Everything cleared - project reset');
   }
 
   public pause() {
@@ -1773,18 +1816,18 @@ export default class TapeFour {
   }
 
   private async resumeFromPause() {
-    console.log('⏯️ Resuming from pause');
+    this.debugLog('transport', '⏯️ Resuming from pause');
     
     // Stop any existing audio sources since we need to restart from current position
     this.tracks.forEach((t) => {
       if (t.sourceNode) {
-        console.log(`🛑 Stopping track ${t.id} source to restart from current position`);
+        this.debugLog('transport', `🛑 Stopping track ${t.id} source to restart from current position`);
         try {
           t.sourceNode.stop();
           t.sourceNode.disconnect();
         } catch (e) {
           // Source might already be stopped, ignore errors
-          console.log(`  - Track ${t.id} source already stopped`);
+          this.debugLog('transport', `  - Track ${t.id} source already stopped`);
         }
         t.sourceNode = null;
       }
@@ -1792,12 +1835,12 @@ export default class TapeFour {
 
     // Stop master source if playing
     if ((this as any).masterSourceNode) {
-      console.log('🛑 Stopping master source to restart from current position');
+      this.debugLog('transport', '🛑 Stopping master source to restart from current position');
       try {
         (this as any).masterSourceNode.stop();
         (this as any).masterSourceNode.disconnect();
       } catch (e) {
-        console.log('  - Master source already stopped');
+        this.debugLog('transport', '  - Master source already stopped');
       }
       (this as any).masterSourceNode = null;
     }
@@ -1810,17 +1853,17 @@ export default class TapeFour {
     const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
     
     if (this.state.masterBuffer) {
-      console.log('🏆 Restarting master buffer from scrubbed position');
+      this.debugLog('transport', '🏆 Restarting master buffer from scrubbed position');
       this.playMasterTrack(startTime);
     }
     
     // ALSO restart any individual tracks (for layering new recordings on top of master)
     const tracksToRestart = this.tracks.filter(t => t.audioBuffer);
     if (tracksToRestart.length > 0) {
-      console.log(`🎵 Restarting ${tracksToRestart.length} individual tracks${this.state.masterBuffer ? ' (layered with master)' : ''}`);
+      this.debugLog('transport', `🎵 Restarting ${tracksToRestart.length} individual tracks${this.state.masterBuffer ? ' (layered with master)' : ''}`);
       this.tracks.forEach((t) => {
         if (t.audioBuffer) {
-          console.log(`🎶 Restarting track ${t.id} from scrubbed position`);
+          this.debugLog('transport', `🎶 Restarting track ${t.id} from scrubbed position`);
           this.playTrack(t, startTime);
         }
       });
@@ -1830,35 +1873,35 @@ export default class TapeFour {
     document.getElementById('play-btn')?.classList.add('playing');
     document.getElementById('pause-btn')?.classList.remove('paused');
     
-    console.log(`✅ Resumed playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+    this.debugLog('transport', `✅ Resumed playback from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
   }
 
   public async record() {
-    console.log('[TAPEFOUR] 🔴 RECORD button pressed');
+    this.debugLog('transport', '[TAPEFOUR] 🔴 RECORD button pressed');
     if (this.state.isRecording) return this.stopRecording();
 
     // If currently paused, unpause and reset pause button
     if (this.state.isPaused) {
-      console.log('[TAPEFOUR] ⏯️ Unpausing before recording');
+      this.debugLog('transport', '[TAPEFOUR] ⏯️ Unpausing before recording');
       this.state.isPaused = false;
       document.getElementById('pause-btn')?.classList.remove('paused');
     }
 
     const armedTrack = this.tracks.find((t) => t.isArmed);
-    console.log(`[TAPEFOUR] 🎯 Armed track: ${armedTrack?.id || 'none'}`);
+    this.debugLog('transport', `[TAPEFOUR] 🎯 Armed track: ${armedTrack?.id || 'none'}`);
     if (!armedTrack) return this.showError('Please arm a track before recording.');
 
     // Determine recording mode based on current playhead position
     if (this.state.playheadPosition > 0) {
       this.state.recordMode = 'punchIn';
       this.state.punchInStartPosition = this.state.playheadPosition;
-      console.log(`[PUNCH-IN] 🎯 Punch-in recording from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
+      this.debugLog('punchIn', `[PUNCH-IN] 🎯 Punch-in recording from ${(this.state.playheadPosition / 1000).toFixed(2)}s`);
     } else {
       this.state.recordMode = 'fresh';
       this.state.punchInStartPosition = 0;
       // For fresh recordings, set the start time to current playhead position (which could be > 0 if user paused and then recorded)
       armedTrack.recordStartTime = this.state.playheadPosition;
-      console.log(`[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
+      this.debugLog('transport', `[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
     }
 
     await this.initializeAudio();
@@ -1867,7 +1910,7 @@ export default class TapeFour {
 
     // Clear any previous recording data
     this.recordingBuffer = [];
-    console.log('[TAPEFOUR] 🗑️ Recording buffer cleared');
+    this.debugLog('transport', '[TAPEFOUR] 🗑️ Recording buffer cleared');
 
     this.state.isRecording = true;
     
@@ -1890,14 +1933,14 @@ export default class TapeFour {
     // Update playhead cursor to show scrubbing is disabled
     this.updatePlayheadCursor();
 
-    console.log('[TAPEFOUR] 🎵 Starting monitoring playback during recording...');
-    console.log('[TAPEFOUR] 🎧 Other tracks will play at reduced volume to minimize bleed');
+    this.debugLog('transport', '[TAPEFOUR] 🎵 Starting monitoring playback during recording...');
+    this.debugLog('transport', '[TAPEFOUR] 🎧 Other tracks will play at reduced volume to minimize bleed');
     
     // Keep input monitoring active during recording so you can hear yourself
     // Note: Use headphones to prevent feedback between speakers and microphone
-    console.log(`[TAPEFOUR] 🎧 Input monitoring during recording: ${this.state.isMonitoring ? 'ACTIVE' : 'INACTIVE'}`);
+    this.debugLog('input', `[TAPEFOUR] 🎧 Input monitoring during recording: ${this.state.isMonitoring ? 'ACTIVE' : 'INACTIVE'}`);
     if (this.state.isMonitoring) {
-      console.log('[TAPEFOUR] ✅ You should be able to hear your input while recording');
+      this.debugLog('input', '[TAPEFOUR] ✅ You should be able to hear your input while recording');
     }
     
     // Enable monitoring mode (lower volume playback during recording)
@@ -1905,11 +1948,11 @@ export default class TapeFour {
     
     // Play all tracks for monitoring (including armed tracks in punch-in mode)
     const recordingStartTime = this.audioContext!.currentTime + 0.05;
-    console.log(`[TAPEFOUR] 🕐 Starting synchronized monitoring playback at audio context time: ${recordingStartTime}`);
+    this.debugLog('transport', `[TAPEFOUR] 🕐 Starting synchronized monitoring playback at audio context time: ${recordingStartTime}`);
     
     this.tracks.forEach((t) => {
       if (t.audioBuffer && (this.state.recordMode === 'punchIn' || !t.isArmed)) {
-        console.log(`[TAPEFOUR]   - Playing track ${t.id} for monitoring during recording`);
+        this.debugLog('transport', `[TAPEFOUR]   - Playing track ${t.id} for monitoring during recording`);
         this.playTrack(t, recordingStartTime);
       }
     });
@@ -1934,7 +1977,7 @@ export default class TapeFour {
     }
     this.startWaveformCapture();
     
-    console.log(`[TAPEFOUR] ✅ ${this.state.recordMode === 'punchIn' ? 'Punch-in' : 'Fresh'} recording started`);
+    this.debugLog('transport', `[TAPEFOUR] ✅ ${this.state.recordMode === 'punchIn' ? 'Punch-in' : 'Fresh'} recording started`);
   }
 
   private async setupRecording() {
@@ -1945,20 +1988,20 @@ export default class TapeFour {
       
       // Stop volume meter first if it was active
       if (wasVolumeMeterActive) {
-        console.log('[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
+        this.debugLog('input', '[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
         this.stopVolumeMeter();
       }
       
       // Stop input monitoring if it was active
       if (wasMonitoringActive) {
-        console.log('[TAPEFOUR] 🔇 Stopping input monitoring before recreating media stream');
+        this.debugLog('input', '[TAPEFOUR] 🔇 Stopping input monitoring before recreating media stream');
         this.stopInputMonitoring();
       }
       
       // Always stop and clean up existing media stream before creating a new one
       // This ensures we use the currently selected device for recording
       if (this.mediaStream) {
-        console.log('[TAPEFOUR] 🛑 Stopping existing media stream before creating new one');
+        this.debugLog('input', '[TAPEFOUR] 🛑 Stopping existing media stream before creating new one');
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
         this.mediaRecorder = null;
@@ -1990,46 +2033,46 @@ export default class TapeFour {
             },
       };
 
-      console.log('[TAPEFOUR] 🎤 Requesting microphone with enhanced constraints:', JSON.stringify(constraints, null, 2));
+      this.debugLog('input', '[TAPEFOUR] 🎤 Requesting microphone with enhanced constraints:', JSON.stringify(constraints, null, 2));
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.mediaRecorder = new MediaRecorder(this.mediaStream);
 
       this.mediaRecorder.ondataavailable = (ev) => {
         if (ev.data.size > 0) {
-          console.log(`[TAPEFOUR] 📊 MediaRecorder data chunk: ${ev.data.size} bytes`);
+          this.debugLog('input', `[TAPEFOUR] 📊 MediaRecorder data chunk: ${ev.data.size} bytes`);
           this.recordingBuffer.push(ev.data);
         }
       };
       this.mediaRecorder.onstop = () => {
-        console.log(`[TAPEFOUR] 🛑 MediaRecorder stopped, buffer has ${this.recordingBuffer.length} chunks`);
+        this.debugLog('input', `[TAPEFOUR] 🛑 MediaRecorder stopped, buffer has ${this.recordingBuffer.length} chunks`);
         this.processRecording();
       };
       
-      console.log(`[TAPEFOUR] 🎤 MediaRecorder created, input tracks: ${this.mediaStream.getAudioTracks().length}`);
+      this.debugLog('input', `[TAPEFOUR] 🎤 MediaRecorder created, input tracks: ${this.mediaStream.getAudioTracks().length}`);
       this.mediaStream.getAudioTracks().forEach((track, i) => {
-        console.log(`[TAPEFOUR]   Track ${i}: ${track.label}, enabled: ${track.enabled}`);
+        this.debugLog('input', `[TAPEFOUR]   Track ${i}: ${track.label}, enabled: ${track.enabled}`);
         // Log the track's capabilities for debugging
         const capabilities = track.getCapabilities();
-        console.log(`[TAPEFOUR]   Track capabilities:`, {
+        this.debugLog('input', `[TAPEFOUR]   Track capabilities:`, {
           sampleRate: capabilities.sampleRate,
           channelCount: capabilities.channelCount,
           echoCancellation: capabilities.echoCancellation
         });
         // Log current settings
         const settings = track.getSettings();
-        console.log(`[TAPEFOUR]   Track settings:`, settings);
+        this.debugLog('input', `[TAPEFOUR]   Track settings:`, settings);
       });
 
       // Restart volume meter if it was previously active
       if (wasVolumeMeterActive) {
-        console.log('[TAPEFOUR] 🔊 Restarting volume meter with new media stream');
+        this.debugLog('input', '[TAPEFOUR] 🔊 Restarting volume meter with new media stream');
         await this.startVolumeMeter();
       }
       
       // Restart input monitoring if it was previously active
       if (wasMonitoringActive) {
-        console.log('[TAPEFOUR] 🎧 Restarting input monitoring with new media stream');
+        this.debugLog('input', '[TAPEFOUR] 🎧 Restarting input monitoring with new media stream');
         await this.startInputMonitoring();
       }
       
@@ -2037,13 +2080,13 @@ export default class TapeFour {
       this.setupWaveformAnalyser();
       
     } catch (err) {
-      console.error('Error setting up recording', err);
+      this.debugError('input', 'Error setting up recording', err);
               this.showError('Could not access microphone. Please check permissions and settings.');
     }
   }
 
   private stopRecording() {
-    console.log(`[TAPEFOUR] 🛑 Stopping ${this.state.recordMode} recording`);
+    this.debugLog('transport', `[TAPEFOUR] 🛑 Stopping ${this.state.recordMode} recording`);
     if (!this.state.isRecording) return;
     
     this.state.isRecording = false;
@@ -2077,7 +2120,7 @@ export default class TapeFour {
             t.sourceNode.disconnect();
           } catch (e) {
             // Source might already be stopped, ignore errors
-            console.log(`  - Track ${t.id} source already stopped`);
+            this.debugLog('transport', `  - Track ${t.id} source already stopped`);
           }
           t.sourceNode = null;
         }
@@ -2089,7 +2132,7 @@ export default class TapeFour {
     // Ensure recording buffer is cleared if recording was interrupted
     setTimeout(() => {
       if (this.recordingBuffer.length > 0) {
-        console.log('[TAPEFOUR] 🗑️ Clearing leftover recording buffer after stop');
+        this.debugLog('transport', '[TAPEFOUR] 🗑️ Clearing leftover recording buffer after stop');
         this.recordingBuffer = [];
       }
       
@@ -2097,20 +2140,20 @@ export default class TapeFour {
       this.redrawAllTrackWaveforms();
     }, 100); // Small delay to allow MediaRecorder onstop to fire first
     
-    console.log(`[TAPEFOUR] ✅ ${this.state.recordMode} recording stopped`);
+    this.debugLog('transport', `[TAPEFOUR] ✅ ${this.state.recordMode} recording stopped`);
   }
 
   private async processRecording() {
     if (!this.recordingBuffer.length) return;
 
-    console.log(`[TAPEFOUR] 🔍 Processing recording with ${this.recordingBuffer.length} data chunks`);
+    this.debugLog('general', `[TAPEFOUR] 🔍 Processing recording with ${this.recordingBuffer.length} data chunks`);
     const blob = new Blob(this.recordingBuffer, { type: 'audio/wav' });
-    console.log(`[TAPEFOUR] 📦 Created blob: ${blob.size} bytes, type: ${blob.type}`);
+    this.debugLog('general', `[TAPEFOUR] 📦 Created blob: ${blob.size} bytes, type: ${blob.type}`);
     const arrayBuffer = await blob.arrayBuffer();
 
     try {
       const newAudioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-      console.log(`[TAPEFOUR] 🎵 Decoded audio buffer: ${newAudioBuffer.length} samples, ${newAudioBuffer.duration.toFixed(2)}s, ${newAudioBuffer.numberOfChannels} channels`);
+      this.debugLog('general', `[TAPEFOUR] 🎵 Decoded audio buffer: ${newAudioBuffer.length} samples, ${newAudioBuffer.duration.toFixed(2)}s, ${newAudioBuffer.numberOfChannels} channels`);
       
       // Find the currently armed track
       const armedTrack = this.tracks.find((t) => t.isArmed);
@@ -2118,29 +2161,35 @@ export default class TapeFour {
         if (this.state.recordMode === 'fresh') {
           // Fresh recording: replace the entire buffer (recordStartTime already set in record() method)
           armedTrack.audioBuffer = newAudioBuffer;
-          console.log(`[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id} starting at ${armedTrack.recordStartTime}ms`);
-          console.log(`[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
+          this.debugLog('general', `[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id} starting at ${armedTrack.recordStartTime}ms`);
+          this.debugLog('general', `[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
         } else {
           // Punch-in recording: merge with existing buffer (keep original start time)
           const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
           armedTrack.audioBuffer = mergedBuffer;
           // For punch-in, recordStartTime remains unchanged as it keeps the original track's timeline position
-          console.log(`[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id} (original start time: ${armedTrack.recordStartTime}ms)`);
-          console.log(`[PUNCH-IN] 📊 Track ${armedTrack.id} now has ${mergedBuffer.length} samples (${mergedBuffer.duration.toFixed(2)}s)`);
+          this.debugLog('punchIn', `[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id} (original start time: ${armedTrack.recordStartTime}ms)`);
+          this.debugLog('punchIn', `[PUNCH-IN] 📊 Track ${armedTrack.id} now has ${mergedBuffer.length} samples (${mergedBuffer.duration.toFixed(2)}s)`);
         }
       } else {
-        console.warn('[TAPEFOUR] ⚠️ No armed track found to assign recording to');
+        this.debugWarn('general', '[TAPEFOUR] ⚠️ No armed track found to assign recording to');
       }
     } catch (err) {
-      console.error('[TAPEFOUR] Error processing recording', err);
+      this.debugError('general', '[TAPEFOUR] Error processing recording', err);
     }
 
     // Reset recording mode state
     this.state.recordMode = 'fresh';
     this.state.punchInStartPosition = 0;
 
-    this.mediaStream?.getTracks().forEach((t) => t.stop());
-    console.log('[TAPEFOUR] 🔌 Media stream tracks stopped');
+    // Only stop media stream if no tracks are armed (no need for continued monitoring)
+    const hasArmedTracks = this.tracks.some(t => t.isArmed);
+    if (!hasArmedTracks) {
+      this.mediaStream?.getTracks().forEach((t) => t.stop());
+      this.debugLog('general', '[TAPEFOUR] 🔌 Media stream tracks stopped (no armed tracks)');
+    } else {
+      this.debugLog('general', '[TAPEFOUR] 🎧 Keeping media stream alive for continued input monitoring');
+    }
     
     // Update bounce button state since new audio may be available
     this.updateBounceButtonState();
@@ -2159,10 +2208,10 @@ export default class TapeFour {
     const newBufferLength = newBuffer.length;
     const punchOutSamples = punchInStartSamples + newBufferLength;
     
-    console.log(`[PUNCH-IN] 🔧 Merging buffers:`);
-    console.log(`  - Punch-in start: ${punchInStartMs}ms (${punchInStartSamples} samples)`);
-    console.log(`  - New recording: ${newBufferLength} samples`);
-    console.log(`  - Punch-out: ${punchOutSamples} samples`);
+    this.debugLog('punchIn', `[PUNCH-IN] 🔧 Merging buffers:`);
+    this.debugLog('punchIn', `  - Punch-in start: ${punchInStartMs}ms (${punchInStartSamples} samples)`);
+    this.debugLog('punchIn', `  - New recording: ${newBufferLength} samples`);
+    this.debugLog('punchIn', `  - Punch-out: ${punchOutSamples} samples`);
     
     // Determine the final buffer length
     const existingLength = existingBuffer ? existingBuffer.length : 0;
@@ -2173,7 +2222,7 @@ export default class TapeFour {
     const newChannels = newBuffer.numberOfChannels;
     const finalChannels = Math.max(existingChannels, newChannels);
     
-    console.log(`  - Final buffer: ${finalLength} samples, ${finalChannels} channels`);
+    this.debugLog('punchIn', `  - Final buffer: ${finalLength} samples, ${finalChannels} channels`);
     
     // Create the merged buffer
     const mergedBuffer = this.audioContext!.createBuffer(finalChannels, finalLength, sampleRate);
@@ -2191,7 +2240,7 @@ export default class TapeFour {
         for (let i = 0; i < prePunchLength; i++) {
           mergedData[i] = existingData[i];
         }
-        console.log(`  - Channel ${channel}: Copied ${prePunchLength} pre-punch samples`);
+        this.debugLog('punchIn', `  - Channel ${channel}: Copied ${prePunchLength} pre-punch samples`);
       }
       
       // 2. Copy new recording data (punch-in segment)
@@ -2204,7 +2253,7 @@ export default class TapeFour {
           mergedData[targetIndex] = newData[i];
         }
       }
-      console.log(`  - Channel ${channel}: Copied ${newBufferLength} punch-in samples`);
+      this.debugLog('punchIn', `  - Channel ${channel}: Copied ${newBufferLength} punch-in samples`);
       
       // 3. Copy post-punch segment from existing buffer (if it exists and extends beyond punch-out)
       if (existingBuffer && existingBuffer.length > punchOutSamples) {
@@ -2220,13 +2269,13 @@ export default class TapeFour {
             mergedData[targetIndex] = existingData[sourceIndex];
           }
         }
-        console.log(`  - Channel ${channel}: Copied ${postPunchLength} post-punch samples`);
+        this.debugLog('punchIn', `  - Channel ${channel}: Copied ${postPunchLength} post-punch samples`);
       }
       
       // Fill any remaining gaps with silence (already zeroed by createBuffer)
     }
     
-    console.log(`[PUNCH-IN] ✅ Buffer merge complete: ${finalLength} samples (${(finalLength / sampleRate).toFixed(2)}s)`);
+    this.debugLog('punchIn', `[PUNCH-IN] ✅ Buffer merge complete: ${finalLength} samples (${(finalLength / sampleRate).toFixed(2)}s)`);
     return mergedBuffer;
   }
 
@@ -2314,7 +2363,7 @@ export default class TapeFour {
       
       // Debug logging for high levels
       if (clampedLevel >= 0.7) {
-        console.log(`[METER] 📊 High level detected: ${level.toFixed(3)} (${widthPercent.toFixed(1)}%) -> ${zone} zone`);
+        this.debugLog('meter', `[METER] 📊 High level detected: ${level.toFixed(3)} (${widthPercent.toFixed(1)}%) -> ${zone} zone`);
       }
     }
   }
@@ -2349,9 +2398,9 @@ export default class TapeFour {
       const inputs = devices.filter((d) => d.kind === 'audioinput');
 
       // Enhanced device information logging
-      console.log('[TAPEFOUR] 🎤 Available audio input devices:');
+      this.debugLog('settings', '[TAPEFOUR] 🎤 Available audio input devices:');
       inputs.forEach((device, index) => {
-        console.log(`[TAPEFOUR]   ${index + 1}. ${device.label || 'Unknown Device'} (${device.deviceId.slice(0, 8)}...)`);
+        this.debugLog('settings', `[TAPEFOUR]   ${index + 1}. ${device.label || 'Unknown Device'} (${device.deviceId.slice(0, 8)}...)`);
       });
 
       // Deduplicate identical labels by appending an index
@@ -2378,7 +2427,7 @@ export default class TapeFour {
         select.appendChild(opt);
       });
     } catch (err) {
-      console.error('enumerateDevices error', err);
+      this.debugError('settings', 'enumerateDevices error', err);
     }
   }
 
@@ -2416,7 +2465,7 @@ export default class TapeFour {
     // Debounce to prevent rapid toggling (100ms minimum between toggles)
     const now = Date.now();
     if (now - this.lastSettingsToggleTime < 100) {
-      console.log('[TAPEFOUR] ⌨️ Settings toggle debounced');
+      this.debugLog('settings', '[TAPEFOUR] ⌨️ Settings toggle debounced');
       return;
     }
     this.lastSettingsToggleTime = now;
@@ -2427,10 +2476,10 @@ export default class TapeFour {
       const computedStyle = window.getComputedStyle(modal);
       const isVisible = computedStyle.display !== 'none';
       if (isVisible) {
-        console.log('[TAPEFOUR] ⌨️ Closing settings modal');
+        this.debugLog('settings', '[TAPEFOUR] ⌨️ Closing settings modal');
         this.closeSettings();
       } else {
-        console.log('[TAPEFOUR] ⌨️ Opening settings modal');
+        this.debugLog('settings', '[TAPEFOUR] ⌨️ Opening settings modal');
         this.openSettings();
       }
     }
@@ -2489,7 +2538,7 @@ export default class TapeFour {
       const preference = localStorage.getItem('tapefour-show-feedback-warning');
       return preference !== 'false';
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not load warning preference:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load warning preference:', err);
       return true; // Default to showing the warning
     }
   }
@@ -2497,9 +2546,9 @@ export default class TapeFour {
   private saveWarningPreference(shouldShow: boolean) {
     try {
       localStorage.setItem('tapefour-show-feedback-warning', shouldShow.toString());
-      console.log(`[TAPEFOUR] 💾 Saved warning preference: ${shouldShow ? 'show' : 'hide'}`);
+      this.debugLog('settings', `[TAPEFOUR] 💾 Saved warning preference: ${shouldShow ? 'show' : 'hide'}`);
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not save warning preference:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save warning preference:', err);
     }
   }
 
@@ -2508,12 +2557,12 @@ export default class TapeFour {
       const savedDeviceId = localStorage.getItem('tapefour-audio-input-device');
       if (savedDeviceId && savedDeviceId !== 'null') {
         this.state.selectedInputDeviceId = savedDeviceId;
-        console.log(`[TAPEFOUR] 💾 Loaded saved audio device: ${savedDeviceId}`);
+        this.debugLog('settings', `[TAPEFOUR] 💾 Loaded saved audio device: ${savedDeviceId}`);
       } else {
-        console.log('[TAPEFOUR] 💾 No saved audio device found, using default');
+        this.debugLog('settings', '[TAPEFOUR] 💾 No saved audio device found, using default');
       }
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not load saved audio device:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load saved audio device:', err);
     }
   }
 
@@ -2521,13 +2570,13 @@ export default class TapeFour {
     try {
       if (deviceId) {
         localStorage.setItem('tapefour-audio-input-device', deviceId);
-        console.log(`[TAPEFOUR] 💾 Saved audio device: ${deviceId}`);
+        this.debugLog('settings', `[TAPEFOUR] 💾 Saved audio device: ${deviceId}`);
       } else {
         localStorage.removeItem('tapefour-audio-input-device');
-        console.log('[TAPEFOUR] 💾 Cleared saved audio device (using default)');
+        this.debugLog('settings', '[TAPEFOUR] 💾 Cleared saved audio device (using default)');
       }
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not save audio device:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio device:', err);
     }
   }
 
@@ -2547,9 +2596,9 @@ export default class TapeFour {
         this.state.autoGainControl = autoGainControl === 'true';
       }
       
-      console.log(`[TAPEFOUR] 💾 Loaded audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+      this.debugLog('settings', `[TAPEFOUR] 💾 Loaded audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not load audio processing settings:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load audio processing settings:', err);
     }
   }
 
@@ -2558,16 +2607,16 @@ export default class TapeFour {
       localStorage.setItem('tapefour-echo-cancellation', this.state.echoCancellation.toString());
       localStorage.setItem('tapefour-noise-suppression', this.state.noiseSuppression.toString());
       localStorage.setItem('tapefour-auto-gain-control', this.state.autoGainControl.toString());
-      console.log(`[TAPEFOUR] 💾 Saved audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+      this.debugLog('settings', `[TAPEFOUR] 💾 Saved audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
     } catch (err) {
-      console.warn('[TAPEFOUR] ⚠️ Could not save audio processing settings:', err);
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio processing settings:', err);
     }
   }
 
   private async changeAudioInputDevice(newDeviceId: string | null) {
     // If device changed, we need to refresh the media stream
     if (newDeviceId !== this.state.selectedInputDeviceId) {
-      console.log(`[TAPEFOUR] 🔄 Audio input device changed from ${this.state.selectedInputDeviceId || 'default'} to ${newDeviceId || 'default'}`);
+      this.debugLog('settings', `[TAPEFOUR] 🔄 Audio input device changed from ${this.state.selectedInputDeviceId || 'default'} to ${newDeviceId || 'default'}`);
       
       this.state.selectedInputDeviceId = newDeviceId;
       
@@ -2577,7 +2626,7 @@ export default class TapeFour {
       // IMPORTANT: Always stop and recreate media stream when device changes
       // This ensures ALL future recordings (any track) use the new device
       if (this.mediaStream) {
-        console.log('[TAPEFOUR] 🛑 Stopping existing media stream');
+        this.debugLog('settings', '[TAPEFOUR] 🛑 Stopping existing media stream');
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
         this.mediaRecorder = null;
@@ -2591,7 +2640,7 @@ export default class TapeFour {
       
       // Stop volume meter and restart it to pick up new device
       if (this.volumeMeterActive) {
-        console.log('[TAPEFOUR] 🔄 Restarting volume meter with new device');
+        this.debugLog('settings', '[TAPEFOUR] 🔄 Restarting volume meter with new device');
         this.stopVolumeMeter();
         // Restart volume meter if we have armed tracks
         const hasArmedTracks = this.tracks.some(t => t.isArmed);
@@ -2601,12 +2650,12 @@ export default class TapeFour {
         }
       } else {
         // Even if no tracks are armed, we should test the new device works
-        console.log('[TAPEFOUR] 🧪 Testing new audio device');
+        this.debugLog('settings', '[TAPEFOUR] 🧪 Testing new audio device');
         try {
           await this.ensureInputStream();
-          console.log('[TAPEFOUR] ✅ New audio device is working');
+          this.debugLog('settings', '[TAPEFOUR] ✅ New audio device is working');
         } catch (err) {
-          console.error('[TAPEFOUR] ❌ New audio device failed:', err);
+          this.debugError('settings', '[TAPEFOUR] ❌ New audio device failed:', err);
           this.showError('Failed to connect to the selected audio device. Please try a different device or check your audio settings.');
         }
       }
@@ -2649,8 +2698,8 @@ export default class TapeFour {
     }
 
     try {
-      console.log('[TAPEFOUR] 🎯 Starting bounce operation...');
-      console.log(`[TAPEFOUR] 📊 Master buffer: ${hasMasterBuffer ? 'Yes' : 'No'}, Individual tracks: ${tracksToMix.length}`);
+      this.debugLog('bounce', '[TAPEFOUR] 🎯 Starting bounce operation...');
+      this.debugLog('bounce', `[TAPEFOUR] 📊 Master buffer: ${hasMasterBuffer ? 'Yes' : 'No'}, Individual tracks: ${tracksToMix.length}`);
       
       // Calculate the duration considering both master buffer and individual tracks
       let maxDuration = 0;
@@ -2675,7 +2724,7 @@ export default class TapeFour {
 
       // Include existing master buffer if it exists
       if (hasMasterBuffer) {
-        console.log('[TAPEFOUR] 🏆 Adding existing master buffer to bounce');
+        this.debugLog('bounce', '[TAPEFOUR] 🏆 Adding existing master buffer to bounce');
         const masterSrc = offline.createBufferSource();
         masterSrc.buffer = this.state.masterBuffer!;
         masterSrc.connect(offlineMaster);
@@ -2684,7 +2733,7 @@ export default class TapeFour {
 
       // Set up each individual track in the offline context
       tracksToMix.forEach((track) => {
-        console.log(`[TAPEFOUR] 🎵 Adding track ${track.id} to bounce`);
+        this.debugLog('bounce', `[TAPEFOUR] 🎵 Adding track ${track.id} to bounce`);
         const src = offline.createBufferSource();
         const gain = offline.createGain();
         const pan = offline.createStereoPanner();
@@ -2705,17 +2754,17 @@ export default class TapeFour {
       });
 
       // Render the mix
-      console.log('[TAPEFOUR] 🎯 Rendering bounce...');
+      this.debugLog('bounce', '[TAPEFOUR] 🎯 Rendering bounce...');
       const rendered = await offline.startRendering();
       
       // Store the master buffer and update duration
       this.state.masterBuffer = rendered;
       this.state.duration = Math.max(this.state.duration, rendered.duration * 1000); // Convert to ms
       
-      console.log(`[TAPEFOUR] ✅ Bounce complete! Duration: ${rendered.duration.toFixed(2)}s`);
+      this.debugLog('bounce', `[TAPEFOUR] ✅ Bounce complete! Duration: ${rendered.duration.toFixed(2)}s`);
       
       // DESTRUCTIVE BOUNCE: Replace original tracks with master mix
-      console.log('[TAPEFOUR] 🔄 Performing destructive bounce - clearing original tracks');
+      this.debugLog('bounce', '[TAPEFOUR] 🔄 Performing destructive bounce - clearing original tracks');
       
       // Clear all original tracks
       this.tracks.forEach(track => {
@@ -2801,15 +2850,15 @@ export default class TapeFour {
       this.redrawAllTrackWaveforms();
       
       if (hasMasterBuffer && hasIndividualTracks) {
-        console.log('[TAPEFOUR] ✅ Additive bounce complete - combined previous master with new tracks');
+        this.debugLog('bounce', '[TAPEFOUR] ✅ Additive bounce complete - combined previous master with new tracks');
       } else if (hasMasterBuffer) {
-        console.log('[TAPEFOUR] ✅ Master-only bounce complete - regenerated master buffer');
+        this.debugLog('bounce', '[TAPEFOUR] ✅ Master-only bounce complete - regenerated master buffer');
       } else {
-        console.log('[TAPEFOUR] ✅ Initial bounce complete - tracks bounced to master');
+        this.debugLog('bounce', '[TAPEFOUR] ✅ Initial bounce complete - tracks bounced to master');
       }
       
     } catch (err) {
-      console.error('[TAPEFOUR] ❌ Bounce error:', err);
+      this.debugError('bounce', '[TAPEFOUR] ❌ Bounce error:', err);
       this.showError('Error bouncing tracks. Please try again.');
     }
   }
@@ -2874,7 +2923,7 @@ export default class TapeFour {
     
     // Store waveform data for the specified track
     this.trackWaveforms.set(trackId, waveformData);
-    console.log(`[WAVEFORM] 🎨 Generated waveform for track ${trackId} with ${waveformData.length} peaks`);
+    this.debugLog('waveform', `[WAVEFORM] 🎨 Generated waveform for track ${trackId} with ${waveformData.length} peaks`);
   }
 
   private generateMasterWaveformFromTracks(rendered: AudioBuffer, originalTracks: any[]) {
@@ -2925,7 +2974,7 @@ export default class TapeFour {
     });
     
     this.masterWaveform = waveformData;
-    console.log(`[WAVEFORM] 🏆 Generated master waveform with ${waveformData.length} peaks at original canvas positions`);
+    this.debugLog('waveform', `[WAVEFORM] 🏆 Generated master waveform with ${waveformData.length} peaks at original canvas positions`);
   }
 
   public async export() {
@@ -2933,49 +2982,57 @@ export default class TapeFour {
     
     // Prefer master buffer if available (from bounce), otherwise mix tracks on-the-fly
     if (this.state.masterBuffer) {
-      console.log('[TAPEFOUR] 📁 Exporting bounced master mix');
+      this.debugLog('general', '[TAPEFOUR] 📁 Exporting bounced master mix');
       this.downloadWav(this.state.masterBuffer);
       return;
     }
     
+    this.debugLog('general', '[TAPEFOUR] 📁 Exporting live mix (no bounce available)');
+    
     const tracksWithAudio = this.tracks.filter((t) => t.audioBuffer);
-    if (!tracksWithAudio.length) return this.showError('No recorded tracks to export.');
+    if (tracksWithAudio.length === 0) {
+      return this.showError('No tracks to export. Please record some audio first.');
+    }
 
     try {
-      console.log('[TAPEFOUR] 📁 Exporting live mix (no bounce available)');
-      const offline = new OfflineAudioContext(2, this.audioContext.sampleRate * (this.state.maxRecordingTime / 1000), this.audioContext.sampleRate);
+      // Create offline context for live mix export
+      const maxDuration = Math.max(...tracksWithAudio.map(t => t.audioBuffer!.duration));
+      const offline = new OfflineAudioContext(
+        2, // Stereo
+        Math.ceil(this.audioContext.sampleRate * maxDuration),
+        this.audioContext.sampleRate
+      );
+
       const offlineMaster = offline.createGain();
       offlineMaster.gain.value = this.masterGainNode!.gain.value;
       offlineMaster.connect(offline.destination);
 
       tracksWithAudio.forEach((track) => {
-        const src = offline.createBufferSource();
-        const gain = offline.createGain();
-        const pan = offline.createStereoPanner();
-        
-        // Set up the audio chain: source -> gain -> pan -> master
-        src.buffer = track.audioBuffer!;
-        gain.gain.value = track.gainNode!.gain.value;
-        
-        // Convert track pan value (0-100) to StereoPanner value (-1 to 1)
-        // 0 = fully left (-1), 50 = center (0), 100 = fully right (1)
-        const panPosition = (track.panValue - 50) / 50;
-        pan.pan.value = panPosition;
-        
-        // Connect the audio chain
-        src.connect(gain);
-        gain.connect(pan);
-        pan.connect(offlineMaster);
-        src.start(0);
+        if (!track.isMuted && (!this.tracks.some(t => t.isSolo) || track.isSolo)) {
+          const src = offline.createBufferSource();
+          const gain = offline.createGain();
+          const pan = offline.createStereoPanner();
+          
+          src.buffer = track.audioBuffer!;
+          gain.gain.value = track.gainNode!.gain.value;
+          const panPosition = (track.panValue - 50) / 50;
+          pan.pan.value = panPosition;
+          
+          src.connect(gain);
+          gain.connect(pan);
+          pan.connect(offlineMaster);
+          src.start(0);
+        }
       });
 
       const rendered = await offline.startRendering();
       this.downloadWav(rendered);
     } catch (err) {
-      console.error('export error', err);
+      this.debugError('general', 'export error', err);
       this.showError('Error exporting audio. Please try again.');
     }
   }
+
 
   private downloadWav(buf: AudioBuffer) {
     const wav = this.audioBufferToWav(buf);
@@ -3045,63 +3102,48 @@ export default class TapeFour {
    */
   private async checkMicrophonePermissions() {
     try {
-      // Request permission proactively - this will prompt if needed
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Got permission! Stop the stream immediately since we just wanted permission
       stream.getTracks().forEach(track => track.stop());
-      console.log('Microphone permission granted');
+      this.debugLog('input', 'Microphone permission granted');
     } catch (err) {
-      console.warn('Microphone permission denied or not available:', err);
-      // Show a user-friendly message
-      setTimeout(() => {
-        this.showError('TapeFour needs microphone access to record audio. Please allow microphone access when prompted, or check your browser settings.');
-      }, 1000);
+      this.debugWarn('input', 'Microphone permission denied or not available:', err);
     }
   }
 
-  /**
-   * Mute the microphone input to prevent hearing live input during playback
-   */
   private async muteInput() {
     if (this.mediaStream && !this.state.inputMuted) {
-      console.log('🔇 Muting input - tracks:', this.mediaStream.getAudioTracks().length);
+      this.debugLog('input', '🔇 Muting input - tracks:', this.mediaStream.getAudioTracks().length);
       this.mediaStream.getAudioTracks().forEach(track => {
-        console.log('  - Disabling track:', track.label, 'enabled:', track.enabled);
+        this.debugLog('input', '  - Disabling track:', track.label, 'enabled:', track.enabled);
         track.enabled = false;
       });
       this.state.inputMuted = true;
-      console.log('✅ Input muted');
+      this.debugLog('input', '✅ Input muted');
     } else {
-      console.log('⚠️ Cannot mute input - mediaStream:', !!this.mediaStream, 'already muted:', this.state.inputMuted);
+      this.debugLog('input', '⚠️ Cannot mute input - mediaStream:', !!this.mediaStream, 'already muted:', this.state.inputMuted);
     }
   }
 
-  /**
-   * Unmute the microphone input
-   */
   private async unmuteInput() {
     if (this.mediaStream && this.state.inputMuted) {
-      console.log('🔊 Unmuting input');
+      this.debugLog('input', '🔊 Unmuting input');
       this.mediaStream.getAudioTracks().forEach(track => {
-        console.log('  - Enabling track:', track.label);
+        this.debugLog('input', '  - Enabling track:', track.label);
         track.enabled = true;
       });
       this.state.inputMuted = false;
-      console.log('✅ Input unmuted');
+      this.debugLog('input', '✅ Input unmuted');
     } else {
-      console.log('⚠️ Cannot unmute input - mediaStream:', !!this.mediaStream, 'inputMuted:', this.state.inputMuted);
+      this.debugLog('input', '⚠️ Cannot unmute input - mediaStream:', !!this.mediaStream, 'inputMuted:', this.state.inputMuted);
     }
   }
 
-  /**
-   * Ensure we have an active input stream for muting/unmuting
-   */
   private async ensureInputStream() {
     if (!this.mediaStream) {
-      console.log('🎤 No input stream found, setting up recording stream...');
+      this.debugLog('input', '🎤 No input stream found, setting up recording stream...');
       await this.setupRecording();
     } else {
-      console.log('✅ Input stream already exists');
+      this.debugLog('input', '✅ Input stream already exists');
     }
   }
 
@@ -3217,42 +3259,57 @@ export default class TapeFour {
   }
 
   private async startInputMonitoring() {
-    if (this.state.isMonitoring) return;
-    
-    // Ensure we have audio context and media stream
-    await this.initializeAudio();
-    await this.ensureInputStream();
-    
-    if (!this.mediaStream || !this.audioContext || !this.inputMonitoringGainNode) return;
-
-    // Create or reuse input source node (only one per MediaStream allowed)
-    if (!this.inputSourceNode) {
-      this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    // Only start if not already active
+    if (this.state.isMonitoring) {
+      this.debugLog('input', '[INPUT] 🎧 Input monitoring already active, skipping...');
+      return;
     }
     
-    // Connect input source to monitoring gain
-    this.inputSourceNode.connect(this.inputMonitoringGainNode);
+    this.debugLog('input', '[INPUT] 🎧 Starting input monitoring...');
     
-    this.state.isMonitoring = true;
+    // Check required components
+    if (!this.audioContext || !this.mediaStream || !this.inputMonitoringGainNode) {
+      this.debugWarn('input', '[INPUT] ⚠️ Cannot start input monitoring - missing required components');
+      return;
+    }
     
-    console.log('[TAPEFOUR] 🎧 Input monitoring started - you can now hear live input');
+    try {
+      // Clean up any existing input source node before creating a new one
+      if (this.inputSourceNode) {
+        this.inputSourceNode.disconnect();
+      }
+      
+      this.debugLog('input', '[INPUT] 🔌 Creating new input source node...');
+      this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+      
+      // Connect input to monitoring gain node (already connected to audio destination)
+      this.inputSourceNode.connect(this.inputMonitoringGainNode);
+      
+      this.state.isMonitoring = true;
+      
+      this.debugLog('input', '[INPUT] ✅ Input monitoring started - you can now hear live input');
+    } catch (error) {
+      this.debugError('input', '[INPUT] ❌ Error connecting input monitoring:', error);
+    }
   }
 
   private stopInputMonitoring() {
-    if (this.inputSourceNode && this.inputMonitoringGainNode) {
-      try {
-        console.log('[INPUT] 🔇 Stopping input monitoring...');
-        
-        // Disconnect input monitoring
-        this.inputSourceNode.disconnect(this.inputMonitoringGainNode);
-        this.inputMonitoringGainNode.disconnect(this.audioContext!.destination);
-        console.log('[INPUT] ✅ Input monitoring stopped');
-        
-        this.state.isMonitoring = false;
-      } catch (error) {
-        console.warn('[INPUT] ⚠️ Error stopping input monitoring:', error);
+    this.debugLog('input', '[INPUT] 🔇 Stopping input monitoring...');
+    
+    try {
+      if (this.inputSourceNode) {
+        this.inputSourceNode.disconnect();
+        this.inputSourceNode = null;
       }
+      this.debugLog('input', '[INPUT] ✅ Input monitoring stopped');
+    } catch (error) {
+      this.debugWarn('input', '[INPUT] ⚠️ Error stopping input monitoring:', error);
     }
+    
+    // CRITICAL: Always reset monitoring state even if nodes don't exist
+    // This fixes the bug where monitoring state gets stuck as "true"
+    this.state.isMonitoring = false;
+    this.debugLog('input', '[INPUT] 🔇 Input monitoring state reset');
   }
 
   private enableMonitoringMode() {
@@ -3562,7 +3619,7 @@ export default class TapeFour {
     ctx.globalAlpha = 1;
     
     if (totalTracksDrawn > 0 || this.masterWaveform.length > 0) {
-      console.log(`[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks + master`);
+      this.debugLog('waveform', `[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks + master`);
     }
   }
 
@@ -3616,6 +3673,6 @@ export default class TapeFour {
       this.waveformAnalyserNode = null;
     }
     
-    console.log('[WAVEFORM] 🛑 Waveform capture stopped');
+    this.debugLog('waveform', '[WAVEFORM] 🛑 Waveform capture stopped');
   }
 } 
