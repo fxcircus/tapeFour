@@ -11,20 +11,20 @@ export default class TapeFour {
     // Global debug toggle
     enabled: import.meta.env.VITE_DEBUG_ENABLED !== 'false', // Default to true unless explicitly disabled
     
-    // Debug categories - CONFIGURED FOR AUDIO MONITORING DEBUG
+    // Debug categories - CONFIGURED FOR VOLUME METER DEBUG
     transport: false, // Disable transport noise
     input: true,      // ✅ ENABLE - Input monitoring, microphone access, volume meter setup
     waveform: false,  // Disable - Very noisy during recording
-    meter: false,     // Disable - Extremely noisy meter updates
-    punchIn: false,   // Disable - Not relevant to monitoring
-    halfSpeed: false, // Disable - Not relevant to monitoring
+    meter: true,      // ✅ ENABLE - Volume meter frame-by-frame updates (will be noisy!)
+    punchIn: false,   // Disable - Not relevant to meter
+    halfSpeed: false, // Disable - Not relevant to meter
     ui: false,        // Disable - UI noise not needed
-    audio: true,      // ✅ ENABLE - Audio routing, gain, pan, mute/solo operations
-    bounce: false,    // Disable - Not relevant to monitoring
+    audio: false,     // Disable - Audio routing not relevant to meter
+    bounce: false,    // Disable - Not relevant to meter
     scrub: false,     // Disable - Scrubbing noise not needed
     general: true,    // ✅ ENABLE - General application logs for context
-    duration: false,  // Disable - Not relevant to monitoring
-    processing: false,// Disable - Not relevant to monitoring
+    duration: false,  // Disable - Not relevant to meter
+    processing: false,// Disable - Not relevant to meter
     keyboard: false,  // Disable - Keyboard shortcuts not needed
     settings: false,  // Disable - Settings noise not needed
   };
@@ -138,6 +138,9 @@ export default class TapeFour {
   private isDraggingPlayhead = false;
   private playheadContainer: HTMLElement | null = null;
   private lastSettingsToggleTime = 0;
+  
+  // Volume meter debug counter
+  private _meterUpdateCount = 0;
 
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
@@ -2331,6 +2334,14 @@ export default class TapeFour {
     const clampedLevel = Math.max(0, Math.min(1, level));
     const fillElement = document.getElementById('volume-meter-fill') as HTMLElement | null;
     
+    // Debug logging - sample every 60 calls or when level > 0.05
+    this._meterUpdateCount = (this._meterUpdateCount || 0) + 1;
+    const shouldLog = this._meterUpdateCount % 60 === 0 || clampedLevel > 0.05;
+    
+    if (shouldLog) {
+      this.debugLog('meter', `[METER] 🎚️ updateVolumeMeter called - input: ${level.toFixed(3)}, clamped: ${clampedLevel.toFixed(3)}, element found: ${!!fillElement}`);
+    }
+    
     if (fillElement) {
       // Set width as percentage
       const widthPercent = clampedLevel * 100;
@@ -2361,9 +2372,17 @@ export default class TapeFour {
       fillElement.style.backgroundColor = color;
       fillElement.style.boxShadow = `0 0 4px ${glowColor}`;
       
+      if (shouldLog) {
+        this.debugLog('meter', `[METER] 🎨 UI updated - width: ${widthPercent.toFixed(1)}%, zone: ${zone}, color: ${color}`);
+      }
+      
       // Debug logging for high levels
       if (clampedLevel >= 0.7) {
         this.debugLog('meter', `[METER] 📊 High level detected: ${level.toFixed(3)} (${widthPercent.toFixed(1)}%) -> ${zone} zone`);
+      }
+    } else {
+      if (shouldLog) {
+        this.debugWarn('meter', '[METER] ❌ volume-meter-fill element not found in DOM');
       }
     }
   }
@@ -3148,33 +3167,63 @@ export default class TapeFour {
   }
 
   private async startVolumeMeter() {
-    if (this.volumeMeterActive) return;
+    this.debugLog('input', '[METER] 🎚️ startVolumeMeter() called');
+    
+    if (this.volumeMeterActive) {
+      this.debugLog('input', '[METER] ⚠️ Volume meter already active, skipping');
+      return;
+    }
+    
+    this.debugLog('input', '[METER] 🔧 Initializing audio context and input stream...');
     
     // Ensure we have audio context and media stream
     await this.initializeAudio();
     await this.ensureInputStream();
     
-    if (!this.mediaStream || !this.audioContext) return;
+    if (!this.mediaStream || !this.audioContext) {
+      this.debugWarn('input', '[METER] ❌ Missing required components - mediaStream:', !!this.mediaStream, 'audioContext:', !!this.audioContext);
+      return;
+    }
 
-    // Create or reuse input source node (only one per MediaStream allowed)
+    this.debugLog('input', '[METER] ✅ Required components available');
+
+    // Ensure we have a shared input source node (only one per MediaStream allowed)
     if (!this.inputSourceNode) {
+      this.debugLog('input', '[METER] 🔌 Creating shared input source node');
       this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    } else {
+      this.debugLog('input', '[METER] ♻️ Using existing shared input source node');
     }
 
     // Create analyser for volume monitoring
+    this.debugLog('input', '[METER] 📊 Creating analyser node');
     this.analyserNode = this.audioContext.createAnalyser();
     this.analyserNode.fftSize = 512; // Increased for better resolution
     this.analyserNode.smoothingTimeConstant = 0.1; // Faster response for better peak detection
+    
+    // Connect the shared input source to the analyser
+    this.debugLog('input', '[METER] 🔗 Connecting shared input source to analyser');
     this.inputSourceNode.connect(this.analyserNode);
+    
+    // IMPORTANT: Also reconnect to input monitoring if it's active
+    if (this.state.isMonitoring && this.inputMonitoringGainNode) {
+      this.debugLog('input', '[METER] 🔗 Reconnecting shared input source to monitoring gain');
+      this.inputSourceNode.connect(this.inputMonitoringGainNode);
+    }
 
     const dataArray = new Uint8Array(this.analyserNode.fftSize); // Use time domain data size
     this.volumeMeterActive = true;
     
+    this.debugLog('input', '[METER] 🎯 Volume meter activated - starting animation loop');
+    
     let peakHold = 0;
     let peakHoldTime = 0;
+    let frameCount = 0;
     
     const updateMeter = () => {
       if (this.volumeMeterActive && this.analyserNode) {
+        frameCount++;
+        
         // Use time domain data for better peak detection
         this.analyserNode.getByteTimeDomainData(dataArray);
         
@@ -3222,40 +3271,53 @@ export default class TapeFour {
         // Clamp to 0-1 range
         const clampedLevel = Math.min(Math.max(finalLevel, 0), 1);
         
+        // Debug log every 30 frames (roughly every 0.5 seconds) or when level changes significantly
+        if (frameCount % 30 === 0 || clampedLevel > 0.1) {
+          this.debugLog('meter', `[METER] 📊 Frame ${frameCount}: peak=${peak.toFixed(3)}, rms=${rms.toFixed(3)}, display=${displayLevel.toFixed(3)}, final=${clampedLevel.toFixed(3)}`);
+        }
+        
         this.updateVolumeMeter(clampedLevel);
         this.volumeMeterAnimationId = requestAnimationFrame(updateMeter);
+      } else {
+        this.debugLog('input', '[METER] 🛑 Volume meter animation loop stopped');
       }
     };
     
+    this.debugLog('input', '[METER] 🚀 Starting volume meter animation loop');
     updateMeter();
   }
 
   private stopVolumeMeter() {
+    this.debugLog('input', '[METER] 🛑 Stopping volume meter...');
+    
     this.volumeMeterActive = false;
     if (this.volumeMeterAnimationId) {
       cancelAnimationFrame(this.volumeMeterAnimationId);
       this.volumeMeterAnimationId = null;
     }
     
-    // Disconnect analyser but keep input source node if monitoring is active
-    if (this.analyserNode) {
+    // Disconnect analyser from shared input source node
+    if (this.analyserNode && this.inputSourceNode) {
       try {
-        if (this.inputSourceNode) {
-          this.inputSourceNode.disconnect(this.analyserNode);
-        }
+        this.debugLog('input', '[METER] 🔗 Disconnecting analyser from shared input source');
+        this.inputSourceNode.disconnect(this.analyserNode);
       } catch (e) {
-        // Ignore disconnect errors - might already be disconnected
+        this.debugWarn('input', '[METER] ⚠️ Error disconnecting analyser:', e);
       }
       this.analyserNode = null;
     }
     
-    // Only clean up input source node if monitoring is not active
+    // Only clean up shared input source node if monitoring is not active
     if (!this.state.isMonitoring && this.inputSourceNode) {
+      this.debugLog('input', '[METER] 🗑️ Cleaning up shared input source (monitoring not active)');
       this.inputSourceNode.disconnect();
       this.inputSourceNode = null;
+    } else if (this.state.isMonitoring) {
+      this.debugLog('input', '[METER] 🎧 Keeping shared input source for active monitoring');
     }
     
     this.updateVolumeMeter(0);
+    this.debugLog('input', '[METER] ✅ Volume meter stopped');
   }
 
   private async startInputMonitoring() {
@@ -3274,15 +3336,16 @@ export default class TapeFour {
     }
     
     try {
-      // Clean up any existing input source node before creating a new one
-      if (this.inputSourceNode) {
-        this.inputSourceNode.disconnect();
+      // Ensure we have a shared input source node (only one per MediaStream allowed)
+      if (!this.inputSourceNode) {
+        this.debugLog('input', '[INPUT] 🔌 Creating shared input source node...');
+        this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+      } else {
+        this.debugLog('input', '[INPUT] ♻️ Using existing shared input source node');
       }
       
-      this.debugLog('input', '[INPUT] 🔌 Creating new input source node...');
-      this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
-      
       // Connect input to monitoring gain node (already connected to audio destination)
+      this.debugLog('input', '[INPUT] 🔗 Connecting shared input source to monitoring gain');
       this.inputSourceNode.connect(this.inputMonitoringGainNode);
       
       this.state.isMonitoring = true;
@@ -3297,9 +3360,10 @@ export default class TapeFour {
     this.debugLog('input', '[INPUT] 🔇 Stopping input monitoring...');
     
     try {
-      if (this.inputSourceNode) {
-        this.inputSourceNode.disconnect();
-        this.inputSourceNode = null;
+      if (this.inputSourceNode && this.inputMonitoringGainNode) {
+        // Only disconnect from the monitoring gain node, keep the shared source intact
+        this.debugLog('input', '[INPUT] 🔗 Disconnecting from monitoring gain node only');
+        this.inputSourceNode.disconnect(this.inputMonitoringGainNode);
       }
       this.debugLog('input', '[INPUT] ✅ Input monitoring stopped');
     } catch (error) {
