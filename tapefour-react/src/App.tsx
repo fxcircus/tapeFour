@@ -404,24 +404,7 @@ function App() {
                   Scan Devices
                 </button>
               </div>
-              <div className="audio-processing-section">
-                <h5 className="processing-subtitle">Audio Processing Options</h5>
-                <div className="checkbox-group">
-                  <label className="checkbox-label">
-                    <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
-                    Echo Cancellation
-                  </label>
-                  <label className="checkbox-label">
-                    <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
-                    Noise Suppression
-                  </label>
-                  <label className="checkbox-label">
-                    <input type="checkbox" id="auto-gain-control-checkbox" className="settings-checkbox" />
-                    Auto Gain Control
-                  </label>
-                </div>
-                <div className="divider"></div>
-                <h5 className="processing-subtitle">Export Options</h5>
+              <h5 className="processing-subtitle">Export Options</h5>
                 <div className="export-mode-selector">
                   <button 
                     className="export-option active"
@@ -437,6 +420,21 @@ function App() {
                     Master Only
                   </button>
                 </div>
+                <div className="divider"></div>
+              <div className="audio-processing-section">
+                <h5 className="processing-subtitle">Audio Processing Options</h5>
+                <div className="checkbox-group">
+                  <label className="checkbox-label">
+                    <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
+                    Feedback Cancellation
+                  </label>
+                  <label className="checkbox-label">
+                    <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
+                    Noise gate
+                  </label>
+                </div>
+                <div className="divider"></div>
+                
               </div>
             </div>
           </div>
