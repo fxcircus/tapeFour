@@ -5,6 +5,8 @@
 // A future refactor could fully lift UI state into React, but this keeps
 // behaviour identical while we incrementally migrate the codebase.
 
+import JSZip from 'jszip';
+
 export default class TapeFour {
   // Debug configuration - reads from environment variables
   private debug = {
@@ -15,7 +17,7 @@ export default class TapeFour {
     transport: false, // Disable transport noise
     input: true,      // ✅ ENABLE - Input monitoring, microphone access, volume meter setup
     waveform: false,  // Disable - Very noisy during recording
-    meter: true,      // ✅ ENABLE - Volume meter frame-by-frame updates (will be noisy!)
+    meter: false,      // ✅ ENABLE - Volume meter frame-by-frame updates (will be noisy!)
     punchIn: false,   // Disable - Not relevant to meter
     halfSpeed: false, // Disable - Not relevant to meter
     ui: false,        // Disable - UI noise not needed
@@ -101,6 +103,8 @@ export default class TapeFour {
     echoCancellation: false,
     noiseSuppression: false,
     autoGainControl: false,
+    // Export settings - default to multi-track export
+    multiTrackExport: true,
     // Punch-in recording state
     recordMode: 'fresh' as 'fresh' | 'punchIn',
     punchInStartPosition: 0, // Position where punch-in recording started (in ms)
@@ -147,7 +151,7 @@ export default class TapeFour {
     // Load previously selected audio device and processing settings from localStorage
     this.loadSavedAudioDevice();
     this.loadSavedAudioOutputDevice();
-    this.loadSavedAudioProcessingSettings();
+    this.loadSavedAudioProcessingSettings(); // This now includes export settings
     this.initializeAudio();
     this.initializeUI();
     this.setupEventListeners();
@@ -558,6 +562,35 @@ export default class TapeFour {
       this.state.autoGainControl = (e.target as HTMLInputElement).checked;
       this.saveAudioProcessingSettings();
       this.debugLog('settings', `[TAPEFOUR] 🔧 Auto gain control ${this.state.autoGainControl ? 'enabled' : 'disabled'}`);
+    });
+
+    // Export mode toggle buttons
+    document.getElementById('multitrack-export-btn')?.addEventListener('click', () => {
+      this.state.multiTrackExport = true;
+      this.saveAudioProcessingSettings();
+      this.debugLog('settings', '[TAPEFOUR] 📁 Export mode changed to MultiTrack');
+      
+      // Update UI
+      const multiTrackBtn = document.getElementById('multitrack-export-btn');
+      const masterBtn = document.getElementById('master-export-btn');
+      if (multiTrackBtn && masterBtn) {
+        multiTrackBtn.classList.add('active');
+        masterBtn.classList.remove('active');
+      }
+    });
+
+    document.getElementById('master-export-btn')?.addEventListener('click', () => {
+      this.state.multiTrackExport = false;
+      this.saveAudioProcessingSettings();
+      this.debugLog('settings', '[TAPEFOUR] 📁 Export mode changed to Master Only');
+      
+      // Update UI
+      const multiTrackBtn = document.getElementById('multitrack-export-btn');
+      const masterBtn = document.getElementById('master-export-btn');
+      if (multiTrackBtn && masterBtn) {
+        multiTrackBtn.classList.remove('active');
+        masterBtn.classList.add('active');
+      }
     });
 
     // Dismiss modal on backdrop click
@@ -2634,6 +2667,20 @@ export default class TapeFour {
     if (noiseSuppressionCheckbox) noiseSuppressionCheckbox.checked = this.state.noiseSuppression;
     if (autoGainControlCheckbox) autoGainControlCheckbox.checked = this.state.autoGainControl;
     
+    // Populate export mode selector with current state
+    const multiTrackBtn = document.getElementById('multitrack-export-btn');
+    const masterBtn = document.getElementById('master-export-btn');
+    
+    if (multiTrackBtn && masterBtn) {
+      if (this.state.multiTrackExport) {
+        multiTrackBtn.classList.add('active');
+        masterBtn.classList.remove('active');
+      } else {
+        multiTrackBtn.classList.remove('active');
+        masterBtn.classList.add('active');
+      }
+    }
+    
     modal && (modal.style.display = 'flex');
   }
 
@@ -2679,6 +2726,26 @@ export default class TapeFour {
     const modal = document.getElementById('error-modal');
     if (modal) modal.style.display = 'none';
   }
+
+  private showStatus(message: string) {
+    // Reuse the error modal for status messages
+    const modal = document.getElementById('error-modal');
+    const messageElement = document.getElementById('error-message');
+    const titleElement = document.querySelector('#error-modal .settings-title');
+    
+    if (modal && messageElement && titleElement) {
+      titleElement.textContent = '📁 Export Status';
+      messageElement.textContent = message;
+      modal.style.display = 'flex';
+    }
+  }
+
+  private hideStatus() {
+    const modal = document.getElementById('error-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+
 
   private pendingTrackArmId: number | null = null;
 
@@ -2793,6 +2860,7 @@ export default class TapeFour {
       const echoCancellation = localStorage.getItem('tapefour-echo-cancellation');
       const noiseSuppression = localStorage.getItem('tapefour-noise-suppression');
       const autoGainControl = localStorage.getItem('tapefour-auto-gain-control');
+      const multiTrackExport = localStorage.getItem('tapefour-multitrack-export');
       
       if (echoCancellation !== null) {
         this.state.echoCancellation = echoCancellation === 'true';
@@ -2803,8 +2871,11 @@ export default class TapeFour {
       if (autoGainControl !== null) {
         this.state.autoGainControl = autoGainControl === 'true';
       }
+      if (multiTrackExport !== null) {
+        this.state.multiTrackExport = multiTrackExport === 'true';
+      }
       
-      this.debugLog('settings', `[TAPEFOUR] 💾 Loaded audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+      this.debugLog('settings', `[TAPEFOUR] 💾 Loaded settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}, multitrack=${this.state.multiTrackExport}`);
     } catch (err) {
       this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load audio processing settings:', err);
     }
@@ -2815,7 +2886,8 @@ export default class TapeFour {
       localStorage.setItem('tapefour-echo-cancellation', this.state.echoCancellation.toString());
       localStorage.setItem('tapefour-noise-suppression', this.state.noiseSuppression.toString());
       localStorage.setItem('tapefour-auto-gain-control', this.state.autoGainControl.toString());
-      this.debugLog('settings', `[TAPEFOUR] 💾 Saved audio processing settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}`);
+      localStorage.setItem('tapefour-multitrack-export', this.state.multiTrackExport.toString());
+      this.debugLog('settings', `[TAPEFOUR] 💾 Saved settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}, multitrack=${this.state.multiTrackExport}`);
     } catch (err) {
       this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio processing settings:', err);
     }
@@ -3188,10 +3260,20 @@ export default class TapeFour {
   public async export() {
     if (!this.audioContext) return this.showError('No audio to export. Please record something first.');
     
+    if (this.state.multiTrackExport) {
+      this.debugLog('general', '[TAPEFOUR] 📁 Starting multi-track export...');
+      await this.exportMultiTrack();
+    } else {
+      this.debugLog('general', '[TAPEFOUR] 📁 Starting master-only export...');
+      await this.exportMasterOnly();
+    }
+  }
+
+  private async exportMasterOnly() {
     // Prefer master buffer if available (from bounce), otherwise mix tracks on-the-fly
     if (this.state.masterBuffer) {
       this.debugLog('general', '[TAPEFOUR] 📁 Exporting bounced master mix');
-      this.downloadWav(this.state.masterBuffer);
+      this.downloadWav(this.state.masterBuffer, 'master');
       return;
     }
     
@@ -3207,8 +3289,8 @@ export default class TapeFour {
       const maxDuration = Math.max(...tracksWithAudio.map(t => t.audioBuffer!.duration));
       const offline = new OfflineAudioContext(
         2, // Stereo
-        Math.ceil(this.audioContext.sampleRate * maxDuration),
-        this.audioContext.sampleRate
+        Math.ceil(this.audioContext!.sampleRate * maxDuration),
+        this.audioContext!.sampleRate
       );
 
       const offlineMaster = offline.createGain();
@@ -3234,26 +3316,205 @@ export default class TapeFour {
       });
 
       const rendered = await offline.startRendering();
-      this.downloadWav(rendered);
+      this.downloadWav(rendered, 'master');
     } catch (err) {
       this.debugError('general', 'export error', err);
       this.showError('Error exporting audio. Please try again.');
     }
   }
 
+  private async exportMultiTrack() {
+    const tracksWithAudio = this.tracks.filter((t) => t.audioBuffer);
+    if (tracksWithAudio.length === 0 && !this.state.masterBuffer) {
+      return this.showError('No tracks to export. Please record some audio first.');
+    }
 
-  private downloadWav(buf: AudioBuffer) {
-    const wav = this.audioBufferToWav(buf);
-    const blob = new Blob([wav], { type: 'audio/wav' });
-    const url = URL.createObjectURL(blob);
-    const a = Object.assign(document.createElement('a'), {
-      href: url,
-      download: `TS_tapefour_mix_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '_')}.wav`,
+    const totalFiles = tracksWithAudio.length + (this.state.masterBuffer || tracksWithAudio.length > 0 ? 1 : 0);
+    this.showStatus(`📦 Creating multi-track zip with ${totalFiles} files...`);
+
+    try {
+      const zip = new JSZip();
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '_');
+      let fileCount = 0;
+
+      // Add individual tracks to zip
+      for (const track of tracksWithAudio) {
+        this.showStatus(`📦 Adding Track ${track.id} to zip... (${fileCount + 1}/${totalFiles})`);
+        this.debugLog('general', `[TAPEFOUR] 📁 Processing Track ${track.id} for zip...`);
+        
+        const trackBuffer = await this.renderTrackBuffer(track);
+        const wavData = this.audioBufferToWav(trackBuffer);
+        const filename = `track_${track.id}_${timestamp}.wav`;
+        
+        zip.file(filename, wavData);
+        fileCount++;
+        this.debugLog('general', `[TAPEFOUR] ✅ Added ${filename} to zip`);
+      }
+
+      // Add master mix to zip
+      if (this.state.masterBuffer) {
+        this.showStatus(`📦 Adding Master Mix to zip... (${fileCount + 1}/${totalFiles})`);
+        this.debugLog('general', `[TAPEFOUR] 📁 Processing bounced master for zip...`);
+        
+        const wavData = this.audioBufferToWav(this.state.masterBuffer);
+        const filename = `master_${timestamp}.wav`;
+        zip.file(filename, wavData);
+        fileCount++;
+        this.debugLog('general', `[TAPEFOUR] ✅ Added ${filename} to zip`);
+      } else if (tracksWithAudio.length > 0) {
+        this.showStatus(`📦 Adding Master Mix to zip... (${fileCount + 1}/${totalFiles})`);
+        this.debugLog('general', `[TAPEFOUR] 📁 Processing live master mix for zip...`);
+        
+        const masterBuffer = await this.renderMasterBuffer(tracksWithAudio);
+        const wavData = this.audioBufferToWav(masterBuffer);
+        const filename = `master_${timestamp}.wav`;
+        zip.file(filename, wavData);
+        fileCount++;
+        this.debugLog('general', `[TAPEFOUR] ✅ Added ${filename} to zip`);
+      }
+
+      // Generate and download zip
+      this.showStatus(`📦 Generating zip file...`);
+      this.debugLog('general', `[TAPEFOUR] 📦 Generating zip with ${fileCount} files...`);
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipFilename = `TS_tapefour_multitrack_${timestamp}.zip`;
+      
+      this.showStatus(`📥 Downloading ${zipFilename}...`);
+      this.downloadBlob(zipBlob, zipFilename);
+
+      this.showStatus(`✅ Multi-track export completed: ${zipFilename} downloaded!`);
+      this.debugLog('general', `[TAPEFOUR] ✅ Multi-track zip export completed: ${zipFilename}`);
+      
+      // Hide status after a few seconds
+      setTimeout(() => {
+        this.hideStatus();
+      }, 3000);
+    } catch (err) {
+      this.debugError('general', 'multi-track zip export error', err);
+      this.hideStatus();
+      this.showError('Error creating multi-track zip. Please try again.');
+    }
+  }
+
+
+
+
+  private downloadWav(buf: AudioBuffer, trackName: string = 'mix') {
+    try {
+      this.debugLog('general', `[TAPEFOUR] 🔄 Converting ${trackName} to WAV...`);
+      const wav = this.audioBufferToWav(buf);
+      const blob = new Blob([wav], { type: 'audio/wav' });
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '_');
+      const filename = `TS_tapefour_${trackName}_${timestamp}.wav`;
+      
+      this.downloadBlob(blob, filename);
+      this.debugLog('general', `[TAPEFOUR] ✅ Download initiated: ${filename}`);
+    } catch (err) {
+      this.debugError('general', `Download error for ${trackName}`, err);
+      throw err;
+    }
+  }
+
+  private downloadBlob(blob: Blob, filename: string) {
+    try {
+      const url = URL.createObjectURL(blob);
+      this.debugLog('general', `[TAPEFOUR] 📥 Initiating download: ${filename}`);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      
+      // Force user interaction by adding to DOM and triggering click
+      document.body.appendChild(a);
+      
+      // Use setTimeout to ensure the element is in DOM
+      setTimeout(() => {
+        a.click();
+        
+        // Remove element after click
+        setTimeout(() => {
+          if (document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+        }, 100);
+        
+        // Clean up blob URL after download should have started
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 2000);
+      }, 100);
+    } catch (err) {
+      this.debugError('general', `Download error for ${filename}`, err);
+      throw err;
+    }
+  }
+
+  private async renderTrackBuffer(track: typeof this.tracks[number]): Promise<AudioBuffer> {
+    if (!track.audioBuffer || !this.audioContext) {
+      throw new Error(`Track ${track.id} has no audio buffer or audio context not available`);
+    }
+
+    // Create offline context for individual track export with effects applied
+    const offline = new OfflineAudioContext(
+      2, // Stereo
+      track.audioBuffer.length,
+      this.audioContext.sampleRate
+    );
+
+    const src = offline.createBufferSource();
+    const gain = offline.createGain();
+    const pan = offline.createStereoPanner();
+    
+    src.buffer = track.audioBuffer;
+    gain.gain.value = track.gainNode!.gain.value;
+    const panPosition = (track.panValue - 50) / 50;
+    pan.pan.value = panPosition;
+    
+    src.connect(gain);
+    gain.connect(pan);
+    pan.connect(offline.destination);
+    src.start(0);
+
+    return await offline.startRendering();
+  }
+
+  private async renderMasterBuffer(tracksWithAudio: typeof this.tracks): Promise<AudioBuffer> {
+    if (!this.audioContext) {
+      throw new Error('Audio context not available');
+    }
+
+    const maxDuration = Math.max(...tracksWithAudio.map(t => t.audioBuffer!.duration));
+    const offline = new OfflineAudioContext(
+      2, // Stereo
+      Math.ceil(this.audioContext.sampleRate * maxDuration),
+      this.audioContext.sampleRate
+    );
+
+    const offlineMaster = offline.createGain();
+    offlineMaster.gain.value = this.masterGainNode!.gain.value;
+    offlineMaster.connect(offline.destination);
+
+    tracksWithAudio.forEach((track) => {
+      if (!track.isMuted && (!this.tracks.some(t => t.isSolo) || track.isSolo)) {
+        const src = offline.createBufferSource();
+        const gain = offline.createGain();
+        const pan = offline.createStereoPanner();
+        
+        src.buffer = track.audioBuffer!;
+        gain.gain.value = track.gainNode!.gain.value;
+        const panPosition = (track.panValue - 50) / 50;
+        pan.pan.value = panPosition;
+        
+        src.connect(gain);
+        gain.connect(pan);
+        pan.connect(offlineMaster);
+        src.start(0);
+      }
     });
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    return await offline.startRendering();
   }
 
   private audioBufferToWav(buffer: AudioBuffer) {

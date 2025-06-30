@@ -420,6 +420,23 @@ function App() {
                     Auto Gain Control
                   </label>
                 </div>
+                <div className="divider"></div>
+                <h5 className="processing-subtitle">Export Options</h5>
+                <div className="export-mode-selector">
+                  <button 
+                    className="export-option active"
+                    id="multitrack-export-btn"
+                  >
+                    MultiTrack ZIP
+                  </button>
+                  <span className="export-separator"> | </span>
+                  <button 
+                    className="export-option"
+                    id="master-export-btn"
+                  >
+                    Master Only
+                  </button>
+                </div>
               </div>
             </div>
           </div>
