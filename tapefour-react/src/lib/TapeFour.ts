@@ -93,6 +93,7 @@ export default class TapeFour {
     isPaused: false,
     playheadPosition: 0,
     selectedInputDeviceId: null as string | null,
+    selectedOutputDeviceId: null as string | null,
     maxRecordingTime: 60000, // 60 seconds
     inputMuted: false,
     isMonitoring: false, // Whether input monitoring is active
@@ -145,6 +146,7 @@ export default class TapeFour {
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
     this.loadSavedAudioDevice();
+    this.loadSavedAudioOutputDevice();
     this.loadSavedAudioProcessingSettings();
     this.initializeAudio();
     this.initializeUI();
@@ -199,6 +201,19 @@ export default class TapeFour {
 
     if (this.audioContext!.state === 'suspended') {
       await this.audioContext!.resume();
+    }
+
+    // Try to set the saved output device if available
+    if (this.state.selectedOutputDeviceId) {
+      try {
+        if ('setSinkId' in this.audioContext! && typeof this.audioContext!.setSinkId === 'function') {
+          await (this.audioContext! as any).setSinkId(this.state.selectedOutputDeviceId);
+          this.debugLog('settings', `[TAPEFOUR] 🔊 Applied saved output device: ${this.state.selectedOutputDeviceId}`);
+        }
+      } catch (err) {
+        this.debugWarn('settings', '[TAPEFOUR] ⚠️ Failed to apply saved output device:', err);
+        // Don't clear the saved device ID - user can try again or select a different one
+      }
     }
   }
 
@@ -409,8 +424,18 @@ export default class TapeFour {
       await this.changeAudioInputDevice(select.value || null);
     });
 
-    // Scan devices button (refresh the list without closing modal)
-    document.getElementById('scan-devices-btn')?.addEventListener('click', () => this.populateAudioInputSelect());
+    // Audio output device selection - change immediately when selected
+    document.getElementById('audio-output-select')?.addEventListener('change', async (e) => {
+      const select = e.target as HTMLSelectElement;
+      this.debugLog('settings', `[TAPEFOUR] 🔊 Output device selection changed to: ${select.value || 'default'}`);
+      await this.changeAudioOutputDevice(select.value || null);
+    });
+
+    // Scan devices button (refresh both input and output device lists without closing modal)
+    document.getElementById('scan-output-devices-btn')?.addEventListener('click', async () => {
+      await this.populateAudioInputSelect();
+      await this.populateAudioOutputSelect();
+    });
 
     // Audio processing toggle - improved reliability
     document.getElementById('audio-processing-toggle')?.addEventListener('click', (e) => {
@@ -2476,6 +2501,115 @@ export default class TapeFour {
     }
   }
 
+  /**
+   * Enumerate available audio output devices and populate the <select> element.
+   * This can be called any time (modal open, Scan Devices button, etc.).
+   */
+  private async populateAudioOutputSelect() {
+    const select = document.getElementById('audio-output-select') as HTMLSelectElement | null;
+    if (!select) {
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Audio output select element not found');
+      return;
+    }
+
+    this.debugLog('settings', '[TAPEFOUR] 🔊 Populating audio output device list...');
+    select.innerHTML = '<option value="">Default Audio Output</option>';
+
+    try {
+      let devices = await navigator.mediaDevices.enumerateDevices();
+
+      // If labels are blank (happens before permission), request a one-time gUM to unlock them
+      const labelsMissing = devices.every((d) => !d.label);
+      if (labelsMissing) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach((t) => t.stop());
+          devices = await navigator.mediaDevices.enumerateDevices();
+        } catch (gumErr) {
+          // ignore; we'll still show generic labels below
+        }
+      }
+
+      const outputs = devices.filter((d) => d.kind === 'audiooutput');
+
+      // Enhanced device information logging
+      this.debugLog('settings', `[TAPEFOUR] 🔊 Found ${outputs.length} audio output devices:`);
+      outputs.forEach((device, index) => {
+        this.debugLog('settings', `[TAPEFOUR]   ${index + 1}. ${device.label || 'Unknown Device'} (${device.deviceId.slice(0, 8)}...)`);
+      });
+
+      // Deduplicate identical labels by appending an index
+      const labelCounts: Record<string, number> = {};
+      outputs.forEach((d) => {
+        let label = d.label || 'Audio Output';
+        labelCounts[label] = (labelCounts[label] || 0) + 1;
+      });
+
+      const seen: Record<string, number> = {};
+      outputs.forEach((d) => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+
+        let label = d.label || 'Audio Output';
+        if (labelCounts[label] > 1) {
+          // multiple devices share this label – append a running index
+          seen[label] = (seen[label] || 0) + 1;
+          label = `${label} #${seen[label]}`;
+        }
+
+        opt.textContent = label;
+        if (d.deviceId === this.state.selectedOutputDeviceId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    } catch (err) {
+      this.debugError('settings', 'enumerateDevices error', err);
+    }
+  }
+
+  private async changeAudioOutputDevice(newDeviceId: string | null) {
+    // If device changed, update the stored device ID
+    if (newDeviceId !== this.state.selectedOutputDeviceId) {
+      this.debugLog('settings', `[TAPEFOUR] 🔊 Audio output device changing from ${this.state.selectedOutputDeviceId || 'default'} to ${newDeviceId || 'default'}`);
+      
+      this.state.selectedOutputDeviceId = newDeviceId;
+      
+      // Save the device selection to localStorage
+      this.saveAudioOutputDevice(newDeviceId);
+      
+      // Try to actually change the output device using modern Web APIs
+      if (this.audioContext) {
+        try {
+          // Check if AudioContext.setSinkId is supported (newer browsers)
+          if ('setSinkId' in this.audioContext && typeof this.audioContext.setSinkId === 'function') {
+            this.debugLog('settings', '[TAPEFOUR] 🔊 Attempting to set output device using AudioContext.setSinkId...');
+            await (this.audioContext as any).setSinkId(newDeviceId || '');
+            this.debugLog('settings', `[TAPEFOUR] ✅ Successfully changed audio output device to: ${newDeviceId || 'default'}`);
+          } else {
+            this.debugWarn('settings', '[TAPEFOUR] ⚠️ AudioContext.setSinkId not supported in this browser');
+            this.debugLog('settings', '[TAPEFOUR] 💾 Output device preference saved for future compatibility');
+          }
+        } catch (err) {
+          this.debugError('settings', '[TAPEFOUR] ❌ Failed to change audio output device:', err);
+          
+          // Check for specific error types
+          if (err instanceof Error) {
+            if (err.name === 'NotFoundError') {
+              this.showError('Selected audio output device not found. Please try selecting a different device or check your audio settings.');
+            } else if (err.name === 'NotAllowedError') {
+              this.showError('Permission denied to change audio output device. Please check your browser permissions.');
+            } else {
+              this.showError(`Failed to change audio output device: ${err.message}`);
+            }
+          } else {
+            this.showError('Failed to change audio output device. Please try a different device.');
+          }
+        }
+      } else {
+        this.debugWarn('settings', '[TAPEFOUR] ⚠️ No audio context available for output device change');
+      }
+    }
+  }
+
   public async openSettings() {
     // Add visual feedback to settings button
     const settingsBtn = document.getElementById('settings-btn');
@@ -2489,6 +2623,7 @@ export default class TapeFour {
 
     const modal = document.getElementById('settings-modal') as HTMLElement | null;
     await this.populateAudioInputSelect();
+    await this.populateAudioOutputSelect();
     
     // Populate audio processing checkboxes with current state
     const echoCancellationCheckbox = document.getElementById('echo-cancellation-checkbox') as HTMLInputElement | null;
@@ -2622,6 +2757,34 @@ export default class TapeFour {
       }
     } catch (err) {
       this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio device:', err);
+    }
+  }
+
+  private loadSavedAudioOutputDevice() {
+    try {
+      const savedDeviceId = localStorage.getItem('tapefour-audio-output-device');
+      if (savedDeviceId && savedDeviceId !== 'null') {
+        this.state.selectedOutputDeviceId = savedDeviceId;
+        this.debugLog('settings', `[TAPEFOUR] 💾 Loaded saved audio output device: ${savedDeviceId}`);
+      } else {
+        this.debugLog('settings', '[TAPEFOUR] 💾 No saved audio output device found, using default');
+      }
+    } catch (err) {
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load saved audio output device:', err);
+    }
+  }
+
+  private saveAudioOutputDevice(deviceId: string | null) {
+    try {
+      if (deviceId) {
+        localStorage.setItem('tapefour-audio-output-device', deviceId);
+        this.debugLog('settings', `[TAPEFOUR] 💾 Saved audio output device: ${deviceId}`);
+      } else {
+        localStorage.removeItem('tapefour-audio-output-device');
+        this.debugLog('settings', '[TAPEFOUR] 💾 Cleared saved audio output device (using default)');
+      }
+    } catch (err) {
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio output device:', err);
     }
   }
 

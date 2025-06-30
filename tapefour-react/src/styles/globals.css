@@ -1623,29 +1623,50 @@ body {
 }
 
 .scan-devices-btn {
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  color: var(--ink);
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-weight: 500;
-  font-family: 'Space Mono', monospace;
-  letter-spacing: 1px;
-  cursor: pointer;
-  margin-top: 8px;
-  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: var(--panel);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .scan-devices-btn:hover {
-  /* No hover effect */
+  background: var(--track);
 }
 
 .scan-devices-btn:active {
-  background: color-mix(in srgb, var(--paper) 96%, black 4%);
+  transform: translateY(1px);
+}
+
+.scan-output-devices-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: var(--panel);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scan-output-devices-btn:hover {
+  background: var(--track);
+}
+
+.scan-output-devices-btn:active {
   transform: translateY(1px);
 }
 
@@ -1739,6 +1760,11 @@ body {
 }
 
 .audio-input-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+}
+
+.audio-output-section {
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid color-mix(in srgb, var(--ink) 20%, transparent 80%);
@@ -2188,7 +2214,7 @@ body {
 /* Transport Button Styling for Indie Theme - TASCAM Professional */
 :root[data-theme="indie"] .transport-button {
   background: linear-gradient(145deg, hsl(0, 0%, 92%), hsl(0, 0%, 82%));
-  border: 2px solid hsl(0, 0%, 70%);
+  /* border: 2px solid hsl(0, 0%, 70%); */
   color: hsl(0, 0%, 25%);
   box-shadow: 
     0 2px 4px rgba(0, 0, 0, 0.1),
