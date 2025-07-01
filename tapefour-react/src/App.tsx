@@ -338,6 +338,12 @@ function App() {
             <circle cx="12" cy="12" r="10" />
           </svg>
         </button>
+        <button className="transport-button" id="undo-btn" title="Undo Last Override (U)">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 14 4 9 9 4"></polyline>
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4"></path>
+          </svg>
+        </button>
         <button className="transport-button loop-button" id="loop-btn" title="Enable Loop Mode (L)">
           <svg width="36" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor"
               strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -551,6 +557,10 @@ function App() {
                   <tr>
                     <td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd></td>
                     <td>Arm tracks</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>U</kbd></td>
+                    <td>Undo Last Override</td>
                   </tr>
                 </tbody>
               </table>

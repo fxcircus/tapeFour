@@ -136,11 +136,12 @@ export default class TapeFour {
     sourceNode: AudioBufferSourceNode | null;
     panNode: StereoPannerNode | null;
     panValue: number; // 0 = fully left, 50 = center, 100 = fully right
+    undoHistory: AudioBuffer[]; // Stack to store previous buffer states for undo
   }> = [
-    { id: 1, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 2, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 3, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
-    { id: 4, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50 },
+    { id: 1, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
+    { id: 2, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
+    { id: 3, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
+    { id: 4, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
   ];
 
   // Store previous mute states for when solo is disengaged
@@ -269,6 +270,7 @@ export default class TapeFour {
       });
       this.updateBounceButtonState(); // Initialize bounce button state
       this.updateLoopButtonState(); // Initialize loop button state
+      this.updateUndoButtonState(); // Initialize undo button state
     }, 100);
   }
 
@@ -421,6 +423,7 @@ export default class TapeFour {
     document.getElementById('bounce-btn')?.addEventListener('click', () => this.bounce());
     document.getElementById('clear-btn')?.addEventListener('click', () => this.clearEverything());
     document.getElementById('settings-btn')?.addEventListener('click', () => this.openSettings());
+    document.getElementById('undo-btn')?.addEventListener('click', () => this.undoLastOverride());
 
     // Settings modal buttons
     document.getElementById('cancel-settings')?.addEventListener('click', () => this.closeSettings());
@@ -716,6 +719,13 @@ export default class TapeFour {
           e.preventDefault();
           this.debugLog('keyboard', '[TAPEFOUR] ⌨️ L key pressed - toggling loop');
           this.toggleLoop();
+          break;
+        
+        case 'KeyU':
+          // U key for undo
+          e.preventDefault();
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ U key pressed - triggering undo');
+          this.undoLastOverride();
           break;
       }
     };
@@ -1096,6 +1106,7 @@ export default class TapeFour {
     
     // Start/stop volume meter monitoring when tracks are armed/disarmed
     await this.manageVolumeMeter();
+    this.updateUndoButtonState();
   }
 
   private async manageVolumeMeter() {
@@ -2111,6 +2122,7 @@ export default class TapeFour {
       track.isReversed = false;
       track.isHalfSpeed = false;
       track.recordStartTime = 0;
+      track.undoHistory = []; // Clear undo history
       this.debugLog('general', `[TAPEFOUR] 🗑️ Cleared track ${track.id} buffer and reset all states`);
       // Update button styling
       this.updateReverseButtonStyling(track.id);
@@ -2144,6 +2156,7 @@ export default class TapeFour {
     
     // Update bounce button state since there's no audio to bounce
     this.updateBounceButtonState();
+    this.updateUndoButtonState();
     
     this.debugLog('general', '[TAPEFOUR] 🗑️ Everything cleared - project reset');
   }
@@ -2244,8 +2257,12 @@ export default class TapeFour {
     } else {
       this.state.recordMode = 'fresh';
       this.state.punchInStartPosition = 0;
-      // For fresh recordings, set the start time to current playhead position (which could be > 0 if user paused and then recorded)
-      armedTrack.recordStartTime = this.state.playheadPosition;
+      // For fresh recordings, clear the undo history and set the start time
+      if (armedTrack) {
+        armedTrack.recordStartTime = this.state.playheadPosition;
+        armedTrack.undoHistory = [];
+        this.debugLog('general', `[UNDO] Cleared undo history for track ${armedTrack.id}`);
+      }
       this.debugLog('transport', `[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
     }
 
@@ -2515,7 +2532,11 @@ export default class TapeFour {
             this.state.hasCompletedFirstRecording = true;
           }
         } else {
-          // Punch-in recording: merge with existing buffer (keep original start time)
+          // Punch-in recording: save current state for undo, then merge
+          if (armedTrack.audioBuffer) {
+            armedTrack.undoHistory.push(armedTrack.audioBuffer);
+            this.debugLog('general', `[UNDO] Stored buffer for track ${armedTrack.id}. History size: ${armedTrack.undoHistory.length}`);
+          }
           const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
           armedTrack.audioBuffer = mergedBuffer;
           // For punch-in, recordStartTime remains unchanged as it keeps the original track's timeline position
@@ -2550,6 +2571,7 @@ export default class TapeFour {
     if (armedTrack) {
       this.updateReverseButtonStyling(armedTrack.id);
       this.updateHalfSpeedButtonStyling(armedTrack.id);
+      this.updateUndoButtonState(); // Update undo button state
     }
   }
 
@@ -4737,4 +4759,66 @@ export default class TapeFour {
     
     this.debugLog('waveform', '[WAVEFORM] 🛑 Waveform capture stopped');
   }
-} 
+
+  private updateUndoButtonState() {
+    const undoButton = document.getElementById('undo-btn');
+    if (undoButton) {
+      undoButton.disabled = this.tracks.some(track => track.undoHistory.length > 0);
+    }
+  }
+
+  /* ---------- Undo Functionality Methods ---------- */
+
+  public undoLastOverride() {
+    this.debugLog('general', '[UNDO] Undo requested');
+    const armedTrack = this.tracks.find(t => t.isArmed);
+
+    if (!armedTrack) {
+      this.debugLog('general', '[UNDO] No track armed, cannot undo.');
+      // No modal message, just silent fail.
+      return;
+    }
+
+    if (armedTrack.undoHistory.length > 0) {
+      const lastState = armedTrack.undoHistory.pop();
+      if (lastState) { // Check if a state was popped successfully
+        armedTrack.audioBuffer = lastState;
+        this.debugLog('general', `[UNDO] Reverted track ${armedTrack.id} to previous state. History size: ${armedTrack.undoHistory.length}`);
+        
+        // Non-intrusive console confirmation
+        console.log(`[TAPEFOUR] Undo: Last overdub removed from Track ${armedTrack.id}.`);
+
+        this.redrawAllTrackWaveforms();
+      }
+    } else {
+      this.debugLog('general', `[UNDO] No undo history for track ${armedTrack.id}.`);
+    }
+
+    // Always update the button state after an attempt
+    this.updateUndoButtonState();
+  }
+
+  private updateUndoButtonState() {
+    const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
+    if (!undoBtn) return;
+
+    const armedTrack = this.tracks.find(t => t.isArmed);
+    // Button should be enabled only if a track is armed AND that track has an undo history.
+    const canUndo = !!armedTrack && armedTrack.undoHistory.length > 0;
+
+    undoBtn.disabled = !canUndo;
+
+    // Add/remove class for visual styling
+    if (canUndo) {
+      undoBtn.classList.remove('disabled');
+    } else {
+      undoBtn.classList.add('disabled');
+    }
+    
+    if (canUndo) {
+      undoBtn.title = 'Undo Last Override (U)';
+    } else {
+      undoBtn.title = armedTrack ? 'No override to undo on this track' : 'Arm a track to undo an override';
+    }
+  }
+}
