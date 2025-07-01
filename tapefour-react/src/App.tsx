@@ -338,6 +338,12 @@ function App() {
             <circle cx="12" cy="12" r="10" />
           </svg>
         </button>
+        <button className="transport-button loop-button" id="loop-btn" title="Enable Loop Mode (L)">
+          <svg width="36" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor"
+              strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 12C6 7 14 7 20 12C26 17 34 17 34 12C34 7 26 7 20 12C14 17 6 17 6 12Z" />
+          </svg>
+        </button>
         <button className="transport-button bounce-button" id="bounce-btn" title="Bounce to Master (B)">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 6 C2 6, 6 4, 12 6 C18 8, 22 6, 22 6" />
@@ -517,6 +523,10 @@ function App() {
                   <tr>
                     <td><kbd>Q</kbd></td>
                     <td>Record</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>L</kbd></td>
+                    <td>Toggle Loop</td>
                   </tr>
                   <tr>
                     <td><kbd>S</kbd></td>

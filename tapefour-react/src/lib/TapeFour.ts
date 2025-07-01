@@ -159,6 +159,7 @@ export default class TapeFour {
     this.loadSavedAudioDevice();
     this.loadSavedAudioOutputDevice();
     this.loadSavedAudioProcessingSettings(); // This now includes export settings
+    this.loadArmedTrackState(); // Load armed track state from localStorage
     this.initializeAudio();
     this.initializeUI();
     this.setupEventListeners();
@@ -1090,6 +1091,9 @@ export default class TapeFour {
       if (el) el.checked = true;
     }
     
+    // Save armed track state to localStorage
+    this.saveArmedTrackState();
+    
     // Start/stop volume meter monitoring when tracks are armed/disarmed
     await this.manageVolumeMeter();
   }
@@ -1984,6 +1988,7 @@ export default class TapeFour {
       this.stopRecording();
     }
     
+    // FORCE stop all transport state - this fixes loop playback not stopping
     this.state.isPlaying = false;
     this.state.isPaused = false;
     this.state.playheadPosition = 0; // Reset playhead to beginning on stop
@@ -2621,12 +2626,17 @@ export default class TapeFour {
   private startPlayheadTimer() {
     this.playStartTime = Date.now() - this.state.playheadPosition;
     this.playheadTimer = window.setInterval(() => {
+      // Exit immediately if not playing - this fixes loop not stopping
+      if (!this.state.isPlaying) {
+        return;
+      }
+      
       // Don't update playhead position while user is dragging
       if (!this.isDraggingPlayhead) {
         this.state.playheadPosition = Date.now() - this.playStartTime;
         
-        // Handle looping behavior
-        if (this.state.isLooping) {
+        // Handle looping behavior - but only if still playing
+        if (this.state.isLooping && this.state.isPlaying) {
           const currentTimeSeconds = this.state.playheadPosition / 1000;
           if (currentTimeSeconds >= this.state.loopEnd) {
             // Jump back to loop start
@@ -3156,6 +3166,45 @@ export default class TapeFour {
       this.debugLog('settings', `[TAPEFOUR] 💾 Saved settings: echo=${this.state.echoCancellation}, noise=${this.state.noiseSuppression}, agc=${this.state.autoGainControl}, multitrack=${this.state.multiTrackExport}`);
     } catch (err) {
       this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save audio processing settings:', err);
+    }
+  }
+
+  private loadArmedTrackState() {
+    try {
+      const armedTrackId = localStorage.getItem('tapefour-armed-track');
+      if (armedTrackId !== null) {
+        const trackId = parseInt(armedTrackId, 10);
+        if (trackId >= 1 && trackId <= 4) {
+          // Find the track and arm it
+          const track = this.tracks.find(t => t.id === trackId);
+          if (track) {
+            track.isArmed = true;
+            // Update UI element (defer to ensure DOM is ready)
+            setTimeout(() => {
+              const el = document.getElementById(`track-${trackId}`) as HTMLInputElement;
+              if (el) el.checked = true;
+            }, 100);
+            this.debugLog('settings', `[TAPEFOUR] 💾 Restored armed track: ${trackId}`);
+          }
+        }
+      }
+    } catch (err) {
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not load armed track state:', err);
+    }
+  }
+
+  private saveArmedTrackState() {
+    try {
+      const armedTrack = this.tracks.find(t => t.isArmed);
+      if (armedTrack) {
+        localStorage.setItem('tapefour-armed-track', armedTrack.id.toString());
+        this.debugLog('settings', `[TAPEFOUR] 💾 Saved armed track: ${armedTrack.id}`);
+      } else {
+        localStorage.removeItem('tapefour-armed-track');
+        this.debugLog('settings', '[TAPEFOUR] 💾 Cleared armed track (no tracks armed)');
+      }
+    } catch (err) {
+      this.debugWarn('settings', '[TAPEFOUR] ⚠️ Could not save armed track state:', err);
     }
   }
 
@@ -4253,6 +4302,12 @@ export default class TapeFour {
   }
 
   private restartTracksFromLoopStart() {
+    // Don't restart if we're not supposed to be playing
+    if (!this.state.isPlaying) {
+      this.debugLog('general', '[LOOP] ⏹️ Not restarting tracks - playback stopped');
+      return;
+    }
+    
     // Stop all currently playing sources
     this.tracks.forEach((track) => {
       if (track.sourceNode) {
@@ -4277,20 +4332,23 @@ export default class TapeFour {
       (this as any).masterSourceNode = null;
     }
 
-    // Restart all tracks from loop start position
-    const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
-    
-    if (this.state.masterBuffer) {
-      this.playMasterTrack(startTime);
-    }
-    
-    this.tracks.forEach((track) => {
-      if (track.audioBuffer) {
-        this.playTrack(track, startTime);
+    // Only restart if still playing
+    if (this.state.isPlaying) {
+      // Restart all tracks from loop start position
+      const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
+      
+      if (this.state.masterBuffer) {
+        this.playMasterTrack(startTime);
       }
-    });
-    
-    this.debugLog('general', `[LOOP] 🔄 Restarted all tracks from loop start (${this.state.loopStart.toFixed(2)}s)`);
+      
+      this.tracks.forEach((track) => {
+        if (track.audioBuffer) {
+          this.playTrack(track, startTime);
+        }
+      });
+      
+      this.debugLog('general', `[LOOP] 🔄 Restarted all tracks from loop start (${this.state.loopStart.toFixed(2)}s)`);
+    }
   }
 
   private drawLoopRegion() {
@@ -4322,8 +4380,7 @@ export default class TapeFour {
     this.drawLoopHandle(loopStartX, 'start');
     this.drawLoopHandle(loopEndX, 'end');
     
-    // Draw time labels above handles
-    this.drawLoopTimeLabels(loopStartX, loopEndX);
+    // Time labels removed - cleaner visual appearance
   }
 
   private drawLoopHandle(x: number, type: 'start' | 'end') {
