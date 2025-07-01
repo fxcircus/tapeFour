@@ -1567,7 +1567,15 @@ export default class TapeFour {
 
     await this.initializeAudio();
     await this.ensureInputStream();
-    await this.muteInput(); // Mute input during playback
+    
+    // Only mute input during playback if no tracks are armed (to preserve monitoring)
+    const hasArmedTracks = this.tracks.some(t => t.isArmed);
+    if (!hasArmedTracks) {
+      await this.muteInput(); // Mute input during playback only when no monitoring needed
+      this.debugLog('transport', '🔇 Input muted during playback (no armed tracks)');
+    } else {
+      this.debugLog('transport', '🎧 Keeping input active during playback for monitoring (armed tracks present)');
+    }
 
     // If paused, use the dedicated resume method instead
     if (this.state.isPaused) {
@@ -1813,8 +1821,14 @@ export default class TapeFour {
 
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
 
-    // Unmute input when stopping
-    this.unmuteInput();
+    // Only unmute input when stopping if no tracks are armed (to preserve monitoring state)
+    const hasArmedTracks = this.tracks.some(t => t.isArmed);
+    if (!hasArmedTracks) {
+      this.unmuteInput();
+      this.debugLog('transport', '🔊 Input unmuted on stop (no armed tracks)');
+    } else {
+      this.debugLog('transport', '🎧 Keeping input state unchanged on stop (armed tracks present)');
+    }
 
     this.stopPlayheadTimer();
 
