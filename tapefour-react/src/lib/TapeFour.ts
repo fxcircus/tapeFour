@@ -111,6 +111,13 @@ export default class TapeFour {
     // Bounce to master
     masterBuffer: null as AudioBuffer | null,
     duration: 0, // Total duration in milliseconds
+    // Loop functionality
+    loopStart: 0, // Loop start time in seconds
+    loopEnd: 0, // Loop end time in seconds
+    isLooping: false, // Whether loop mode is active
+    isDraggingLoopStart: false, // Whether user is dragging loop start handle
+    isDraggingLoopEnd: false, // Whether user is dragging loop end handle
+    hasCompletedFirstRecording: false, // Track if we've completed the first recording pass
   };
 
   private tracks: Array<{
@@ -260,6 +267,7 @@ export default class TapeFour {
         this.updateHalfSpeedButtonStyling(track.id);
       });
       this.updateBounceButtonState(); // Initialize bounce button state
+      this.updateLoopButtonState(); // Initialize loop button state
     }, 100);
   }
 
@@ -407,6 +415,7 @@ export default class TapeFour {
     document.getElementById('stop-btn')?.addEventListener('click', () => this.stop());
     document.getElementById('pause-btn')?.addEventListener('click', () => this.pause());
     document.getElementById('record-btn')?.addEventListener('click', () => this.record());
+    document.getElementById('loop-btn')?.addEventListener('click', () => this.toggleLoop());
     document.getElementById('export-btn')?.addEventListener('click', () => this.export());
     document.getElementById('bounce-btn')?.addEventListener('click', () => this.bounce());
     document.getElementById('clear-btn')?.addEventListener('click', () => this.clearEverything());
@@ -700,6 +709,13 @@ export default class TapeFour {
           this.debugLog('keyboard', '[TAPEFOUR] ⌨️ Comma key pressed - toggling settings');
           this.toggleSettings();
           break;
+        
+        case 'KeyL':
+          // L key for loop toggle
+          e.preventDefault();
+          this.debugLog('keyboard', '[TAPEFOUR] ⌨️ L key pressed - toggling loop');
+          this.toggleLoop();
+          break;
       }
     };
 
@@ -707,6 +723,9 @@ export default class TapeFour {
     
     // Playhead scrubbing functionality
     this.setupPlayheadScrubbing();
+    
+    // Loop handle dragging functionality
+    this.setupLoopHandleDragging();
     
     // Mark event listeners as initialized
     this.eventListenersInitialized = true;
@@ -786,6 +805,169 @@ export default class TapeFour {
     this.updatePlayheadCursor();
     
     this.debugLog('scrub', '[SCRUB] ✅ Playhead scrubbing setup complete');
+  }
+
+  private setupLoopHandleDragging() {
+    if (!this.waveformCanvas) {
+      this.debugWarn('general', '[LOOP] ⚠️ Waveform canvas not found, loop handle dragging disabled');
+      return;
+    }
+    
+    this.debugLog('general', '[LOOP] 🎯 Setting up loop handle dragging...');
+    
+    const onMouseDown = (e: MouseEvent) => {
+      if (!this.state.isLooping || !this.waveformCanvas) return;
+      
+      const rect = this.waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      
+      // Convert to canvas coordinates
+      const canvasScale = this.waveformCanvas.width / rect.width;
+      const canvasX = x * canvasScale;
+      
+      // Convert to time coordinates
+      const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+      const canvasInternalWidth = this.waveformCanvas.width;
+      const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
+      const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
+      
+      const handleTolerance = 12; // Pixels
+      
+      // Check if clicking on loop start handle
+      if (Math.abs(canvasX - loopStartX) < handleTolerance) {
+        this.state.isDraggingLoopStart = true;
+        this.debugLog('general', '[LOOP] 🎯 Started dragging loop start handle');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      
+      // Check if clicking on loop end handle
+      if (Math.abs(canvasX - loopEndX) < handleTolerance) {
+        this.state.isDraggingLoopEnd = true;
+        this.debugLog('general', '[LOOP] 🎯 Started dragging loop end handle');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    };
+    
+    const onMouseMove = (e: MouseEvent) => {
+      if ((!this.state.isDraggingLoopStart && !this.state.isDraggingLoopEnd) || !this.waveformCanvas) return;
+      
+      const rect = this.waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      
+      // Convert to time
+      const progress = Math.max(0, Math.min(1, x / rect.width));
+      const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+      const timeInSeconds = progress * maxTimeSeconds;
+      
+      // Snap to 0.1s increments for easier use
+      const snappedTime = Math.round(timeInSeconds * 10) / 10;
+      
+      if (this.state.isDraggingLoopStart) {
+        this.setLoopStart(snappedTime);
+      } else if (this.state.isDraggingLoopEnd) {
+        this.setLoopEnd(snappedTime);
+      }
+      
+      e.preventDefault();
+    };
+    
+    const onMouseUp = () => {
+      if (this.state.isDraggingLoopStart || this.state.isDraggingLoopEnd) {
+        this.debugLog('general', `[LOOP] 🎯 Finished dragging loop handle`);
+        this.state.isDraggingLoopStart = false;
+        this.state.isDraggingLoopEnd = false;
+        this.redrawAllTrackWaveforms(); // Refresh to show final handle state
+      }
+    };
+    
+    const onDoubleClick = (e: MouseEvent) => {
+      if (!this.state.isLooping || !this.waveformCanvas) return;
+      
+      const rect = this.waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      
+      // Convert to canvas coordinates
+      const canvasScale = this.waveformCanvas.width / rect.width;
+      const canvasX = x * canvasScale;
+      
+      // Convert to time coordinates
+      const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+      const canvasInternalWidth = this.waveformCanvas.width;
+      const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
+      const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
+      
+      const handleTolerance = 12; // Pixels
+      
+      // Double-click on start handle resets to 0
+      if (Math.abs(canvasX - loopStartX) < handleTolerance) {
+        this.setLoopStart(0);
+        this.debugLog('general', '[LOOP] 🎯 Reset loop start to 0s');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      
+      // Double-click on end handle resets to track duration
+      if (Math.abs(canvasX - loopEndX) < handleTolerance) {
+        const trackDuration = this.getMaxTrackDuration();
+        this.setLoopEnd(trackDuration);
+        this.debugLog('general', `[LOOP] 🎯 Reset loop end to ${trackDuration.toFixed(2)}s`);
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    };
+    
+    // Add event listeners to waveform canvas
+    this.waveformCanvas.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    this.waveformCanvas.addEventListener('dblclick', onDoubleClick);
+    
+    // Update cursor style when hovering over handles
+    this.waveformCanvas.addEventListener('mousemove', (e) => {
+      if (!this.state.isLooping || !this.waveformCanvas) return;
+      
+      const rect = this.waveformCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const canvasScale = this.waveformCanvas.width / rect.width;
+      const canvasX = x * canvasScale;
+      
+      const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+      const canvasInternalWidth = this.waveformCanvas.width;
+      const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
+      const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
+      
+      const handleTolerance = 12;
+      const isOverHandle = Math.abs(canvasX - loopStartX) < handleTolerance || 
+                          Math.abs(canvasX - loopEndX) < handleTolerance;
+      
+      this.waveformCanvas.style.cursor = isOverHandle ? 'ew-resize' : 'pointer';
+    });
+    
+    this.debugLog('general', '[LOOP] ✅ Loop handle dragging setup complete');
+  }
+
+  private getMaxTrackDuration(): number {
+    let maxDuration = 0;
+    
+    // Check individual tracks
+    this.tracks.forEach(track => {
+      if (track.audioBuffer) {
+        maxDuration = Math.max(maxDuration, track.audioBuffer.duration);
+      }
+    });
+    
+    // Check master buffer
+    if (this.state.masterBuffer) {
+      maxDuration = Math.max(maxDuration, this.state.masterBuffer.duration);
+    }
+    
+    return maxDuration || (this.state.maxRecordingTime / 1000);
   }
 
   private handlePlayheadDrag(e: MouseEvent) {
@@ -1532,6 +1714,20 @@ export default class TapeFour {
     }
   }
 
+  private updateLoopButtonState() {
+    const loopBtn = document.getElementById('loop-btn') as HTMLButtonElement | null;
+    if (!loopBtn) return;
+
+    // Update button visual state
+    if (this.state.isLooping) {
+      loopBtn.classList.add('active');
+      loopBtn.title = 'Disable Loop Mode (L)';
+    } else {
+      loopBtn.classList.remove('active');
+      loopBtn.title = 'Enable Loop Mode (L)';
+    }
+  }
+
   private canBounce(): boolean {
     // Cannot bounce while recording or playing
     if (this.state.isRecording || this.state.isPlaying) {
@@ -1853,6 +2049,30 @@ export default class TapeFour {
     this.debugLog('transport', '✅ Stop complete');
   }
 
+  // Public loop control methods for React component integration
+  public toggleLoopMode() {
+    this.toggleLoop();
+  }
+
+  public setLoopRegion(startSeconds: number, endSeconds: number) {
+    this.state.loopStart = Math.max(0, startSeconds);
+    this.state.loopEnd = Math.max(this.state.loopStart + 0.1, endSeconds);
+    this.state.isLooping = true;
+    this.debugLog('general', `[LOOP] 🎯 Loop region set: ${this.state.loopStart.toFixed(2)}s → ${this.state.loopEnd.toFixed(2)}s`);
+    this.updateLoopButtonState();
+    this.updateTransportDisplay();
+    this.redrawAllTrackWaveforms();
+  }
+
+  public getLoopState() {
+    return {
+      isLooping: this.state.isLooping,
+      loopStart: this.state.loopStart,
+      loopEnd: this.state.loopEnd,
+      hasCompletedFirstRecording: this.state.hasCompletedFirstRecording
+    };
+  }
+
   public clearEverything() {
     this.debugLog('general', '[TAPEFOUR] 🗑️ Clear everything requested');
     
@@ -1887,6 +2107,16 @@ export default class TapeFour {
     this.state.masterBuffer = null;
     this.state.duration = 0;
     this.debugLog('general', '[TAPEFOUR] 🗑️ Cleared master buffer');
+    
+    // Reset loop state
+    this.state.loopStart = 0;
+    this.state.loopEnd = 0;
+    this.state.isLooping = false;
+    this.state.isDraggingLoopStart = false;
+    this.state.isDraggingLoopEnd = false;
+    this.state.hasCompletedFirstRecording = false;
+    this.updateLoopButtonState(); // Update button visual state
+    this.debugLog('general', '[TAPEFOUR] 🗑️ Reset loop state');
     
     // Clear all waveforms
     this.trackWaveforms.clear();
@@ -2264,6 +2494,12 @@ export default class TapeFour {
           armedTrack.audioBuffer = newAudioBuffer;
           this.debugLog('general', `[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id} starting at ${armedTrack.recordStartTime}ms`);
           this.debugLog('general', `[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
+          
+          // Auto-set loop after first recording
+          if (!this.state.hasCompletedFirstRecording) {
+            this.setupInitialLoop(newAudioBuffer.duration);
+            this.state.hasCompletedFirstRecording = true;
+          }
         } else {
           // Punch-in recording: merge with existing buffer (keep original start time)
           const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
@@ -2388,6 +2624,21 @@ export default class TapeFour {
       // Don't update playhead position while user is dragging
       if (!this.isDraggingPlayhead) {
         this.state.playheadPosition = Date.now() - this.playStartTime;
+        
+        // Handle looping behavior
+        if (this.state.isLooping) {
+          const currentTimeSeconds = this.state.playheadPosition / 1000;
+          if (currentTimeSeconds >= this.state.loopEnd) {
+            // Jump back to loop start
+            this.state.playheadPosition = this.state.loopStart * 1000;
+            this.playStartTime = Date.now() - this.state.playheadPosition;
+            this.debugLog('general', `[LOOP] 🔄 Looped back to ${this.state.loopStart.toFixed(2)}s`);
+            
+            // Restart all playing tracks from loop start
+            this.restartTracksFromLoopStart();
+          }
+        }
+        
         this.updatePlayheadUI();
         if (this.state.playheadPosition >= this.state.maxRecordingTime) this.stop();
       }
@@ -2416,6 +2667,7 @@ export default class TapeFour {
   }
 
   private updateTimecode() {
+    // Regular timecode display only - no loop info
     const totalSeconds = Math.floor(this.state.playheadPosition / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -3930,6 +4182,215 @@ export default class TapeFour {
     requestAnimationFrame(animate);
   }
 
+  /* ---------- Loop Functionality Methods ---------- */
+
+  private setupInitialLoop(recordingDuration: number) {
+    this.state.loopStart = 0;
+    this.state.loopEnd = recordingDuration;
+    this.state.isLooping = true;
+    
+    this.debugLog('general', `[LOOP] 🔄 Auto-set loop: 0s → ${recordingDuration.toFixed(2)}s`);
+    
+    // Update loop button visual state
+    this.updateLoopButtonState();
+    
+    // Update transport display
+    this.updateTransportDisplay();
+    
+    // Redraw waveform to show loop region
+    this.redrawAllTrackWaveforms();
+    
+    // Automatically start playback from loop start for immediate overdubbing
+    setTimeout(() => {
+      this.state.playheadPosition = 0; // Reset to beginning
+      this.play(); // Start playback from loop start
+      this.debugLog('general', '[LOOP] 🔄 Auto-started playback from loop beginning for overdubbing');
+    }, 100); // Small delay to ensure UI updates complete
+  }
+
+  private toggleLoop() {
+    this.state.isLooping = !this.state.isLooping;
+    this.debugLog('general', `[LOOP] ${this.state.isLooping ? '🔄' : '⏹️'} Loop ${this.state.isLooping ? 'enabled' : 'disabled'}`);
+    
+    // Update loop button visual state
+    this.updateLoopButtonState();
+    
+    // Update transport display
+    this.updateTransportDisplay();
+    
+    // Redraw waveform to show/hide loop region
+    this.redrawAllTrackWaveforms();
+  }
+
+  private setLoopStart(timeInSeconds: number) {
+    // Ensure start is not after end
+    this.state.loopStart = Math.max(0, Math.min(timeInSeconds, this.state.loopEnd - 0.1));
+    this.debugLog('general', `[LOOP] 🎯 Loop start set to ${this.state.loopStart.toFixed(2)}s`);
+    this.updateTransportDisplay();
+    this.redrawAllTrackWaveforms();
+  }
+
+  private setLoopEnd(timeInSeconds: number) {
+    // Ensure end is not before start
+    const maxDuration = this.state.maxRecordingTime / 1000; // Convert ms to seconds
+    this.state.loopEnd = Math.min(maxDuration, Math.max(timeInSeconds, this.state.loopStart + 0.1));
+    this.debugLog('general', `[LOOP] 🎯 Loop end set to ${this.state.loopEnd.toFixed(2)}s`);
+    this.updateTransportDisplay();
+    this.redrawAllTrackWaveforms();
+  }
+
+  private formatTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const centiseconds = Math.floor((seconds % 1) * 100);
+    return `${minutes}:${secs.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
+  }
+
+  private updateTransportDisplay() {
+    // Loop display is now handled entirely in the waveform area
+    // Just update the regular timecode
+    this.updateTimecode();
+  }
+
+  private restartTracksFromLoopStart() {
+    // Stop all currently playing sources
+    this.tracks.forEach((track) => {
+      if (track.sourceNode) {
+        try {
+          track.sourceNode.stop();
+          track.sourceNode.disconnect();
+        } catch (e) {
+          // Source might already be stopped, ignore errors
+        }
+        track.sourceNode = null;
+      }
+    });
+
+    // Stop master source if playing
+    if ((this as any).masterSourceNode) {
+      try {
+        (this as any).masterSourceNode.stop();
+        (this as any).masterSourceNode.disconnect();
+      } catch (e) {
+        // Ignore if already stopped
+      }
+      (this as any).masterSourceNode = null;
+    }
+
+    // Restart all tracks from loop start position
+    const startTime = this.audioContext!.currentTime + 0.05; // Small delay for sync
+    
+    if (this.state.masterBuffer) {
+      this.playMasterTrack(startTime);
+    }
+    
+    this.tracks.forEach((track) => {
+      if (track.audioBuffer) {
+        this.playTrack(track, startTime);
+      }
+    });
+    
+    this.debugLog('general', `[LOOP] 🔄 Restarted all tracks from loop start (${this.state.loopStart.toFixed(2)}s)`);
+  }
+
+  private drawLoopRegion() {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const canvas = this.waveformCanvas;
+    const ctx = this.waveformContext;
+    const height = canvas.height;
+    const canvasInternalWidth = canvas.width;
+    
+    // Convert loop times to canvas positions
+    const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+    const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
+    const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
+    const loopWidth = loopEndX - loopStartX;
+    
+    // Draw semi-transparent loop region
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.15)'; // Green with low opacity
+    ctx.fillRect(loopStartX, 0, loopWidth, height);
+    
+    // Draw loop region borders
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // More opaque green for borders
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]); // Dashed line
+    ctx.strokeRect(loopStartX, 0, loopWidth, height);
+    ctx.setLineDash([]); // Reset line dash
+    
+    // Draw draggable handles
+    this.drawLoopHandle(loopStartX, 'start');
+    this.drawLoopHandle(loopEndX, 'end');
+    
+    // Draw time labels above handles
+    this.drawLoopTimeLabels(loopStartX, loopEndX);
+  }
+
+  private drawLoopHandle(x: number, type: 'start' | 'end') {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const ctx = this.waveformContext;
+    const height = this.waveformCanvas.height;
+    const handleWidth = 8;
+    const handleHeight = height;
+    
+    // Determine if this handle is being dragged
+    const isDragging = (type === 'start' && this.state.isDraggingLoopStart) || 
+                      (type === 'end' && this.state.isDraggingLoopEnd);
+    
+    // Handle colors
+    const baseColor = type === 'start' ? 'rgba(34, 197, 94, 0.8)' : 'rgba(34, 197, 94, 0.8)';
+    const activeColor = type === 'start' ? 'rgba(34, 197, 94, 1)' : 'rgba(34, 197, 94, 1)';
+    
+    // Draw handle background
+    ctx.fillStyle = isDragging ? activeColor : baseColor;
+    ctx.fillRect(x - handleWidth / 2, 0, handleWidth, handleHeight);
+    
+    // Draw handle border
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - handleWidth / 2, 0, handleWidth, handleHeight);
+    
+    // Draw grip lines for visual feedback
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i <= 3; i++) {
+      const lineY = (height / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(x - 2, lineY);
+      ctx.lineTo(x + 2, lineY);
+      ctx.stroke();
+    }
+  }
+
+  private drawLoopTimeLabels(startX: number, endX: number) {
+    if (!this.waveformContext || !this.waveformCanvas) return;
+    
+    const ctx = this.waveformContext;
+    const canvas = this.waveformCanvas;
+    
+    // Set up text styling
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = 'rgba(34, 197, 94, 1)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    
+    // Draw start time label
+    const startLabel = this.formatTime(this.state.loopStart);
+    ctx.fillText(startLabel, startX, 5);
+    
+    // Draw end time label
+    const endLabel = this.formatTime(this.state.loopEnd);
+    ctx.fillText(endLabel, endX, 5);
+    
+    // Draw loop duration in the center
+    const centerX = (startX + endX) / 2;
+    const duration = this.state.loopEnd - this.state.loopStart;
+    const durationLabel = `${duration.toFixed(2)}s`;
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.8)';
+    ctx.fillText(durationLabel, centerX, canvas.height - 15);
+  }
+
   /* ---------- Waveform Strip Methods ---------- */
 
   private clearWaveform(trackId?: number) {
@@ -4145,6 +4606,11 @@ export default class TapeFour {
     
     // Reset alpha
     ctx.globalAlpha = 1;
+    
+    // Draw loop region if looping is active
+    if (this.state.isLooping) {
+      this.drawLoopRegion();
+    }
     
     if (totalTracksDrawn > 0 || this.masterWaveform.length > 0) {
       this.debugLog('waveform', `[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks + master`);
