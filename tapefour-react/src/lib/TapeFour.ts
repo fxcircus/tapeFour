@@ -1722,13 +1722,22 @@ export default class TapeFour {
     const loopBtn = document.getElementById('loop-btn') as HTMLButtonElement | null;
     if (!loopBtn) return;
 
-    // Update button visual state
-    if (this.state.isLooping) {
-      loopBtn.classList.add('active');
-      loopBtn.title = 'Disable Loop Mode (L)';
+    // Determine if loop should be enabled
+    const hasAudio = this.tracks.some(t => t.audioBuffer) || !!this.state.masterBuffer;
+    loopBtn.disabled = !hasAudio;
+
+    if (!hasAudio) {
+      loopBtn.title = 'Record audio to enable loop';
     } else {
-      loopBtn.classList.remove('active');
-      loopBtn.title = 'Enable Loop Mode (L)';
+      loopBtn.title = this.state.isLooping ? 'Disable Loop Mode (L)' : 'Enable Loop Mode (L)';
+    }
+
+    // Color/theme: match bounce button
+    loopBtn.classList.remove('loop-enabled', 'loop-disabled');
+    if (!hasAudio) {
+      loopBtn.classList.add('loop-disabled');
+    } else {
+      loopBtn.classList.add('loop-enabled');
     }
   }
 
@@ -3185,6 +3194,8 @@ export default class TapeFour {
               if (el) el.checked = true;
             }, 100);
             this.debugLog('settings', `[TAPEFOUR] 💾 Restored armed track: ${trackId}`);
+            // Ensure monitoring is enabled if a track is armed
+            setTimeout(() => { this.manageVolumeMeter(); }, 150);
           }
         }
       }

@@ -3100,3 +3100,25 @@ body {
   font-weight: 300;
 }
 
+/* Loop Button States - Match Bounce Button */
+.loop-button.loop-enabled {
+  background: var(--color-chassis);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 6px;
+}
+.loop-button.loop-enabled:hover {
+  background: color-mix(in srgb, var(--color-chassis) 85%, var(--color-accent-warm) 15%);
+}
+.loop-button.loop-enabled:active {
+  background: color-mix(in srgb, var(--color-chassis) 96%, var(--color-active-overlay) 4%);
+  transform: translateY(1px);
+}
+.loop-button.loop-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.loop-button.loop-disabled:hover {
+  background: var(--color-chassis);
+  transform: none;
+}
+
