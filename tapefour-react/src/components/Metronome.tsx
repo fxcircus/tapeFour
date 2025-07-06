@@ -282,23 +282,30 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
   return (
     <div className="metronome-container">
       <div className="metronome-content">
+        <div className="tempo-label">Tempo (BPM)</div>
+        
         <div className="bpm-controls">
           <button 
-            className="bpm-control-btn"
+            className="bpm-control-btn decrease"
             onClick={handleDecreaseBpm}
             aria-label="Decrease BPM"
           >
-            −
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
           </button>
           
           <div className="bpm-display">{bpm}</div>
           
           <button 
-            className="bpm-control-btn"
+            className="bpm-control-btn increase"
             onClick={handleIncreaseBpm}
             aria-label="Increase BPM"
           >
-            +
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
           </button>
         </div>
         
@@ -308,7 +315,13 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
             onClick={toggleMetronome}
             aria-label={metronomePlaying ? "Stop metronome" : "Start metronome"}
           >
-            {metronomePlaying ? '⏸' : '▶'}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {/* Metronome shape */}
+              <path d="M12 2 L8 6 L8 20 L16 20 L16 6 Z" fill="currentColor" />
+              <path d="M12 2 L12 12" strokeWidth="3" />
+              <circle cx="12" cy="6" r="2" fill="currentColor" />
+              {metronomePlaying && <circle cx="12" cy="6" r="1" fill="white" />}
+            </svg>
           </button>
           
           <button 
@@ -316,7 +329,20 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
             onClick={toggleMute}
             aria-label={muteSound ? "Unmute metronome" : "Mute metronome"}
           >
-            {muteSound ? '🔇' : '🔊'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {muteSound ? (
+                <>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <line x1="23" y1="9" x2="17" y2="15"></line>
+                  <line x1="17" y1="9" x2="23" y2="15"></line>
+                </>
+              ) : (
+                <>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </>
+              )}
+            </svg>
           </button>
         </div>
         
