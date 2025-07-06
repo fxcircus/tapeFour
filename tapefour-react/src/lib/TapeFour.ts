@@ -1761,7 +1761,6 @@ export default class TapeFour {
     // Need either individual tracks with audio OR an existing master buffer
     const tracksToMix = this.getTracksForMixdown();
     const hasMasterBuffer = !!this.state.masterBuffer;
-    const hasIndividualTracks = tracksToMix.length > 0;
     
     return tracksToMix.length >= 1 || hasMasterBuffer;
   }
@@ -3319,9 +3318,8 @@ export default class TapeFour {
     // Get tracks that have audio and should be included in the mix
     const tracksToMix = this.getTracksForMixdown();
     const hasMasterBuffer = !!this.state.masterBuffer;
-    const hasIndividualTracks = tracksToMix.length > 0;
     
-    if (!hasMasterBuffer && !hasIndividualTracks) {
+    if (!hasMasterBuffer && tracksToMix.length === 0) {
               return this.showError('No tracks to bounce. Please record some audio first.');
     }
 
@@ -3334,7 +3332,7 @@ export default class TapeFour {
       if (hasMasterBuffer) {
         maxDuration = Math.max(maxDuration, this.state.masterBuffer!.duration);
       }
-      if (hasIndividualTracks) {
+      if (tracksToMix.length > 0) {
         maxDuration = Math.max(maxDuration, ...tracksToMix.map(track => track.audioBuffer!.duration));
       }
       
@@ -3411,7 +3409,7 @@ export default class TapeFour {
       
       // Generate master waveform that preserves the original timeline positioning
       // (Do this BEFORE clearing track waveforms since we need the position data)
-      if (hasIndividualTracks) {
+      if (tracksToMix.length > 0) {
         // If we have individual tracks, generate waveform from their positions
         this.generateMasterWaveformFromTracks(rendered, tracksToMix);
       } else {
@@ -3423,7 +3421,7 @@ export default class TapeFour {
       this.trackWaveforms.clear();
       
       // Reset all track controls to default positions
-      this.tracks.forEach((track, index) => {
+      this.tracks.forEach((track) => {
         // Reset faders to 0dB (80%)
         const fader = document.getElementById(`fader-${track.id}`) as HTMLInputElement | null;
         if (fader) {
@@ -3477,7 +3475,7 @@ export default class TapeFour {
       // Update the waveform display
       this.redrawAllTrackWaveforms();
       
-      if (hasMasterBuffer && hasIndividualTracks) {
+      if (hasMasterBuffer && tracksToMix.length > 0) {
         this.debugLog('bounce', '[TAPEFOUR] ✅ Additive bounce complete - combined previous master with new tracks');
       } else if (hasMasterBuffer) {
         this.debugLog('bounce', '[TAPEFOUR] ✅ Master-only bounce complete - regenerated master buffer');
@@ -3507,7 +3505,6 @@ export default class TapeFour {
     const waveformData: Array<{position: number, peak: number}> = [];
     
     // Sample every N samples to create manageable waveform data
-    const sampleRate = audioBuffer.sampleRate;
     const duration = audioBuffer.duration;
     const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
     
@@ -3532,7 +3529,6 @@ export default class TapeFour {
     const waveformData: Array<{position: number, peak: number}> = [];
     
     // Sample every N samples to create manageable waveform data
-    const sampleRate = audioBuffer.sampleRate;
     const duration = audioBuffer.duration;
     const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
     
@@ -4321,12 +4317,7 @@ export default class TapeFour {
     this.redrawAllTrackWaveforms();
   }
 
-  private formatTime(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const centiseconds = Math.floor((seconds % 1) * 100);
-    return `${minutes}:${secs.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
-  }
+
 
   private updateTransportDisplay() {
     // Loop display is now handled entirely in the waveform area
@@ -4453,33 +4444,7 @@ export default class TapeFour {
     }
   }
 
-  private drawLoopTimeLabels(startX: number, endX: number) {
-    if (!this.waveformContext || !this.waveformCanvas) return;
-    
-    const ctx = this.waveformContext;
-    const canvas = this.waveformCanvas;
-    
-    // Set up text styling
-    ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = 'rgba(34, 197, 94, 1)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    
-    // Draw start time label
-    const startLabel = this.formatTime(this.state.loopStart);
-    ctx.fillText(startLabel, startX, 5);
-    
-    // Draw end time label
-    const endLabel = this.formatTime(this.state.loopEnd);
-    ctx.fillText(endLabel, endX, 5);
-    
-    // Draw loop duration in the center
-    const centerX = (startX + endX) / 2;
-    const duration = this.state.loopEnd - this.state.loopStart;
-    const durationLabel = `${duration.toFixed(2)}s`;
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.8)';
-    ctx.fillText(durationLabel, centerX, canvas.height - 15);
-  }
+
 
   /* ---------- Waveform Strip Methods ---------- */
 
@@ -4567,7 +4532,6 @@ export default class TapeFour {
     if (!armedTrack) return;
     
     const canvas = this.waveformCanvas;
-    const height = canvas.height;
     
     // Calculate current playhead position using the SAME logic as updatePlayheadUI
     const progress = this.state.playheadPosition / this.state.maxRecordingTime;
@@ -4761,9 +4725,26 @@ export default class TapeFour {
   }
 
   private updateUndoButtonState() {
-    const undoButton = document.getElementById('undo-btn');
-    if (undoButton) {
-      undoButton.disabled = this.tracks.some(track => track.undoHistory.length > 0);
+    const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
+    if (!undoBtn) return;
+
+    const armedTrack = this.tracks.find(t => t.isArmed);
+    // Button should be enabled only if a track is armed AND that track has an undo history.
+    const canUndo = !!armedTrack && armedTrack.undoHistory.length > 0;
+
+    undoBtn.disabled = !canUndo;
+
+    // Add/remove class for visual styling
+    if (canUndo) {
+      undoBtn.classList.remove('disabled');
+    } else {
+      undoBtn.classList.add('disabled');
+    }
+    
+    if (canUndo) {
+      undoBtn.title = 'Undo Last Override (U)';
+    } else {
+      undoBtn.title = armedTrack ? 'No override to undo on this track' : 'Arm a track to undo an override';
     }
   }
 
@@ -4796,29 +4777,5 @@ export default class TapeFour {
 
     // Always update the button state after an attempt
     this.updateUndoButtonState();
-  }
-
-  private updateUndoButtonState() {
-    const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
-    if (!undoBtn) return;
-
-    const armedTrack = this.tracks.find(t => t.isArmed);
-    // Button should be enabled only if a track is armed AND that track has an undo history.
-    const canUndo = !!armedTrack && armedTrack.undoHistory.length > 0;
-
-    undoBtn.disabled = !canUndo;
-
-    // Add/remove class for visual styling
-    if (canUndo) {
-      undoBtn.classList.remove('disabled');
-    } else {
-      undoBtn.classList.add('disabled');
-    }
-    
-    if (canUndo) {
-      undoBtn.title = 'Undo Last Override (U)';
-    } else {
-      undoBtn.title = armedTrack ? 'No override to undo on this track' : 'Arm a track to undo an override';
-    }
   }
 }

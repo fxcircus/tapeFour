@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import TapeFour from './lib/TapeFour'
+import Metronome from './components/Metronome'
 
 type Theme = 'vintage' | 'indie' | 'disco' | 'dark' | '808'
 
 function App() {
   const tapeFourRef = useRef<TapeFour | null>(null)
   const [currentTheme, setCurrentTheme] = useState<Theme>('vintage')
+  const [bpm, setBpm] = useState(120)
 
   useEffect(() => {
     tapeFourRef.current = new TapeFour()
@@ -223,6 +225,11 @@ function App() {
           <div className="playhead-indicator" id="playhead-indicator" />
         </div>
       </div>
+
+      <Metronome 
+        bpm={bpm} 
+        onBpmChange={setBpm} 
+      />
 
       <div className="mixer-section">
         <div className="tracks-container">

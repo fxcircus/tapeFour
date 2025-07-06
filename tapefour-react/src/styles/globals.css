@@ -3122,3 +3122,1277 @@ body {
   transform: none;
 }
 
+/* ===================================
+   MOBILE RESPONSIVE MEDIA QUERIES
+   =================================== */
+
+/* Tablet Landscape (1024px and down) */
+@media screen and (max-width: 1024px) {
+  .recorder-container {
+    max-width: 100%;
+    padding: 24px;
+    gap: 24px;
+  }
+  
+  .cassette-display {
+    padding: 32px 24px;
+    min-height: 140px;
+  }
+  
+  .tape-reel {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .left-reel {
+    left: 60px;
+  }
+  
+  .right-reel {
+    right: 60px;
+  }
+}
+
+/* Mobile Devices (767px and down) - Touch-Optimized */
+@media screen and (max-width: 767px) {
+  body {
+    padding: 8px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .recorder-container {
+    padding: 9px;
+    gap: 12px;
+    margin: 0;
+    border-radius: 7px;
+  }
+  
+  /* ===== RESPONSIVE TYPOGRAPHY ===== */
+  .header {
+    font-size: clamp(12px, 2.5vw, 18px);
+    margin-bottom: 5px;
+    text-align: center;
+  }
+  
+  :root[data-theme="indie"] .header {
+    font-size: clamp(9px, 1.5vw, 12px);
+  }
+  
+  :root[data-theme="disco"] .header {
+    font-size: clamp(14px, 3vw, 20px);
+  }
+  
+  :root[data-theme="808"] .header {
+    font-size: clamp(12px, 2.5vw, 18px);
+  }
+  
+  /* ===== CASSETTE DISPLAY - COMPACT ===== */
+  .cassette-display {
+    padding: 12px 9px;
+    min-height: 72px;
+    gap: 9px;
+  }
+  
+  .tape-reel {
+    width: 39px;
+    height: 39px;
+  }
+  
+  .left-reel {
+    left: 19px;
+  }
+  
+  .right-reel {
+    right: 19px;
+  }
+  
+  .reel-center {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .reel-holes {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .hole {
+    width: 2px;
+    height: 2px;
+  }
+  
+  /* ===== TIMELINE SECTION - COMPACT ===== */
+  .display-section {
+    gap: 9px;
+    padding: 6px;
+  }
+  
+  .timecode {
+    font-size: clamp(12px, 2.5vw, 16px);
+    padding: 6px 12px;
+    border-radius: 4px;
+    min-width: 97px;
+  }
+  
+  :root[data-theme="indie"] .timecode {
+    font-size: clamp(9px, 1.5vw, 12px);
+  }
+  
+  .volume-meter {
+    height: 12px;
+    width: 113px;
+    border-radius: 6px;
+  }
+  
+  .playhead {
+    height: 39px;
+    border-radius: 4px;
+    /* Ensure full width and touch-friendly */
+    width: 65%;
+    min-height: 39px;
+  }
+  
+  .waveform-canvas {
+    height: 39px;
+    border-radius: 3px;
+  }
+  
+  .playhead-indicator {
+    width: 2px;
+  }
+  
+  .playhead-indicator::before,
+  .playhead-indicator::after {
+    width: 8px;
+    height: 3px;
+  }
+  
+  /* ===== TRANSPORT CONTROLS - COMPACT WITH SCROLL ===== */
+  .transport-controls {
+    display: flex;
+    gap: 8px;
+    padding: 9px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    align-items: center;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .transport-controls::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .transport-button,
+  .record-button,
+  .bounce-button,
+  .clear-button {
+    width: 39px;
+    height: 39px;
+    min-width: 39px;
+    min-height: 39px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    padding: 4px;
+    /* Better touch feedback */
+    transition: transform 0.1s ease, background-color 0.15s ease;
+  }
+  
+  .transport-button:active,
+  .record-button:active,
+  .bounce-button:active,
+  .clear-button:active {
+    transform: scale(0.95);
+  }
+  
+  .transport-button svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* ===== CHANNEL FADERS - HORIZONTAL SCROLL LAYOUT ===== */
+  .tracks-container {
+    display: flex;
+    flex-direction: row;
+    gap: 9px;
+    padding: 12px 12px 12px 24px; /* Extra left padding for first track visibility */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .tracks-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Individual channel strips - smaller and more compact */
+  .track {
+    display: flex;
+    flex-direction: column;
+    min-width: 113px;
+    max-width: 113px;
+    flex-shrink: 0;
+    padding: 11px;
+    gap: 9px;
+    background: var(--color-control-surface);
+    border: 2px solid var(--color-text-primary);
+    border-radius: 8px;
+    scroll-snap-align: start;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Track controls - compact and touch-friendly */
+  .track-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    padding: 0;
+  }
+  
+  .speed-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    justify-content: center;
+  }
+  
+  .reverse-button,
+  .half-speed-button {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+    font-size: 8px;
+    border-radius: 4px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .arm-button,
+  .solo-button {
+    width: 32px;
+    height: 21px;
+    min-width: 32px;
+    min-height: 21px;
+    border-radius: 4px;
+    font-size: 8px;
+  }
+  
+  .mute-button {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 4px;
+  }
+  
+  /* Pan knob - compact but accessible */
+  .pan-knob-container {
+    width: 29px;
+    height: 29px;
+    margin: 4px 0;
+  }
+  
+  .pan-knob {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+  
+  .pan-knob-container::before {
+    width: 2px;
+    height: 9px;
+    top: 4px;
+    transform-origin: 50% 9px;
+  }
+  
+  /* Fader section - compact and touch-friendly */
+  .fader-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 0;
+  }
+  
+  .fader {
+    height: 130px;
+    width: 21px;
+    border-radius: 6px;
+  }
+  
+  .fader-markings {
+    min-height: 130px;
+    width: 19px;
+    padding: 0 2px;
+    position: relative;
+  }
+  
+  .marking {
+    font-size: 6px;
+    font-weight: 600;
+  }
+  
+  /* Adjust marking positions for compact faders */
+  .marking[data-db="0"] {
+    top: 39px;
+  }
+  
+  .marking.dash:nth-of-type(2) {
+    top: 58px;
+  }
+  
+  .marking[data-db="-12"] {
+    top: 77px;
+  }
+  
+  .marking.dash:nth-of-type(4) {
+    top: 91px;
+  }
+  
+  .marking[data-db="-36"] {
+    top: 104px;
+  }
+  
+  .marking.dash:nth-of-type(6) {
+    top: 113px;
+  }
+  
+  .marking[data-db="-60"] {
+    top: 123px;
+  }
+  
+  /* ===== MASTER SECTION - MATCHES TRACK SIZE ===== */
+  .master-section {
+    display: flex;
+    flex-direction: column;
+    min-width: 113px;
+    max-width: 113px;
+    flex-shrink: 0;
+    padding: 11px;
+    gap: 9px;
+    background: var(--color-control-surface);
+    border: 2px solid var(--color-text-primary);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    align-items: center;
+  }
+  
+  .master-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .master-fader {
+    height: 130px;
+    width: 21px;
+    border-radius: 6px;
+  }
+  
+  .master-text {
+    font-size: 6px;
+    font-weight: 600;
+    min-width: 14px;
+  }
+  
+  /* ===== SETTINGS MODAL - MOBILE OPTIMIZED ===== */
+  .settings-modal {
+    padding: 12px;
+  }
+  
+  .settings-content {
+    max-width: 95vw;
+    max-height: 90vh;
+    padding: 24px;
+    border-radius: 16px;
+    overflow-y: auto;
+  }
+  
+  .settings-title {
+    font-size: clamp(11px, 2.5vw, 14px);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .settings-subtitle {
+    font-size: clamp(9px, 2vw, 11px);
+    margin-bottom: 16px;
+  }
+  
+  .settings-group {
+    margin-bottom: 24px;
+  }
+  
+  .settings-label {
+    font-size: 8px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  
+  .settings-select {
+    padding: 16px;
+    font-size: 8px;
+    border-radius: 8px;
+    min-height: 52px;
+    width: 100%;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 40px;
+  }
+  
+  .scan-devices-btn,
+  .scan-output-devices-btn,
+  .close-settings-btn {
+    padding: 16px 20px;
+    font-size: 8px;
+    border-radius: 8px;
+    min-height: 52px;
+    margin: 8px 0;
+    width: 100%;
+    transition: transform 0.1s ease;
+  }
+  
+  .scan-devices-btn:active,
+  .scan-output-devices-btn:active,
+  .close-settings-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .settings-checkbox {
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+  }
+  
+  .checkbox-label {
+    font-size: 8px;
+    line-height: 1.5;
+    padding: 12px 0;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .shortcuts-table {
+    font-size: 7px;
+    overflow-x: auto;
+  }
+  
+  .shortcuts-table th,
+  .shortcuts-table td {
+    padding: 12px 8px;
+  }
+  
+  .shortcuts-table kbd {
+    padding: 6px 10px;
+    font-size: 6px;
+    border-radius: 6px;
+    min-width: 32px;
+  }
+  
+  /* ===== THEME SELECTOR - MOBILE FRIENDLY ===== */
+  .theme-selector {
+    padding: 16px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    min-height: 52px;
+  }
+  
+  .theme-option {
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* ===== ERROR AND WARNING MESSAGES ===== */
+  .error-message,
+  .warning-message {
+    padding: 20px;
+    font-size: 16px;
+    line-height: 1.5;
+    border-radius: 12px;
+    margin: 16px 0;
+  }
+  
+  .warning-buttons {
+    gap: 16px;
+    flex-direction: column;
+  }
+  
+  .warning-cancel-btn,
+  .warning-continue-btn {
+    padding: 16px 24px;
+    font-size: 16px;
+    border-radius: 8px;
+    min-height: 52px;
+    width: 100%;
+  }
+}
+
+
+/* Small Mobile (480px and down) - Extra compact for smaller screens */
+@media screen and (max-width: 480px) {
+  .recorder-container {
+    padding: 8px;
+    gap: 10px;
+  }
+  
+  /* Extra compact typography for very small screens */
+  .header {
+    font-size: clamp(10px, 2vw, 14px);
+  }
+  
+  :root[data-theme="indie"] .header {
+    font-size: clamp(8px, 1.5vw, 10px);
+  }
+  
+  :root[data-theme="disco"] .header {
+    font-size: clamp(12px, 3vw, 18px);
+  }
+  
+  :root[data-theme="808"] .header {
+    font-size: clamp(10px, 2.5vw, 16px);
+  }
+  
+  /* Extra compact cassette display */
+  .cassette-display {
+    padding: 10px 8px;
+    min-height: 65px;
+    gap: 8px;
+  }
+  
+  .tape-reel {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .left-reel {
+    left: 16px;
+  }
+  
+  .right-reel {
+    right: 16px;
+  }
+  
+  .reel-center {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .reel-holes {
+    width: 26px;
+    height: 26px;
+  }
+  
+  /* Extra compact timeline elements */
+  .playhead {
+    height: 32px;
+    width: 70%;
+    min-height: 32px;
+  }
+  
+  .waveform-canvas {
+    height: 32px;
+  }
+  
+  .timecode {
+    font-size: clamp(10px, 2vw, 14px);
+    padding: 4px 10px;
+  }
+  
+  .volume-meter {
+    height: 11px;
+    width: 97px;
+  }
+  
+  /* Extra compact transport controls */
+  .transport-button,
+  .record-button,
+  .bounce-button,
+  .clear-button {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 4px;
+  }
+  
+  .transport-button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* Extra compact tracks and increase left padding */
+  .tracks-container {
+    padding: 10px 10px 10px 28px; /* More left padding for channel 1 visibility */
+  }
+  
+  .track {
+    min-width: 97px;
+    max-width: 97px;
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .track-controls {
+    gap: 4px;
+  }
+  
+  .reverse-button,
+  .half-speed-button {
+    width: 23px;
+    height: 23px;
+    min-width: 23px;
+    min-height: 23px;
+    font-size: 7px;
+  }
+  
+  .arm-button,
+  .solo-button {
+    width: 29px;
+    height: 18px;
+    min-width: 29px;
+    min-height: 18px;
+    font-size: 7px;
+  }
+  
+  .mute-button {
+    width: 29px;
+    height: 29px;
+    min-width: 29px;
+    min-height: 29px;
+  }
+  
+  .pan-knob-container {
+    width: 26px;
+    height: 26px;
+  }
+  
+  .pan-knob {
+    width: 23px;
+    height: 23px;
+  }
+  
+  .fader {
+    height: 113px;
+    width: 19px;
+  }
+  
+  .fader-markings {
+    min-height: 113px;
+    width: 16px;
+  }
+  
+  /* Adjust marking positions for extra compact faders */
+  .marking[data-db="0"] {
+    top: 34px;
+  }
+  
+  .marking.dash:nth-of-type(2) {
+    top: 51px;
+  }
+  
+  .marking[data-db="-12"] {
+    top: 68px;
+  }
+  
+  .marking.dash:nth-of-type(4) {
+    top: 79px;
+  }
+  
+  .marking[data-db="-36"] {
+    top: 91px;
+  }
+  
+  .marking.dash:nth-of-type(6) {
+    top: 99px;
+  }
+  
+  .marking[data-db="-60"] {
+    top: 108px;
+  }
+  
+  .master-section {
+    min-width: 97px;
+    max-width: 97px;
+    padding: 10px;
+  }
+  
+  .master-fader {
+    height: 113px;
+    width: 19px;
+  }
+  
+  .master-text {
+    font-size: 5px;
+  }
+  
+  /* Settings modal font sizes reduced by 50% */
+  .settings-title {
+    font-size: clamp(5px, 1.2vw, 7px);
+  }
+  
+  .settings-subtitle {
+    font-size: clamp(4px, 1vw, 5px);
+  }
+  
+  .settings-label {
+    font-size: 4px;
+  }
+  
+  .settings-select {
+    font-size: 4px;
+  }
+  
+  .scan-devices-btn,
+  .scan-output-devices-btn,
+  .close-settings-btn {
+    font-size: 4px;
+  }
+  
+  .checkbox-label {
+    font-size: 4px;
+  }
+  
+  .shortcuts-table {
+    font-size: 3px;
+  }
+  
+  .shortcuts-table kbd {
+    font-size: 3px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Enhanced touch feedback for all interactive elements */
+  .transport-button,
+  .record-button,
+  .bounce-button,
+  .clear-button,
+  .arm-button,
+  .solo-button,
+  .mute-button,
+  .reverse-button,
+  .half-speed-button {
+    transition: transform 0.1s ease, background-color 0.15s ease;
+  }
+  
+  .transport-button:active,
+  .record-button:active,
+  .bounce-button:active,
+  .clear-button:active,
+  .arm-button:active,
+  .solo-button:active,
+  .mute-button:active,
+  .reverse-button:active,
+  .half-speed-button:active {
+    transform: scale(0.95);
+  }
+  
+  /* Ensure adequate touch targets */
+  .fader,
+  .master-fader {
+    min-width: 32px;
+  }
+  
+  .pan-knob {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Enhanced playhead interaction */
+  .playhead {
+    cursor: pointer;
+    padding: 8px 0;
+  }
+  
+  .playhead-indicator {
+    width: 4px;
+  }
+  
+  /* Better touch feedback for settings elements */
+  .settings-select,
+  .scan-devices-btn,
+  .scan-output-devices-btn,
+  .close-settings-btn {
+    transition: transform 0.1s ease;
+  }
+  
+  .settings-select:active,
+  .scan-devices-btn:active,
+  .scan-output-devices-btn:active,
+  .close-settings-btn:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Landscape orientation adjustments for mobile devices */
+@media screen and (max-height: 600px) and (orientation: landscape) and (max-width: 900px) {
+  .recorder-container {
+    padding: 6px;
+    gap: 6px;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  
+  /* Extra compact elements for limited vertical space */
+  .header {
+    font-size: clamp(10px, 2vw, 14px);
+    margin-bottom: 3px;
+  }
+  
+  .cassette-display {
+    padding: 6px 10px;
+    min-height: 49px;
+    gap: 6px;
+  }
+  
+  .tape-reel {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .left-reel {
+    left: 16px;
+  }
+  
+  .right-reel {
+    right: 16px;
+  }
+  
+  /* Extra compact timeline for landscape */
+  .playhead {
+    height: 32px;
+    min-height: 32px;
+  }
+  
+  .waveform-canvas {
+    height: 32px;
+  }
+  
+  .timecode {
+    font-size: clamp(10px, 2vw, 12px);
+    padding: 4px 10px;
+  }
+  
+  .volume-meter {
+    height: 11px;
+    width: 97px;
+  }
+  
+  /* Extra compact transport controls */
+  .transport-button,
+  .record-button,
+  .bounce-button,
+  .clear-button {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .transport-button svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  /* Adjust tracks for landscape - keep horizontal scroll but extra compact with more left padding */
+  .tracks-container {
+    padding: 10px 6px 10px 26px; /* More left padding for channel 1 visibility */
+  }
+  
+  .track {
+    min-width: 121px;
+    max-width: 121px;
+    padding: 10px;
+    gap: 6px;
+  }
+  
+  .fader {
+    height: 113px;
+  }
+  
+  .fader-markings {
+    min-height: 113px;
+  }
+  
+  .master-section {
+    min-width: 89px;
+    max-width: 89px;
+    padding: 10px;
+  }
+  
+  .master-fader {
+    height: 113px;
+  }
+  
+  /* Extra compact settings modal for landscape with 50% smaller fonts */
+  .settings-content {
+    max-width: 90vw;
+    max-height: 85vh;
+    padding: 12px;
+  }
+  
+  .settings-title {
+    font-size: clamp(8px, 1.7vw, 10px);
+    margin-bottom: 6px;
+  }
+  
+  .settings-subtitle {
+    font-size: clamp(6px, 1.2vw, 8px);
+  }
+  
+  .settings-label {
+    font-size: 6px;
+  }
+  
+  .settings-select {
+    font-size: 6px;
+  }
+  
+  .scan-devices-btn,
+  .scan-output-devices-btn,
+  .close-settings-btn {
+    font-size: 6px;
+  }
+  
+  .checkbox-label {
+    font-size: 6px;
+  }
+  
+  .shortcuts-table {
+    font-size: 5px;
+  }
+  
+  .shortcuts-table kbd {
+    font-size: 4px;
+  }
+}
+
+/* ===== METRONOME COMPONENT STYLES ===== */
+.metronome-container {
+  background: var(--color-control-surface);
+  border-radius: 6px;
+  padding: 20px;
+  border: 1px solid var(--color-text-primary);
+  box-shadow: 
+    inset 0 1px 2px var(--color-shadow-inset),
+    inset 0 -1px 0 var(--overlay-light);
+  margin-top: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.metronome-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    repeating-linear-gradient(0deg, var(--color-transparent), var(--grain-fine) 1px, var(--color-transparent) 2px),
+    repeating-linear-gradient(90deg, var(--color-transparent), var(--grain-fine) 1px, var(--color-transparent) 2px);
+  background-size: 2px 2px, 2px 2px;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: multiply;
+  opacity: 0.3;
+}
+
+.metronome-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.bpm-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.bpm-control-btn {
+  background: var(--color-control-surface);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 
+    inset 0 1px 0 var(--overlay-light),
+    0 1px 2px var(--overlay-subtle);
+}
+
+.bpm-control-btn:hover {
+  background: var(--color-hover-overlay);
+  box-shadow: 
+    inset 0 1px 0 var(--overlay-light),
+    0 2px 4px var(--overlay-hover);
+}
+
+.bpm-control-btn:active {
+  background: var(--color-active-overlay);
+  box-shadow: 
+    inset 0 1px 3px var(--color-shadow-inset),
+    inset 0 -1px 0 var(--overlay-light);
+}
+
+.bpm-display {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  min-width: 80px;
+  text-align: center;
+  padding: 8px 16px;
+  background: var(--color-track-well);
+  border-radius: 4px;
+  border: 1px solid var(--color-text-primary);
+  box-shadow: 
+    inset 0 1px 2px var(--color-shadow-inset),
+    inset 0 -1px 0 var(--overlay-light);
+}
+
+.metronome-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metronome-control-btn {
+  background: var(--color-control-surface);
+  border: 1px solid var(--color-text-primary);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  box-shadow: 
+    inset 0 1px 0 var(--overlay-light),
+    0 1px 2px var(--overlay-subtle);
+}
+
+.metronome-control-btn:hover {
+  background: var(--color-hover-overlay);
+  box-shadow: 
+    inset 0 1px 0 var(--overlay-light),
+    0 2px 4px var(--overlay-hover);
+}
+
+.metronome-control-btn:active {
+  background: var(--color-active-overlay);
+  box-shadow: 
+    inset 0 1px 3px var(--color-shadow-inset),
+    inset 0 -1px 0 var(--overlay-light);
+}
+
+.metronome-control-btn.play-btn.active {
+  background: var(--color-play);
+  color: var(--color-white);
+  box-shadow: 
+    0 0 10px var(--glow-play),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+.metronome-control-btn.play-btn.active:hover {
+  background: var(--color-play);
+  box-shadow: 
+    0 0 15px var(--glow-play),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+.metronome-control-btn.mute-btn.active {
+  background: var(--color-mute);
+  color: var(--color-white);
+  box-shadow: 
+    0 0 8px var(--glow-accent),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+.metronome-control-btn.mute-btn.active:hover {
+  background: var(--color-mute);
+  box-shadow: 
+    0 0 12px var(--glow-accent),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+.beat-indicators {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.beat-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  opacity: 0.3;
+  transition: all 0.2s ease;
+  box-shadow: 
+    inset 0 1px 1px var(--color-shadow-inset),
+    0 1px 2px var(--overlay-subtle);
+}
+
+.beat-indicator.active {
+  background: var(--color-accent-warm);
+  opacity: 1;
+  transform: scale(1.3);
+  box-shadow: 
+    0 0 12px var(--glow-accent),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+/* Theme-specific adjustments for metronome */
+:root[data-theme="indie"] .metronome-container {
+  border: 2px solid var(--color-text-primary);
+}
+
+:root[data-theme="indie"] .bpm-control-btn,
+:root[data-theme="indie"] .metronome-control-btn {
+  border: 2px solid var(--color-text-primary);
+  font-weight: 600;
+}
+
+:root[data-theme="indie"] .bpm-display {
+  border: 2px solid var(--color-text-primary);
+  font-weight: 600;
+}
+
+:root[data-theme="disco"] .metronome-container {
+  box-shadow: 
+    0 0 20px var(--glow-accent),
+    inset 0 1px 2px var(--color-shadow-inset),
+    inset 0 -1px 0 var(--overlay-light);
+}
+
+:root[data-theme="disco"] .beat-indicator.active {
+  background: var(--color-accent-purple);
+  box-shadow: 
+    0 0 15px var(--color-accent-purple),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+:root[data-theme="808"] .metronome-container {
+  border: 1px solid var(--color-accent-warm);
+}
+
+:root[data-theme="808"] .beat-indicator.active {
+  background: var(--color-accent-warm);
+  box-shadow: 
+    0 0 10px var(--color-accent-warm),
+    inset 0 1px 0 var(--overlay-light);
+}
+
+/* Mobile responsiveness for metronome */
+@media screen and (max-width: 767px) {
+  .metronome-container {
+    padding: 16px;
+    margin-top: 16px;
+  }
+  
+  .metronome-content {
+    gap: 12px;
+  }
+  
+  .bpm-controls {
+    gap: 12px;
+  }
+  
+  .bpm-control-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .bpm-display {
+    font-size: 24px;
+    min-width: 70px;
+    padding: 6px 12px;
+  }
+  
+  .metronome-control-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .beat-indicator {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .metronome-container {
+    padding: 12px;
+    margin-top: 12px;
+  }
+  
+  .metronome-content {
+    gap: 10px;
+  }
+  
+  .bpm-controls {
+    gap: 10px;
+  }
+  
+  .bpm-control-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  
+  .bpm-display {
+    font-size: 20px;
+    min-width: 60px;
+    padding: 4px 8px;
+  }
+  
+  .metronome-control-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .beat-indicator {
+    width: 8px;
+    height: 8px;
+  }
+}
+
