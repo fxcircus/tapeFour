@@ -17,6 +17,7 @@ class MetronomeEngine {
   running: boolean = false;
   muted: boolean = false;
   onBeatChange: ((beat: number) => void) | null = null;
+  gainNode: GainNode | null = null;
   
   constructor(tempo: number, onBeatChange?: (beat: number) => void) {
     this.tempo = tempo;
@@ -28,6 +29,11 @@ class MetronomeEngine {
   init() {
     try {
       this.context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!this.gainNode) {
+        this.gainNode = this.context.createGain();
+        this.gainNode.gain.value = 0.5;
+        this.gainNode.connect(this.context.destination);
+      }
       return true;
     } catch (e) {
       console.error("Web Audio API not supported in this browser:", e);
@@ -77,6 +83,10 @@ class MetronomeEngine {
     this.muted = muted;
   }
   
+  setVolume(vol: number) {
+    if (this.gainNode) this.gainNode.gain.value = vol;
+  }
+  
   private clearTimer() {
     if (this.timerID !== null) {
       window.clearTimeout(this.timerID);
@@ -99,7 +109,7 @@ class MetronomeEngine {
     }
     
     osc.connect(gain);
-    gain.connect(this.context.destination);
+    gain.connect(this.gainNode!);
     
     gain.gain.setValueAtTime(0, time);
     gain.gain.linearRampToValueAtTime(gain.gain.value, time + 0.01);
@@ -163,6 +173,9 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
   const [bpm, setBpm] = useState(initialBpm);
   const [currentBeat, setCurrentBeat] = useState(0);
   const beats = [0, 1, 2, 3]; // 4/4 time signature
+  const [volume, setVolume] = useState(50); // 0-100
+  const volumeKnobRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
   
   // Refs
   const metronomeRef = useRef<MetronomeEngine | null>(null);
@@ -215,6 +228,69 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
       metronomeRef.current.setMuted(muteSound);
     }
   }, [muteSound]);
+  
+  // Interactive knob logic
+  useEffect(() => {
+    const knob = volumeKnobRef.current;
+    if (!knob) return;
+
+    const updateKnobRotation = (value: number) => {
+      const rotation = (value - 50) * 2.7;
+      knob.style.setProperty('--rotation', `${rotation}deg`);
+    };
+
+    updateKnobRotation(volume);
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDraggingRef.current = true;
+      document.body.style.userSelect = 'none';
+      knob.setAttribute('data-start-y', e.clientY.toString());
+      knob.setAttribute('data-start-value', volume.toString());
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (isDraggingRef.current) {
+        const startY = Number(knob.getAttribute('data-start-y'));
+        const startValue = Number(knob.getAttribute('data-start-value'));
+        const deltaY = startY - e.clientY;
+        const sensitivity = 0.5;
+        const newValue = Math.max(0, Math.min(100, startValue + deltaY * sensitivity));
+        setVolume(newValue);
+        updateKnobRotation(newValue);
+        e.preventDefault();
+      }
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.userSelect = '';
+    };
+
+    const onDblClick = () => {
+      setVolume(50);
+      updateKnobRotation(50);
+    };
+
+    knob.addEventListener('mousedown', onMouseDown);
+    knob.addEventListener('dblclick', onDblClick);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      knob.removeEventListener('mousedown', onMouseDown);
+      knob.removeEventListener('dblclick', onDblClick);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [volume]);
+
+  // Update metronome engine volume
+  useEffect(() => {
+    if (metronomeRef.current) {
+      metronomeRef.current.setVolume(volume / 100);
+    }
+  }, [volume]);
   
   // Start/stop metronome
   useEffect(() => {
@@ -321,24 +397,24 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
               </svg>
             )}
           </button>
-          <button 
-            className={`metronome-btn transport-btn mute-btn${muteSound ? ' active' : ''}`}
-            onClick={toggleMute}
-            aria-label={muteSound ? "Unmute Metronome" : "Mute Metronome"}
+          <div
+            className="pan-knob-container"
+            ref={volumeKnobRef}
+            tabIndex={0}
+            aria-label="Metronome Volume"
+            style={{ '--rotation': `${(volume - 50) * 2.7}deg` } as React.CSSProperties}
           >
-            {muteSound ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                <line x1="23" y1="9" x2="17" y2="15"></line>
-                <line x1="17" y1="9" x2="23" y2="15"></line>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-              </svg>
-            )}
-          </button>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={volume}
+              onChange={e => setVolume(Number(e.target.value))}
+              className="pan-knob metronome-volume-knob"
+              aria-label="Metronome Volume"
+              style={{ width: 32, height: 32 }}
+            />
+          </div>
         </div>
       </div>
       <div className="beats-row">
