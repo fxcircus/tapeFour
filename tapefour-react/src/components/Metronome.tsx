@@ -49,6 +49,9 @@ class MetronomeEngine {
     
     this.running = true;
     this.currentBeat = 0;
+    if (this.onBeatChange) {
+      this.onBeatChange(0);
+    }
     this.nextNoteTime = this.context!.currentTime;
     this.scheduledNotes = [];
     this.scheduler();
@@ -123,13 +126,12 @@ class MetronomeEngine {
   }
   
   private advanceNote() {
-    this.currentBeat = (this.currentBeat + 1) % this.beatsPerMeasure;
-    const secondsPerBeat = 60.0 / this.tempo;
-    this.nextNoteTime += secondsPerBeat;
-    
     if (this.onBeatChange) {
       this.onBeatChange(this.currentBeat);
     }
+    this.currentBeat = (this.currentBeat + 1) % this.beatsPerMeasure;
+    const secondsPerBeat = 60.0 / this.tempo;
+    this.nextNoteTime += secondsPerBeat;
   }
   
   processScheduledNotes(currentTime: number): number | null {
@@ -231,14 +233,6 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
     
     const updateUI = () => {
       if (!metronomeRef.current?.context) return;
-      
-      const currentTime = metronomeRef.current.context.currentTime;
-      const beatToShow = metronomeRef.current.processScheduledNotes(currentTime);
-      
-      if (beatToShow !== null) {
-        setCurrentBeat(beatToShow);
-      }
-      
       if (metronomePlaying) {
         rafIdRef.current = requestAnimationFrame(updateUI);
       }
@@ -281,12 +275,10 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
 
   return (
     <div className="metronome-container">
-      <div className="metronome-content">
-        <div className="tempo-label">Tempo (BPM)</div>
-        
-        <div className="bpm-controls">
+      <div className="metronome-controls-group">
+        <div className="metronome-row top-row">
           <button 
-            className="bpm-control-btn decrease"
+            className="metronome-btn bpm-control-btn decrease"
             onClick={handleDecreaseBpm}
             aria-label="Decrease BPM"
           >
@@ -294,11 +286,12 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
           </button>
-          
-          <div className="bpm-display">{bpm}</div>
-          
+          <div className="bpm-display">
+            <div className="bpm-number">{bpm}</div>
+            <div className="bpm-label">BPM</div>
+          </div>
           <button 
-            className="bpm-control-btn increase"
+            className="metronome-btn bpm-control-btn increase"
             onClick={handleIncreaseBpm}
             aria-label="Increase BPM"
           >
@@ -308,52 +301,54 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
             </svg>
           </button>
         </div>
-        
-        <div className="metronome-controls">
+        <div className="metronome-divider" />
+        <div className="metronome-row bottom-row">
           <button 
-            className={`metronome-control-btn play-btn ${metronomePlaying ? 'active' : ''}`}
+            className={`metronome-btn transport-btn play-btn${metronomePlaying ? ' active' : ''}`}
             onClick={toggleMetronome}
-            aria-label={metronomePlaying ? "Stop metronome" : "Start metronome"}
+            aria-label={metronomePlaying ? "Pause Metronome" : "Start Metronome"}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {/* Metronome shape */}
-              <path d="M12 2 L8 6 L8 20 L16 20 L16 6 Z" fill="currentColor" />
-              <path d="M12 2 L12 12" strokeWidth="3" />
-              <circle cx="12" cy="6" r="2" fill="currentColor" />
-              {metronomePlaying && <circle cx="12" cy="6" r="1" fill="white" />}
-            </svg>
+            {metronomePlaying ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2 L8 6 L8 22 L16 22 L16 6 Z" fill="currentColor" />
+                <path d="M12 2 L12 14" strokeWidth="3" />
+                <circle cx="12" cy="8" r="2" fill="white" />
+              </svg>
+            )}
           </button>
-          
           <button 
-            className={`metronome-control-btn mute-btn ${muteSound ? 'active' : ''}`}
+            className={`metronome-btn transport-btn mute-btn${muteSound ? ' active' : ''}`}
             onClick={toggleMute}
-            aria-label={muteSound ? "Unmute metronome" : "Mute metronome"}
+            aria-label={muteSound ? "Unmute Metronome" : "Mute Metronome"}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {muteSound ? (
-                <>
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <line x1="23" y1="9" x2="17" y2="15"></line>
-                  <line x1="17" y1="9" x2="23" y2="15"></line>
-                </>
-              ) : (
-                <>
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </>
-              )}
-            </svg>
+            {muteSound ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                <line x1="23" y1="9" x2="17" y2="15"></line>
+                <line x1="17" y1="9" x2="23" y2="15"></line>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+              </svg>
+            )}
           </button>
         </div>
-        
-        <div className="beat-indicators">
-          {beats.map((beat) => (
-            <div 
-              key={beat}
-              className={`beat-indicator ${currentBeat === beat && metronomePlaying ? 'active' : ''}`}
-            />
-          ))}
-        </div>
+      </div>
+      <div className="beats-row">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div 
+            key={i}
+            className={`beat-indicator${metronomePlaying && currentBeat === i ? ' active' : ''}`}
+            aria-label={`Beat ${i + 1}`}
+          />
+        ))}
       </div>
     </div>
   );

@@ -4087,334 +4087,265 @@ body {
   }
 }
 
-/* ===== METRONOME COMPONENT STYLES (INTEGRATED) ===== */
+/* ===== METRONOME COMPONENT STYLES (MINIMAL, ALIGNED) ===== */
 .metronome-container {
-  /* Remove separate container styling - integrate seamlessly */
-  background: transparent;
+  background: none;
   border: none;
-  padding: 20px 0 0 0;
-  margin: 0;
+  padding: 8px 0 0 0;
+  margin: 0 auto;
   position: relative;
-  overflow: visible;
-  box-shadow: none;
-}
-
-.metronome-container::before {
-  /* Remove grain overlay */
-  display: none;
-}
-
-.metronome-content {
-  position: relative;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  width: 100%;
+  box-shadow: none;
 }
 
-.tempo-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-  opacity: 0.8;
-}
-
-.bpm-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 4px;
-}
-
-.bpm-control-btn {
-  background: var(--color-control-surface);
-  border: 2px solid var(--color-text-primary);
-  border-radius: 6px;
-  color: var(--color-text-primary);
-  cursor: pointer;
+.metronome-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  font-size: 18px;
-  font-weight: 600;
+  gap: 0;
+  margin: 0 auto;
+}
+
+.top-row {
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.bottom-row {
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.metronome-btn {
+  background: var(--color-control-surface);
+  border: 2px solid var(--color-text-primary);
+  color: var(--color-text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 
-    inset 0 1px 0 var(--overlay-light),
-    0 2px 4px var(--overlay-subtle);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  outline: none;
 }
 
 .bpm-control-btn.decrease {
   border-radius: 6px 0 0 6px;
+  border-right: none;
 }
 
 .bpm-control-btn.increase {
   border-radius: 0 6px 6px 0;
-}
-
-.bpm-control-btn:hover {
-  background: var(--color-hover-overlay);
-  transform: translateY(-1px);
-  box-shadow: 
-    inset 0 1px 0 var(--overlay-light),
-    0 4px 8px var(--overlay-hover);
-}
-
-.bpm-control-btn:active {
-  background: var(--color-active-overlay);
-  transform: translateY(0);
-  box-shadow: 
-    inset 0 2px 4px var(--color-shadow-inset),
-    inset 0 -1px 0 var(--overlay-light);
+  border-left: none;
 }
 
 .bpm-display {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  min-width: 90px;
-  text-align: center;
-  padding: 12px 20px;
-  background: var(--color-track-well);
-  border-radius: 8px;
-  border: 2px solid var(--color-text-primary);
-  box-shadow: 
-    inset 0 2px 4px var(--color-shadow-inset),
-    inset 0 -1px 0 var(--overlay-light);
-  font-variant-numeric: tabular-nums;
-}
-
-.metronome-controls {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-width: 60px;
+  width: 60px;
+  height: 40px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 4px 0;
-}
-
-.metronome-control-btn {
-  background: var(--color-control-surface);
-  border: 2px solid var(--color-text-primary);
-  border-radius: 8px;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
   font-size: 16px;
-  transition: all 0.2s ease;
-  box-shadow: 
-    inset 0 1px 0 var(--overlay-light),
-    0 2px 4px var(--overlay-subtle);
+  font-weight: 600;
+  text-align: center;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
 }
 
-.metronome-control-btn:hover {
-  background: var(--color-hover-overlay);
-  transform: translateY(-1px);
-  box-shadow: 
-    inset 0 1px 0 var(--overlay-light),
-    0 4px 8px var(--overlay-hover);
+.transport-btn {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
-.metronome-control-btn:active {
-  background: var(--color-active-overlay);
-  transform: translateY(0);
-  box-shadow: 
-    inset 0 2px 4px var(--color-shadow-inset),
-    inset 0 -1px 0 var(--overlay-light);
+.bpm-number {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.metronome-control-btn.play-btn.active {
-  background: var(--color-play);
-  color: var(--color-white);
-  border-color: var(--color-play);
-  box-shadow: 
-    0 0 12px var(--glow-play),
-    inset 0 1px 0 var(--overlay-light);
+.bpm-label {
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1;
+  opacity: 0.7;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
 }
 
-.metronome-control-btn.play-btn.active:hover {
-  background: var(--color-play);
-  box-shadow: 
-    0 0 16px var(--glow-play),
-    inset 0 1px 0 var(--overlay-light);
+.transport-btn.active {
+  background: var(--color-active);
+  color: var(--color-text-accent);
 }
 
-.metronome-control-btn.mute-btn.active {
-  background: var(--color-mute);
-  color: var(--color-white);
-  border-color: var(--color-mute);
-  box-shadow: 
-    0 0 10px var(--glow-accent),
-    inset 0 1px 0 var(--overlay-light);
-}
-
-.metronome-control-btn.mute-btn.active:hover {
-  background: var(--color-mute);
-  box-shadow: 
-    0 0 14px var(--glow-accent),
-    inset 0 1px 0 var(--overlay-light);
-}
-
-.beat-indicators {
+.beats-row {
   display: flex;
+  gap: 10px;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .beat-indicator {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: var(--color-text-primary);
-  opacity: 0.3;
-  transition: all 0.3s ease;
-  border: 1px solid var(--color-text-primary);
-  box-shadow: 
-    inset 0 1px 1px var(--color-shadow-inset),
-    0 1px 2px var(--overlay-subtle);
+  background: var(--color-control-surface);
+  border: 2px solid var(--color-text-primary);
+  transition: all 0.15s ease;
+  box-shadow: none;
 }
 
 .beat-indicator.active {
-  background: var(--color-accent-warm);
-  border-color: var(--color-accent-warm);
-  opacity: 1;
-  transform: scale(1.4);
-  box-shadow: 
-    0 0 16px var(--glow-accent),
-    inset 0 1px 0 var(--overlay-light);
+  background: #ff9800 !important; /* strong orange for visibility */
+  border-color: #ff9800 !important;
+  box-shadow: 0 0 8px #ff9800, 0 0 0 2px #fff inset;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 
-/* Theme-specific adjustments for metronome */
-:root[data-theme="indie"] .bpm-control-btn,
-:root[data-theme="indie"] .metronome-control-btn {
-  border-width: 3px;
-  font-weight: 700;
+.metronome-controls-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-control-surface);
+  border: 2px solid var(--color-text-primary);
+  border-radius: 8px;
+  box-shadow: none;
+  padding: 8px 12px 6px 12px;
+  margin: 0 auto 8px auto;
+  min-width: 180px;
+  max-width: 260px;
 }
 
-:root[data-theme="indie"] .bpm-display {
-  border-width: 3px;
-  font-weight: 800;
+.metronome-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin: 0 auto;
 }
 
-:root[data-theme="indie"] .tempo-label {
-  font-weight: 700;
+.top-row {
+  gap: 0;
+  margin-bottom: 0;
 }
 
-:root[data-theme="disco"] .beat-indicator.active {
-  background: var(--color-accent-purple);
-  border-color: var(--color-accent-purple);
-  box-shadow: 
-    0 0 20px var(--color-accent-purple),
-    inset 0 1px 0 var(--overlay-light);
+.bottom-row {
+  gap: 12px;
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
-:root[data-theme="disco"] .metronome-control-btn.play-btn.active {
-  box-shadow: 
-    0 0 20px var(--glow-play),
-    inset 0 1px 0 var(--overlay-light);
+.metronome-divider {
+  width: 100%;
+  height: 0;
+  border-bottom: 1.5px solid var(--color-text-primary);
+  opacity: 0.5;
+  margin: 6px 0 2px 0;
 }
 
-:root[data-theme="808"] .beat-indicator.active {
-  background: var(--color-accent-warm);
-  border-color: var(--color-accent-warm);
-  box-shadow: 
-    0 0 12px var(--color-accent-warm),
-    inset 0 1px 0 var(--overlay-light);
+.metronome-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  outline: none;
 }
 
-:root[data-theme="808"] .bpm-control-btn,
-:root[data-theme="808"] .metronome-control-btn {
-  border-color: var(--color-accent-warm);
+.bpm-control-btn.decrease {
+  border-radius: 6px 0 0 6px;
+  border-right: 1.5px solid var(--color-text-primary);
+  background: none;
 }
 
-/* Mobile responsiveness for metronome */
-@media screen and (max-width: 767px) {
-  .metronome-container {
-    padding: 16px 0 0 0;
-  }
-  
-  .metronome-content {
-    gap: 10px;
-  }
-  
-  .bpm-controls {
-    gap: 12px;
-  }
-  
-  .bpm-control-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-  }
-  
-  .bpm-display {
-    font-size: 28px;
-    min-width: 80px;
-    padding: 10px 16px;
-  }
-  
-  .metronome-control-btn {
-    width: 42px;
-    height: 42px;
-    font-size: 14px;
-  }
-  
-  .beat-indicator {
-    width: 12px;
-    height: 12px;
-  }
-  
-  .tempo-label {
-    font-size: 11px;
-  }
+.bpm-control-btn.increase {
+  border-radius: 0 6px 6px 0;
+  border-left: 1.5px solid var(--color-text-primary);
+  background: none;
 }
 
-@media screen and (max-width: 480px) {
-  .metronome-container {
-    padding: 12px 0 0 0;
-  }
-  
-  .metronome-content {
-    gap: 8px;
-  }
-  
-  .bpm-controls {
-    gap: 10px;
-  }
-  
-  .bpm-control-btn {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-  
-  .bpm-display {
-    font-size: 24px;
-    min-width: 70px;
-    padding: 8px 12px;
-  }
-  
-  .metronome-control-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 12px;
-  }
-  
-  .beat-indicator {
-    width: 10px;
-    height: 10px;
-  }
-  
-  .tempo-label {
-    font-size: 10px;
-  }
+.bpm-display {
+  background: none;
+  border-left: none;
+  border-right: none;
+  color: var(--color-text-primary);
+  min-width: 60px;
+  width: 60px;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.transport-btn {
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-primary);
+  box-shadow: none;
+  border: 1.5px solid var(--color-text-primary);
+}
+
+.transport-btn.active {
+  background: var(--color-active);
+  color: var(--color-text-accent);
+}
+
+.beats-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.bpm-control-btn.decrease, .bpm-control-btn.increase, .transport-btn {
+  background: none !important;
+}
+
+.bpm-control-btn.decrease, .bpm-control-btn.increase {
+  border-top: none;
+  border-bottom: none;
+}
+
+.transport-btn {
+  border-top: none;
+  border-bottom: none;
 }
 
