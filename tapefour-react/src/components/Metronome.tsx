@@ -5,6 +5,8 @@ interface MetronomeProps {
   onBpmChange?: (bpm: number) => void;
   metronomePlaying: boolean;
   setMetronomePlaying: (playing: boolean) => void;
+  countInEnabled: boolean;
+  setCountInEnabled: (enabled: boolean) => void;
 }
 
 // Metronome Engine Class - Keep all the audio functionality
@@ -168,7 +170,7 @@ class MetronomeEngine {
   }
 }
 
-const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronomePlaying, setMetronomePlaying }) => {
+const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronomePlaying, setMetronomePlaying, countInEnabled, setCountInEnabled }) => {
   // State
   const [muteSound, setMuteSound] = useState(false);
   const [bpm, setBpm] = useState(initialBpm);
@@ -485,6 +487,19 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                 style={{ width: 32, height: 32 }}
               />
             </div>
+          </div>
+          <div className="metronome-row count-in-row">
+            <label className="count-in-label">
+              <input
+                type="checkbox"
+                checked={countInEnabled}
+                onChange={(e) => {
+                  setCountInEnabled(e.target.checked);
+                }}
+                className="count-in-checkbox"
+              />
+              <span className="count-in-text">Count In</span>
+            </label>
           </div>
         </div>
       </div>

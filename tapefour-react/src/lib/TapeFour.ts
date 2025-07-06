@@ -156,6 +156,8 @@ export default class TapeFour {
   private _meterUpdateCount = 0;
   private metronomeStopCallback: (() => void) | null = null;
   private metronomeStartCallback: (() => void) | null = null;
+  private countInCallback: (() => boolean) | null = null;
+  private bpmCallback: (() => number) | null = null;
 
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
@@ -2100,6 +2102,14 @@ export default class TapeFour {
     this.metronomeStartCallback = callback;
   }
 
+  public setCountInCallback(callback: () => boolean) {
+    this.countInCallback = callback;
+  }
+
+  public setBpmCallback(callback: () => number) {
+    this.bpmCallback = callback;
+  }
+
   public setLoopRegion(startSeconds: number, endSeconds: number) {
     this.state.loopStart = Math.max(0, startSeconds);
     this.state.loopEnd = Math.max(this.state.loopStart + 0.1, endSeconds);
@@ -2258,13 +2268,47 @@ export default class TapeFour {
   public async record() {
     this.debugLog('transport', '[TAPEFOUR] 🔴 RECORD button pressed');
     
-    // Start metronome if callback is set
+    if (this.state.isRecording) return this.stopRecording();
+
+    // Check if count-in is enabled
+    const shouldCountIn = this.countInCallback ? this.countInCallback() : false;
+    
+    if (shouldCountIn) {
+      this.debugLog('transport', '[TAPEFOUR] 🎵 Starting count-in before recording');
+      // Start metronome for count-in
+      if (this.metronomeStartCallback) {
+        this.metronomeStartCallback();
+      }
+      
+      // Wait for 1 bar (4 beats) before starting actual recording
+      const beatsPerBar = 4;
+      const bpm = this.bpmCallback ? this.bpmCallback() : 120;
+      const secondsPerBeat = 60 / bpm;
+      const countInDuration = beatsPerBar * secondsPerBeat;
+      
+      this.debugLog('transport', `[TAPEFOUR] ⏱️ Count-in duration: ${countInDuration.toFixed(2)}s (${beatsPerBar} beats at ${bpm} BPM)`);
+      
+      // Schedule the actual recording to start after count-in
+      setTimeout(() => {
+        this.debugLog('transport', '[TAPEFOUR] 🎬 Count-in complete, starting actual recording');
+        this.startActualRecording();
+      }, countInDuration * 1000);
+      
+      return;
+    }
+    
+    // No count-in, start recording immediately
+    this.startActualRecording();
+  }
+
+  private async startActualRecording() {
+    this.debugLog('transport', '[TAPEFOUR] 🎬 Starting actual recording');
+    
+    // Start metronome if callback is set (for regular recording without count-in)
     if (this.metronomeStartCallback) {
       this.debugLog('transport', '🎵 Starting metronome');
       this.metronomeStartCallback();
     }
-    
-    if (this.state.isRecording) return this.stopRecording();
 
     // If currently paused, unpause and reset pause button
     if (this.state.isPaused) {

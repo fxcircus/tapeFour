@@ -9,6 +9,7 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState<Theme>('vintage')
   const [bpm, setBpm] = useState(120)
   const [metronomePlaying, setMetronomePlaying] = useState(false)
+  const [countInEnabled, setCountInEnabled] = useState(true)
 
   useEffect(() => {
     tapeFourRef.current = new TapeFour()
@@ -20,10 +21,18 @@ function App() {
     tapeFourRef.current.setMetronomeStartCallback(() => {
       setMetronomePlaying(true);
     });
+    // Set the count-in callback
+    tapeFourRef.current.setCountInCallback(() => {
+      return countInEnabled;
+    });
+    // Set the BPM callback
+    tapeFourRef.current.setBpmCallback(() => {
+      return bpm;
+    });
     return () => {
       tapeFourRef.current = null
     }
-  }, [])
+  }, [countInEnabled, bpm])
 
   // Load saved theme from localStorage on component mount
   useEffect(() => {
@@ -237,6 +246,8 @@ function App() {
             onBpmChange={setBpm} 
             metronomePlaying={metronomePlaying}
             setMetronomePlaying={setMetronomePlaying}
+            countInEnabled={countInEnabled}
+            setCountInEnabled={setCountInEnabled}
           />
           <div className="playhead" id="playhead">
             <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
