@@ -4091,15 +4091,14 @@ body {
 .metronome-container {
   background: none;
   border: none;
-  padding: 8px 0 0 0;
-  margin: 0 auto;
+  margin: 0 auto 40px auto;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
   box-shadow: none;
 }
+
 
 .metronome-row {
   display: flex;
@@ -4109,22 +4108,12 @@ body {
   margin: 0 auto;
 }
 
-.top-row {
-  gap: 0;
-  margin-bottom: 8px;
-}
-
-.bottom-row {
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
 .metronome-btn {
   background: var(--color-control-surface);
   border: 2px solid var(--color-text-primary);
   color: var(--color-text-primary);
-  width: 40px;
-  height: 40px;
+  width: 20px;
+  height: 20px;
   border-radius: 0;
   display: flex;
   align-items: center;
@@ -4175,13 +4164,13 @@ body {
 }
 
 .bpm-number {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 300;
   line-height: 1;
 }
 
 .bpm-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 400;
   line-height: 1;
   opacity: 0.7;
@@ -4196,15 +4185,15 @@ body {
 
 .beats-row {
   display: flex;
-  gap: 10px;
+  gap: 1px;
   justify-content: center;
   align-items: center;
   margin-top: 0;
 }
 
 .beat-indicator {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--color-control-surface);
   border: 2px solid var(--color-text-primary);

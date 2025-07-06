@@ -224,13 +224,12 @@ function App() {
           <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
           <div className="playhead-indicator" id="playhead-indicator" />
         </div>
+        <Metronome 
+          bpm={bpm} 
+          onBpmChange={setBpm} 
+        />
       </div>
       
-      <Metronome 
-        bpm={bpm} 
-        onBpmChange={setBpm} 
-      />
-
       <div className="mixer-section">
         <div className="tracks-container">
           {Array.from({ length: 4 }, (_, i) => {
