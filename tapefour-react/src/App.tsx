@@ -37,9 +37,9 @@ function App() {
 
   return (
     <div className="recorder-container">
-      <div className="header">
+      {/* <div className="header">
         <span>TapeFour</span>
-      </div>
+      </div> */}
 
       <div className="cassette-display">
         <svg className="tape-reel left-reel" id="left-reel" width="104" height="104" viewBox="0 0 104 104">

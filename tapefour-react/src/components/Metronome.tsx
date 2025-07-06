@@ -351,73 +351,75 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
 
   return (
     <div className="metronome-container">
-      <div className="metronome-controls-group">
-        <div className="metronome-row top-row">
-          <button 
-            className="metronome-btn bpm-control-btn decrease"
-            onClick={handleDecreaseBpm}
-            aria-label="Decrease BPM"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-          <div className="bpm-display">
-            <div className="bpm-number">{bpm}</div>
-            <div className="bpm-label">BPM</div>
+      <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center', width: '100%' }}>
+        <div className="metronome-controls-group">
+          <div className="metronome-row top-row">
+            <button 
+              className="metronome-btn bpm-control-btn decrease"
+              onClick={handleDecreaseBpm}
+              aria-label="Decrease BPM"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div className="bpm-display">
+              <div className="bpm-number">{bpm}</div>
+              <div className="bpm-label">BPM</div>
+            </div>
+            <button 
+              className="metronome-btn bpm-control-btn increase"
+              onClick={handleIncreaseBpm}
+              aria-label="Increase BPM"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
           </div>
-          <button 
-            className="metronome-btn bpm-control-btn increase"
-            onClick={handleIncreaseBpm}
-            aria-label="Increase BPM"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
-        </div>
-        <div className="metronome-divider" />
-        <div className="metronome-row bottom-row">
-          <div 
-            className="beats-row"
-            onClick={toggleMetronome}
-            style={{ cursor: 'pointer' }}
-            role="button"
-            tabIndex={0}
-            aria-label={metronomePlaying ? "Pause Metronome" : "Start Metronome"}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleMetronome();
-              }
-            }}
-          >
-            {Array.from({ length: 4 }, (_, i) => (
-              <div 
-                key={i}
-                className={`beat-indicator${metronomePlaying && currentBeat === i ? ' active' : ''}`}
-                aria-label={`Beat ${i + 1}`}
-              />
-            ))}
-          </div>
-          <div
-            className="pan-knob-container"
-            ref={volumeKnobRef}
-            tabIndex={0}
-            aria-label="Metronome Volume"
-            style={{ '--rotation': `${(volume - 50) * 2.7}deg` } as React.CSSProperties}
-          >
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={volume}
-              onChange={e => setVolume(Number(e.target.value))}
-              className="pan-knob metronome-volume-knob"
+          <div className="metronome-divider" />
+          <div className="metronome-row bottom-row">
+            <div 
+              className="beats-row"
+              onClick={toggleMetronome}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              aria-label={metronomePlaying ? "Pause Metronome" : "Start Metronome"}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleMetronome();
+                }
+              }}
+            >
+              {Array.from({ length: 4 }, (_, i) => (
+                <div 
+                  key={i}
+                  className={`beat-indicator${metronomePlaying && currentBeat === i ? ' active' : ''}`}
+                  aria-label={`Beat ${i + 1}`}
+                />
+              ))}
+            </div>
+            <div
+              className="pan-knob-container"
+              ref={volumeKnobRef}
+              tabIndex={0}
               aria-label="Metronome Volume"
-              style={{ width: 32, height: 32 }}
-            />
+              style={{ '--rotation': `${(volume - 50) * 2.7}deg` } as React.CSSProperties}
+            >
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={volume}
+                onChange={e => setVolume(Number(e.target.value))}
+                className="pan-knob metronome-volume-knob"
+                aria-label="Metronome Volume"
+                style={{ width: 32, height: 32 }}
+              />
+            </div>
           </div>
         </div>
       </div>
