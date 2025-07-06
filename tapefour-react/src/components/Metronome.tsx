@@ -379,24 +379,28 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
         </div>
         <div className="metronome-divider" />
         <div className="metronome-row bottom-row">
-          <button 
-            className={`metronome-btn transport-btn play-btn${metronomePlaying ? ' active' : ''}`}
+          <div 
+            className="beats-row"
             onClick={toggleMetronome}
+            style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
             aria-label={metronomePlaying ? "Pause Metronome" : "Start Metronome"}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleMetronome();
+              }
+            }}
           >
-            {metronomePlaying ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="6" y="4" width="4" height="16"></rect>
-                <rect x="14" y="4" width="4" height="16"></rect>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2 L8 6 L8 22 L16 22 L16 6 Z" fill="currentColor" />
-                <path d="M12 2 L12 14" strokeWidth="3" />
-                <circle cx="12" cy="8" r="2" fill="white" />
-              </svg>
-            )}
-          </button>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div 
+                key={i}
+                className={`beat-indicator${metronomePlaying && currentBeat === i ? ' active' : ''}`}
+                aria-label={`Beat ${i + 1}`}
+              />
+            ))}
+          </div>
           <div
             className="pan-knob-container"
             ref={volumeKnobRef}
@@ -416,15 +420,6 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
             />
           </div>
         </div>
-      </div>
-      <div className="beats-row">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div 
-            key={i}
-            className={`beat-indicator${metronomePlaying && currentBeat === i ? ' active' : ''}`}
-            aria-label={`Beat ${i + 1}`}
-          />
-        ))}
       </div>
     </div>
   );

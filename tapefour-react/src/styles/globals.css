@@ -4192,8 +4192,8 @@ body {
 }
 
 .beat-indicator {
-  width: 8px;
-  height: 8px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--color-control-surface);
   border: 2px solid var(--color-text-primary);
