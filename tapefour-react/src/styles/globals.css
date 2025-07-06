@@ -466,19 +466,43 @@ body {
 .cassette-display {
   background: var(--color-control-surface);
   border-radius: 6px;
-  padding: 48px 40px; /* Increased padding for better breathing room */
+  padding: 32px 28px;
   border: 2px solid var(--color-text-primary);
-  /* Inset border for hardware feel */
   box-shadow: 
     inset 0 1px 3px var(--color-shadow-inset),
     inset 0 -1px 0 var(--overlay-light);
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Better distribution of elements */
+  justify-content: flex-start;
   align-items: center;
-  gap: 28px; /* Increased gap for better separation */
-  min-height: 180px; /* More height for better proportions */
+  gap: 20px;
+  min-height: 180px;
   position: relative;
+}
+
+.display-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.metronome-container {
+  margin-bottom: 8px;
+}
+
+@media screen and (max-width: 600px) {
+  .cassette-display {
+    padding: 14px 8px;
+    gap: 10px;
+  }
+  .display-section {
+    margin-bottom: 4px;
+  }
+  .metronome-container {
+    margin-bottom: 4px;
+  }
 }
 
 /* Cassette Tape Reels - Maximum Size for Dominant Presence */
@@ -1903,15 +1927,23 @@ body {
 /* Track Container - Improved Spacing */
 .tracks-container {
   display: flex;
-  gap: 16px; /* Increased gap by 8px */
-  padding: 24px; /* Increased padding by 8px */
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
   background: var(--color-control-surface);
   border-radius: 6px;
   border: 1px solid var(--color-text-primary);
-  align-items: flex-start;
+  align-items: stretch;
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.tracks-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .track {
@@ -4336,5 +4368,37 @@ body {
 .transport-btn {
   border-top: none;
   border-bottom: none;
+}
+
+.cassette-controls-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.metronome-container {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+@media screen and (max-width: 600px) {
+  .cassette-controls-stack {
+    gap: 5px;
+  }
+  .metronome-container {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+}
+
+.tracks-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+  align-items: flex-end;
 }
 

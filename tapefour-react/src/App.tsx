@@ -130,9 +130,6 @@ function App() {
         <div className="display-section">
           <div className="display-row">
             <div className="timecode" id="timecode">00:00</div>
-            <div className="volume-meter" id="volume-meter">
-              <div className="volume-meter-fill" id="volume-meter-fill"></div>
-            </div>
           </div>
         </div>
         <svg className="tape-reel right-reel" id="right-reel" width="104" height="104" viewBox="0 0 104 104">
@@ -220,57 +217,100 @@ function App() {
             <circle className="reel-hub radial-hub" cx="52" cy="52" r="8" fill="hsl(215, 15%, 25%)" stroke="hsl(215, 15%, 45%)" strokeWidth="1" />
           </g>
         </svg>
-        <div className="playhead" id="playhead">
-          <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
-          <div className="playhead-indicator" id="playhead-indicator" />
+        <div className="cassette-controls-stack">
+          <Metronome 
+            bpm={bpm} 
+            onBpmChange={setBpm} 
+          />
+          <div className="playhead" id="playhead">
+            <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
+            <div className="playhead-indicator" id="playhead-indicator" />
+          </div>
         </div>
-        <Metronome 
-          bpm={bpm} 
-          onBpmChange={setBpm} 
-        />
       </div>
       
       <div className="mixer-section">
         <div className="tracks-container">
-          {Array.from({ length: 4 }, (_, i) => {
-            const id = i + 1
-            return (
-              <div className="track" key={id}>
-                <div className="track-controls">
-                  <div className="pan-knob-container">
+          <div className="tracks-header">
+            <div className="volume-meter" id="volume-meter">
+              <div className="volume-meter-fill" id="volume-meter-fill"></div>
+            </div>
+          </div>
+          <div className="tracks-row">
+            {Array.from({ length: 4 }, (_, i) => {
+              const id = i + 1
+              return (
+                <div className="track" key={id}>
+                  <div className="track-controls">
+                    <div className="pan-knob-container">
+                      <input
+                        type="range"
+                        className="pan-knob"
+                        id={`pan-${id}`}
+                        min={0}
+                        max={100}
+                        defaultValue={50}
+                      />
+                    </div>
+                    <div className="mute-button-container">
+                      <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
+                      <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
+                    </div>
+                    <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
+                    <div className="speed-controls">
+                      <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
+                        ⇄
+                      </button>
+                      <button className="half-speed-button" id={`half-speed-${id}`} data-track={id} title={`Half-speed Track ${id}`}>
+                        ½
+                      </button>
+                    </div>
+                    <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} title={`Arm Track ${id} (${id})`} />
+                  </div>
+                  <div className="fader-section">
                     <input
                       type="range"
-                      className="pan-knob"
-                      id={`pan-${id}`}
+                      className="fader"
+                      id={`fader-${id}`}
                       min={0}
                       max={100}
-                      defaultValue={50}
+                      defaultValue={80}
                     />
+                    <div className="fader-markings">
+                      <div className="marking" data-db="0">0</div>
+                      <div className="marking dash">-</div>
+                      <div className="marking" data-db="-12">-12</div>
+                      <div className="marking dash">-</div>
+                      <div className="marking" data-db="-36">-36</div>
+                      <div className="marking dash">-</div>
+                      <div className="marking" data-db="-60">-60</div>
+                    </div>
                   </div>
-                  <div className="mute-button-container">
-                    <input type="checkbox" className="mute-button" id={`mute-${id}`} data-track={id} />
-                    <label htmlFor={`mute-${id}`} className="mute-button-label">{id}</label>
-                  </div>
-                  <input type="checkbox" className="solo-button" id={`solo-${id}`} data-track={id} />
-                  <div className="speed-controls">
-                    <button className="reverse-button" id={`reverse-${id}`} data-track={id} title={`Reverse Track ${id}`}>
-                      ⇄
-                    </button>
-                    <button className="half-speed-button" id={`half-speed-${id}`} data-track={id} title={`Half-speed Track ${id}`}>
-                      ½
-                    </button>
-                  </div>
-                  <input type="checkbox" className="arm-button" id={`track-${id}`} data-track={id} title={`Arm Track ${id} (${id})`} />
                 </div>
-                <div className="fader-section">
-                                  <input
-                  type="range"
-                  className="fader"
-                  id={`fader-${id}`}
-                  min={0}
-                  max={100}
-                  defaultValue={80}
-                />
+              )
+            })}
+            <div className="master-section">
+              <div className="master-controls">
+                <div className="master-label-vertical">
+                  <div className="master-divider">|</div>
+                  <div className="master-text">
+                    <div>M</div>
+                    <div>A</div>
+                    <div>S</div>
+                    <div>T</div>
+                    <div>E</div>
+                    <div>R</div>
+                  </div>
+                </div>
+                <div className="master-fader-section">
+                  <input
+                    type="range"
+                    className="master-fader"
+                    id="master-fader"
+                    min={0}
+                    max={100}
+                    defaultValue={80}
+                  />
                   <div className="fader-markings">
                     <div className="marking" data-db="0">0</div>
                     <div className="marking dash">-</div>
@@ -282,42 +322,8 @@ function App() {
                   </div>
                 </div>
               </div>
-            )
-          })}
-          <div className="master-section">
-            <div className="master-controls">
-              <div className="master-label-vertical">
-                <div className="master-divider">|</div>
-                <div className="master-text">
-                  <div>M</div>
-                  <div>A</div>
-                  <div>S</div>
-                  <div>T</div>
-                  <div>E</div>
-                  <div>R</div>
-                </div>
-              </div>
-              <div className="master-fader-section">
-                <input
-                  type="range"
-                  className="master-fader"
-                  id="master-fader"
-                  min={0}
-                  max={100}
-                  defaultValue={80}
-                />
-                <div className="fader-markings">
-                  <div className="marking" data-db="0">0</div>
-                  <div className="marking dash">-</div>
-                  <div className="marking" data-db="-12">-12</div>
-                  <div className="marking dash">-</div>
-                  <div className="marking" data-db="-36">-36</div>
-                  <div className="marking dash">-</div>
-                  <div className="marking" data-db="-60">-60</div>
-                </div>
-              </div>
+              <div className="master-spacer"></div>
             </div>
-            <div className="master-spacer"></div>
           </div>
         </div>
       </div>

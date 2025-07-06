@@ -176,6 +176,9 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
   const [volume, setVolume] = useState(50); // 0-100
   const volumeKnobRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
+  const [editingBpm, setEditingBpm] = useState(false);
+  const [bpmInput, setBpmInput] = useState(bpm.toString());
+  const bpmInputRef = useRef<HTMLInputElement>(null);
   
   // Refs
   const metronomeRef = useRef<MetronomeEngine | null>(null);
@@ -349,6 +352,44 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
     setMuteSound(!muteSound);
   };
 
+  useEffect(() => {
+    if (editingBpm && bpmInputRef.current) {
+      bpmInputRef.current.focus();
+      bpmInputRef.current.select();
+    }
+  }, [editingBpm]);
+
+  const handleBpmNumberDblClick = () => {
+    setBpmInput(bpm.toString());
+    setEditingBpm(true);
+  };
+
+  const handleBpmInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBpmInput(e.target.value.replace(/[^0-9]/g, ''));
+  };
+
+  const commitBpmInput = () => {
+    let val = parseInt(bpmInput, 10);
+    if (isNaN(val)) val = bpm;
+    if (val < 40) val = 40;
+    if (val > 300) val = 300;
+    setBpm(val);
+    onBpmChange?.(val);
+    setEditingBpm(false);
+  };
+
+  const handleBpmInputBlur = () => {
+    commitBpmInput();
+  };
+
+  const handleBpmInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitBpmInput();
+    } else if (e.key === 'Escape') {
+      setEditingBpm(false);
+    }
+  };
+
   return (
     <div className="metronome-container">
       <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center', width: '100%' }}>
@@ -364,7 +405,30 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
               </svg>
             </button>
             <div className="bpm-display">
-              <div className="bpm-number">{bpm}</div>
+              {editingBpm ? (
+                <input
+                  ref={bpmInputRef}
+                  className="bpm-number"
+                  type="text"
+                  value={bpmInput}
+                  onChange={handleBpmInputChange}
+                  onBlur={handleBpmInputBlur}
+                  onKeyDown={handleBpmInputKeyDown}
+                  style={{ width: 38, textAlign: 'center', fontSize: '15px', fontWeight: 300, border: '1px solid #ccc', borderRadius: 4, outline: 'none', background: 'var(--color-control-surface)', color: 'var(--color-text-primary)' }}
+                  inputMode="numeric"
+                  min={40}
+                  max={300}
+                />
+              ) : (
+                <div
+                  className="bpm-number"
+                  onDoubleClick={handleBpmNumberDblClick}
+                  style={{ cursor: 'pointer' }}
+                  title="Double-click to edit BPM"
+                >
+                  {bpm}
+                </div>
+              )}
               <div className="bpm-label">BPM</div>
             </div>
             <button 
