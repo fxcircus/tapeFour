@@ -3,6 +3,8 @@ import React, { FC, useEffect, useState, useRef, useCallback } from "react";
 interface MetronomeProps {
   bpm: number;
   onBpmChange?: (bpm: number) => void;
+  metronomePlaying: boolean;
+  setMetronomePlaying: (playing: boolean) => void;
 }
 
 // Metronome Engine Class - Keep all the audio functionality
@@ -166,9 +168,8 @@ class MetronomeEngine {
   }
 }
 
-const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange }) => {
+const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronomePlaying, setMetronomePlaying }) => {
   // State
-  const [metronomePlaying, setMetronomePlaying] = useState(false);
   const [muteSound, setMuteSound] = useState(false);
   const [bpm, setBpm] = useState(initialBpm);
   const [currentBeat, setCurrentBeat] = useState(0);

@@ -154,6 +154,8 @@ export default class TapeFour {
   
   // Volume meter debug counter
   private _meterUpdateCount = 0;
+  private metronomeStopCallback: (() => void) | null = null;
+  private metronomeStartCallback: (() => void) | null = null;
 
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
@@ -1770,6 +1772,12 @@ export default class TapeFour {
   public async play() {
     this.debugLog('transport', '▶️ PLAY button pressed');
     
+    // Start metronome if callback is set
+    if (this.metronomeStartCallback) {
+      this.debugLog('transport', '🎵 Starting metronome');
+      this.metronomeStartCallback();
+    }
+    
     // If recording, stop it first
     if (this.state.isRecording) {
       this.debugLog('transport', '🛑 Stopping active recording before playback');
@@ -1986,6 +1994,12 @@ export default class TapeFour {
   public stop() {
     this.debugLog('transport', '⏹️ STOP button pressed');
     
+    // Stop metronome if callback is set
+    if (this.metronomeStopCallback) {
+      this.debugLog('transport', '🛑 Stopping metronome');
+      this.metronomeStopCallback();
+    }
+    
     // Add visual feedback to stop button
     const stopBtn = document.getElementById('stop-btn');
     if (stopBtn) {
@@ -2076,6 +2090,14 @@ export default class TapeFour {
   // Public loop control methods for React component integration
   public toggleLoopMode() {
     this.toggleLoop();
+  }
+
+  public setMetronomeStopCallback(callback: () => void) {
+    this.metronomeStopCallback = callback;
+  }
+
+  public setMetronomeStartCallback(callback: () => void) {
+    this.metronomeStartCallback = callback;
   }
 
   public setLoopRegion(startSeconds: number, endSeconds: number) {
@@ -2235,6 +2257,13 @@ export default class TapeFour {
 
   public async record() {
     this.debugLog('transport', '[TAPEFOUR] 🔴 RECORD button pressed');
+    
+    // Start metronome if callback is set
+    if (this.metronomeStartCallback) {
+      this.debugLog('transport', '🎵 Starting metronome');
+      this.metronomeStartCallback();
+    }
+    
     if (this.state.isRecording) return this.stopRecording();
 
     // If currently paused, unpause and reset pause button

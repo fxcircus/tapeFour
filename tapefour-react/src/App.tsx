@@ -8,9 +8,18 @@ function App() {
   const tapeFourRef = useRef<TapeFour | null>(null)
   const [currentTheme, setCurrentTheme] = useState<Theme>('vintage')
   const [bpm, setBpm] = useState(120)
+  const [metronomePlaying, setMetronomePlaying] = useState(false)
 
   useEffect(() => {
     tapeFourRef.current = new TapeFour()
+    // Set the metronome stop callback
+    tapeFourRef.current.setMetronomeStopCallback(() => {
+      setMetronomePlaying(false);
+    });
+    // Set the metronome start callback
+    tapeFourRef.current.setMetronomeStartCallback(() => {
+      setMetronomePlaying(true);
+    });
     return () => {
       tapeFourRef.current = null
     }
@@ -33,6 +42,11 @@ function App() {
 
   const handleOpenSettings = () => {
     tapeFourRef.current?.openSettings()
+  }
+
+  const handleStop = () => {
+    // ... any existing stop logic ...
+    setMetronomePlaying(false) // Stop metronome if playing
   }
 
   return (
@@ -221,6 +235,8 @@ function App() {
           <Metronome 
             bpm={bpm} 
             onBpmChange={setBpm} 
+            metronomePlaying={metronomePlaying}
+            setMetronomePlaying={setMetronomePlaying}
           />
           <div className="playhead" id="playhead">
             <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
@@ -329,7 +345,7 @@ function App() {
       </div>
 
       <div className="transport-controls">
-        <button className="transport-button" id="stop-btn" title="Stop (S)">
+        <button className="transport-button" id="stop-btn" title="Stop (S)" onClick={handleStop}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="6" y="6" width="12" height="12" />
           </svg>
