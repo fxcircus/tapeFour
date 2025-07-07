@@ -4224,8 +4224,8 @@ body {
 }
 
 .beat-indicator {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--color-control-surface);
   border: 2px solid var(--color-text-primary);
@@ -4454,6 +4454,47 @@ body {
   .count-in-checkbox {
     width: 12px;
     height: 12px;
+  }
+}
+
+.count-in-toggle-btn {
+  background: var(--color-control-surface);
+  border: 2px solid var(--color-text-primary);
+  color: var(--color-text-primary);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 500;
+  padding: 4px 10px;
+  margin: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  outline: none;
+  min-width: 60px;
+  text-align: center;
+  user-select: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.count-in-toggle-btn.enabled {
+  background: var(--color-play);
+  color: #fff;
+  border-color: var(--color-play);
+}
+.count-in-toggle-btn:active {
+  background: color-mix(in srgb, var(--color-play) 80%, #fff 20%);
+}
+.count-in-toggle-btn:not(.enabled) {
+  opacity: 0.7;
+}
+
+@media screen and (max-width: 600px) {
+  .count-in-toggle-btn {
+    font-size: 11px;
+    padding: 3px 7px;
+    min-width: 44px;
   }
 }
 

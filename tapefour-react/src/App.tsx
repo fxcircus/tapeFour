@@ -9,7 +9,15 @@ function App() {
   const [currentTheme, setCurrentTheme] = useState<Theme>('vintage')
   const [bpm, setBpm] = useState(120)
   const [metronomePlaying, setMetronomePlaying] = useState(false)
-  const [countInEnabled, setCountInEnabled] = useState(true)
+  const [countInEnabled, setCountInEnabledState] = useState(() => {
+    const stored = localStorage.getItem('tapefour-should-count-in');
+    return stored === null ? true : stored === 'true';
+  })
+
+  const setCountInEnabled = (enabled: boolean) => {
+    setCountInEnabledState(enabled);
+    localStorage.setItem('tapefour-should-count-in', enabled ? 'true' : 'false');
+  }
 
   useEffect(() => {
     tapeFourRef.current = new TapeFour()

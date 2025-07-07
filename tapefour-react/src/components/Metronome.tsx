@@ -1,4 +1,5 @@
-import React, { FC, useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import type { FC } from "react";
 
 interface MetronomeProps {
   bpm: number;
@@ -190,7 +191,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
   const metronomeRef = useRef<MetronomeEngine | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const prevInitialBpmRef = useRef<number>(initialBpm);
-  
+
   // Initialize the metronome engine
   useEffect(() => {
     metronomeRef.current = new MetronomeEngine(bpm, (beat) => {
@@ -453,6 +454,19 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
           </div>
           <div className="metronome-divider" />
           <div className="metronome-row bottom-row">
+            <button
+              className={`count-in-toggle-btn${countInEnabled ? ' enabled' : ''}`}
+              onClick={() => setCountInEnabled(!countInEnabled)}
+              aria-pressed={countInEnabled}
+              title={countInEnabled ? 'Count In: On' : 'Count In: Off'}
+              style={{ marginRight: 12, minWidth: 0, width: 36, height: 36, padding: 0, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                {/* Quarter note: stem and note head */}
+                <ellipse cx="8" cy="16" rx="2.2" ry="2.2" />
+                <path d="M10 16 V5.5 Q10 4.5 11.5 5 L15 6" />
+              </svg>
+            </button>
             <div 
               className="beats-row"
               onClick={toggleMetronome}
@@ -490,22 +504,8 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                 onChange={e => setVolume(Number(e.target.value))}
                 className="pan-knob"
                 aria-label="Metronome Volume"
-                style={{ width: 32, height: 32 }}
               />
             </div>
-          </div>
-          <div className="metronome-row count-in-row">
-            <label className="count-in-label">
-              <input
-                type="checkbox"
-                checked={countInEnabled}
-                onChange={(e) => {
-                  setCountInEnabled(e.target.checked);
-                }}
-                className="count-in-checkbox"
-              />
-              <span className="count-in-text">Count In</span>
-            </label>
           </div>
         </div>
       </div>
