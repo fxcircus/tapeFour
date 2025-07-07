@@ -433,9 +433,10 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               ) : (
                 <div
                   className="bpm-number"
-                  onDoubleClick={handleBpmNumberDblClick}
+                  tabIndex={0}
+                  onClick={handleBpmNumberDblClick}
                   style={{ cursor: 'pointer' }}
-                  title="Double-click to enter BPM"
+                  title="Click to enter BPM"
                 >
                   {bpm}
                 </div>
