@@ -4479,9 +4479,9 @@ body {
   justify-content: center;
 }
 .count-in-toggle-btn.enabled {
-  background: var(--color-play);
-  color: #fff;
-  border-color: var(--color-play);
+  background: var(--color-chassis);
+  color: var(--color-text-primary);
+  border-color: var(--color-chassis);
 }
 .count-in-toggle-btn:active {
   background: color-mix(in srgb, var(--color-play) 80%, #fff 20%);

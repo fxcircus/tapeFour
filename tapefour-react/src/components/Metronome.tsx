@@ -468,6 +468,9 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                 {/* Quarter note: stem and note head */}
                 <ellipse cx="8" cy="16" rx="2.2" ry="2.2" />
                 <path d="M10 16 V5.5 Q10 4.5 11.5 5 L15 6" />
+                {!countInEnabled && (
+                  <line x1="4" y1="18" x2="18" y2="4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                )}
               </svg>
             </button>
             <div 
