@@ -176,7 +176,10 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
   const [bpm, setBpm] = useState(initialBpm);
   const [currentBeat, setCurrentBeat] = useState(0);
   const beats = [0, 1, 2, 3]; // 4/4 time signature
-  const [volume, setVolume] = useState(50); // 0-100
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem('tapefour-metronome-volume');
+    return saved !== null ? Number(saved) : 75;
+  }); // 0-100
   const volumeKnobRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const [editingBpm, setEditingBpm] = useState(false);
@@ -271,11 +274,14 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
     const onMouseUp = () => {
       isDraggingRef.current = false;
       document.body.style.userSelect = '';
+      // Save volume to localStorage when drag ends
+      localStorage.setItem('tapefour-metronome-volume', String(volume));
     };
 
     const onDblClick = () => {
-      setVolume(50);
-      updateKnobRotation(50);
+      setVolume(75);
+      updateKnobRotation(75);
+      localStorage.setItem('tapefour-metronome-volume', '75');
     };
 
     knob.addEventListener('mousedown', onMouseDown);
@@ -482,7 +488,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                 max={100}
                 value={volume}
                 onChange={e => setVolume(Number(e.target.value))}
-                className="pan-knob metronome-volume-knob"
+                className="pan-knob"
                 aria-label="Metronome Volume"
                 style={{ width: 32, height: 32 }}
               />
