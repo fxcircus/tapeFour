@@ -409,6 +409,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               className="metronome-btn bpm-control-btn decrease"
               onClick={handleDecreaseBpm}
               aria-label="Decrease BPM"
+              title="BPM - 1"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -434,7 +435,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                   className="bpm-number"
                   onDoubleClick={handleBpmNumberDblClick}
                   style={{ cursor: 'pointer' }}
-                  title="Double-click to edit BPM"
+                  title="Double-click to enter BPM"
                 >
                   {bpm}
                 </div>
@@ -445,6 +446,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               className="metronome-btn bpm-control-btn increase"
               onClick={handleIncreaseBpm}
               aria-label="Increase BPM"
+              title="BPM +1"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -459,7 +461,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               onClick={() => setCountInEnabled(!countInEnabled)}
               aria-pressed={countInEnabled}
               title={countInEnabled ? 'Count In: On' : 'Count In: Off'}
-              style={{ marginRight: 12, minWidth: 0, width: 36, height: 36, padding: 0, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ marginRight: 12, minWidth: 0, width: 36, height: 36, padding: 0, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
             >
               <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
                 {/* Quarter note: stem and note head */}
@@ -470,7 +472,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
             <div 
               className="beats-row"
               onClick={toggleMetronome}
-              style={{ cursor: 'pointer' }}
+              style={{ cursor: 'pointer', position: 'relative' }}
               role="button"
               tabIndex={0}
               aria-label={metronomePlaying ? "Pause Metronome" : "Start Metronome"}
@@ -480,6 +482,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                   toggleMetronome();
                 }
               }}
+              title="Metronome on/off"
             >
               {Array.from({ length: 4 }, (_, i) => (
                 <div 
@@ -494,6 +497,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               ref={volumeKnobRef}
               tabIndex={0}
               aria-label="Metronome Volume"
+              title="Metronome volume"
               style={{ '--rotation': `${(volume - 50) * 2.7}deg` } as React.CSSProperties}
             >
               <input

@@ -4498,3 +4498,32 @@ body {
   }
 }
 
+.tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  left: 50%;
+  bottom: 110%;
+  transform: translateX(-50%);
+  background: var(--color-control-surface);
+  color: var(--color-text-primary);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 100;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.count-in-toggle-btn:hover .tooltip,
+.count-in-toggle-btn:focus .tooltip,
+.pan-knob-container:hover .tooltip,
+.pan-knob-container:focus .tooltip,
+.beats-row:hover .tooltip,
+.beats-row:focus .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
