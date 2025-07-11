@@ -6,29 +6,55 @@
 // behaviour identical while we incrementally migrate the codebase.
 
 import JSZip from 'jszip';
+import { WaveformRenderer, type WaveformPoint } from './waveformRenderer';
+
+interface Track {
+  id: number;
+  audioBuffer: AudioBuffer | null;
+  originalBuffer: AudioBuffer | null;
+  originalBufferForSpeed: AudioBuffer | null;
+  recordStartTime: number;
+  isArmed: boolean;
+  isSolo: boolean;
+  isMuted: boolean;
+  isManuallyMuted: boolean;
+  isReversed: boolean;
+  isHalfSpeed: boolean;
+  gainNode: GainNode | null;
+  sourceNode: AudioBufferSourceNode | null;
+  panNode: StereoPannerNode | null;
+  panValue: number;
+  undoHistory: AudioBuffer[];
+}
 
 export default class TapeFour {
+  // Resource limits
+  private static readonly MAX_UNDO_HISTORY = 10; // Maximum undo steps per track
+  private static readonly MAX_RECORDING_DURATION_MS = 600000; // 10 minutes max recording
+  private static readonly MAX_RECORDING_BUFFER_SIZE = 500 * 1024 * 1024; // 500MB max buffer
+  
   // Debug configuration - reads from environment variables
   private debug = {
-    // Global debug toggle
-    enabled: import.meta.env.VITE_DEBUG_ENABLED !== 'false', // Default to true unless explicitly disabled
+    // Global debug toggle - disabled in production
+    enabled: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_ENABLED !== 'false',
     
-    // Debug categories - CONFIGURED FOR VOLUME METER DEBUG
-    transport: false, // Disable transport noise
-    input: true,      // ✅ ENABLE - Input monitoring, microphone access, volume meter setup
-    waveform: false,  // Disable - Very noisy during recording
-    meter: false,      // ✅ ENABLE - Volume meter frame-by-frame updates (will be noisy!)
-    punchIn: false,   // Disable - Not relevant to meter
-    halfSpeed: false, // Disable - Not relevant to meter
-    ui: false,        // Disable - UI noise not needed
-    audio: false,     // Disable - Audio routing not relevant to meter
-    bounce: false,    // Disable - Not relevant to meter
-    scrub: false,     // Disable - Scrubbing noise not needed
-    general: true,    // ✅ ENABLE - General application logs for context
-    duration: false,  // Disable - Not relevant to meter
-    processing: false,// Disable - Not relevant to meter
-    keyboard: false,  // Disable - Keyboard shortcuts not needed
-    settings: false,  // Disable - Settings noise not needed
+    // Debug categories - only active in development
+    transport: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_TRANSPORT === 'true',
+    input: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_INPUT === 'true',
+    waveform: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_WAVEFORM === 'true',
+    meter: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_METER === 'true',
+    punchIn: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_PUNCHIN === 'true',
+    halfSpeed: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_HALFSPEED === 'true',
+    ui: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_UI === 'true',
+    audio: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_AUDIO === 'true',
+    bounce: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_BOUNCE === 'true',
+    scrub: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_SCRUB === 'true',
+    general: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_GENERAL !== 'false',
+    duration: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_DURATION === 'true',
+    processing: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_PROCESSING === 'true',
+    keyboard: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_KEYBOARD === 'true',
+    settings: import.meta.env.MODE === 'development' && import.meta.env.VITE_DEBUG_SETTINGS === 'true',
+    error: import.meta.env.MODE === 'development', // Always show errors in development
   };
 
   // Debug helper methods
@@ -59,7 +85,9 @@ export default class TapeFour {
   private eventListenersInitialized = false;
 
   private playheadTimer: number | null = null;
+  private playheadAnimationId: number | null = null;
   private playStartTime = 0;
+  private lastPlayheadUpdate = 0;
   private volumeMeterActive = false;
   private volumeMeterAnimationId: number | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -71,23 +99,29 @@ export default class TapeFour {
 
   // Waveform strip variables
   private waveformCanvas: HTMLCanvasElement | null = null;
-  private waveformContext: CanvasRenderingContext2D | null = null;
   private waveformRenderingId: number | null = null;
   private waveformBufferSize = 800; // Width of canvas in pixels
   private waveformAnalyserNode: AnalyserNode | null = null;
+  private waveformRenderer: WaveformRenderer | null = null;
   
   // Track-specific waveform storage: array of {position, peak} objects for each track
-  private trackWaveforms: Map<number, Array<{position: number, peak: number}>> = new Map();
-  private masterWaveform: Array<{position: number, peak: number}> = [];
+  private trackWaveforms: Map<number, WaveformPoint[]> = new Map();
+  private masterWaveform: WaveformPoint[] = [];
   
   // Track colors for waveform visualization - distinct colors for each track
   private trackColors = {
     1: '#D18C33', // Burnt orange (track 1)
-    2: '#2ECC71', // Emerald green (track 2) 
-    3: '#3498DB', // Bright blue (track 3)
-    4: '#C8A8E9', // Light lavender purple (track 4) - light enough for black text
-    master: '#d2a75b', // Golden for master mix
+    2: '#C5473E', // Red (track 2) - updated to match renderer
+    3: '#36A158', // Green (track 3) - updated to match renderer
+    4: '#5379B4', // Blue (track 4) - updated to match renderer
+    master: '#9C27B0', // Purple for master mix - updated to match renderer
   };
+  
+  // Waveform optimization
+  private waveformOffscreenCanvas: HTMLCanvasElement | null = null;
+  private waveformRedrawPending = false;
+  private waveformRedrawTimer: number | null = null;
+  private waveformCache: Map<string, ImageData> = new Map();
 
   private state = {
     isPlaying: false,
@@ -120,24 +154,7 @@ export default class TapeFour {
     hasCompletedFirstRecording: false, // Track if we've completed the first recording pass
   };
 
-  private tracks: Array<{
-    id: number;
-    audioBuffer: AudioBuffer | null;
-    originalBuffer: AudioBuffer | null; // Store original buffer for toggling reverse
-    originalBufferForSpeed: AudioBuffer | null; // Store original buffer for toggling half-speed
-    recordStartTime: number; // Timeline position (ms) where this track's recording started
-    isArmed: boolean;
-    isSolo: boolean;
-    isMuted: boolean;
-    isManuallyMuted: boolean; // Visual state for mute button
-    isReversed: boolean; // Track if audio is reversed
-    isHalfSpeed: boolean; // Track if audio is at half speed
-    gainNode: GainNode | null;
-    sourceNode: AudioBufferSourceNode | null;
-    panNode: StereoPannerNode | null;
-    panValue: number; // 0 = fully left, 50 = center, 100 = fully right
-    undoHistory: AudioBuffer[]; // Stack to store previous buffer states for undo
-  }> = [
+  private tracks: Track[] = [
     { id: 1, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
     { id: 2, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
     { id: 3, audioBuffer: null, originalBuffer: null, originalBufferForSpeed: null, recordStartTime: 0, isArmed: false, isSolo: false, isMuted: false, isManuallyMuted: false, isReversed: false, isHalfSpeed: false, gainNode: null, sourceNode: null, panNode: null, panValue: 50, undoHistory: [] },
@@ -158,6 +175,20 @@ export default class TapeFour {
   private metronomeStartCallback: (() => void) | null = null;
   private countInCallback: (() => boolean) | null = null;
   private bpmCallback: (() => number) | null = null;
+  
+  // Store event listeners for cleanup
+  private eventListeners: Array<{element: Element | Document, event: string, handler: EventListener}> = [];
+  private keyboardHandler: ((e: KeyboardEvent) => void) | null = null;
+  private handleVisibilityChange: (() => void) | null = null;
+  private volumeMeterInitTimeout: number | null = null;
+  private recordingDurationTimer: number | null = null;
+  private memoryCheckInterval: number | null = null;
+  private uiInitTimeout: number | null = null;
+  
+  // Web Worker for audio processing
+  private audioWorker: Worker | null = null;
+  private workerPromises: Map<string, {resolve: (value: any) => void, reject: (error: any) => void}> = new Map();
+  private workerTaskId = 0;
 
   constructor() {
     // Load previously selected audio device and processing settings from localStorage
@@ -169,13 +200,69 @@ export default class TapeFour {
     this.initializeUI();
     this.setupEventListeners();
     this.checkMicrophonePermissions();
+    this.initializeWorker();
     // Initialize volume meter with a small visible level
-    setTimeout(() => {
+    this.volumeMeterInitTimeout = window.setTimeout(() => {
       this.updateVolumeMeter(0.1); // Show 10% level initially
     }, 1000);
+    
+    // Set up periodic memory check for long sessions (every 5 minutes)
+    this.memoryCheckInterval = window.setInterval(() => {
+      this.checkMemoryUsage();
+    }, 300000); // 5 minutes
   }
 
   /* ---------- Initialisation helpers ---------- */
+
+  private initializeWorker() {
+    try {
+      // Use Vite's worker import syntax
+      this.audioWorker = new Worker(
+        new URL('./audioProcessor.worker.ts', import.meta.url),
+        { type: 'module' }
+      );
+      
+      this.audioWorker.addEventListener('message', (event) => {
+        const taskId = event.data.taskId;
+        const promise = this.workerPromises.get(taskId);
+        
+        if (promise) {
+          if (event.data.type === 'error') {
+            promise.reject(new Error(event.data.error));
+          } else {
+            promise.resolve(event.data.result);
+          }
+          this.workerPromises.delete(taskId);
+        }
+      });
+      
+      this.debugLog('general', '[WORKER] ✅ Audio processing worker initialized');
+    } catch (error) {
+      this.debugError('general', '[WORKER] ❌ Failed to initialize audio worker:', error);
+      // Worker is optional - processing will fall back to main thread
+    }
+  }
+  
+  private async processInWorker(type: string, data: any): Promise<any> {
+    if (!this.audioWorker) {
+      throw new Error('Worker not initialized');
+    }
+    
+    const taskId = `${type}_${this.workerTaskId++}`;
+    
+    return new Promise((resolve, reject) => {
+      this.workerPromises.set(taskId, { resolve, reject });
+      this.audioWorker!.postMessage({ ...data, type, taskId });
+      
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        if (this.workerPromises.has(taskId)) {
+          this.workerPromises.delete(taskId);
+          reject(new Error('Worker task timeout'));
+        }
+      }, 30000);
+    });
+  }
 
   private async initializeAudio() {
     if (!this.audioContext) {
@@ -258,15 +345,36 @@ export default class TapeFour {
     // Initialize waveform canvas
     this.waveformCanvas = document.getElementById('waveform-canvas') as HTMLCanvasElement | null;
     if (this.waveformCanvas) {
-      this.waveformContext = this.waveformCanvas.getContext('2d');
+      this.debugLog('waveform', `[WAVEFORM] 🎨 Initializing canvas - width: ${this.waveformCanvas.width}, height: ${this.waveformCanvas.height}`);
+      
+      // Check if canvas has valid dimensions
+      if (this.waveformCanvas.width === 0 || this.waveformCanvas.height === 0) {
+        this.debugWarn('waveform', '[WAVEFORM] ⚠️ Canvas has zero dimensions! This will prevent waveform rendering.');
+      }
+      
+      // Initialize the waveform renderer
+      try {
+        this.waveformRenderer = new WaveformRenderer(this.waveformCanvas);
+        this.debugLog('waveform', '[WAVEFORM] ✅ WaveformRenderer initialized successfully');
+      } catch (error) {
+        this.debugError('waveform', '[WAVEFORM] ❌ Failed to initialize WaveformRenderer', error);
+      }
+      
+      // Create offscreen canvas for better performance
+      this.waveformOffscreenCanvas = document.createElement('canvas');
+      this.waveformOffscreenCanvas.width = this.waveformCanvas.width;
+      this.waveformOffscreenCanvas.height = this.waveformCanvas.height;
+      
       this.clearWaveform(); // Clear all tracks on initialization
+    } else {
+      this.debugWarn('waveform', '[WAVEFORM] ⚠️ No waveform canvas element found with id "waveform-canvas"');
     }
 
     // Apply track colors to mute buttons
     this.applyTrackColorsToUI();
     
     // Update existing button styling immediately if tracks exist
-    setTimeout(() => {
+    this.uiInitTimeout = window.setTimeout(() => {
       this.tracks.forEach(track => {
         this.updateMuteButtonStyling(track.id);
         this.updateReverseButtonStyling(track.id);
@@ -277,6 +385,13 @@ export default class TapeFour {
       this.updateUndoButtonState(); // Initialize undo button state
     }, 100);
   }
+
+  // Helper to track event listeners for cleanup
+  // private addEventListener(element: Element | Document | null, event: string, handler: EventListener) {
+  //   if (!element) return;
+  //   element.addEventListener(event, handler);
+  //   this.eventListeners.push({ element, event, handler });
+  // }
 
   private setupEventListeners() {
     // Prevent duplicate event listener initialization
@@ -624,7 +739,7 @@ export default class TapeFour {
     });
 
     // Keyboard shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
+    this.keyboardHandler = (e: KeyboardEvent) => {
       // Only trigger if not typing in an input field
       if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'SELECT') {
         return;
@@ -734,7 +849,30 @@ export default class TapeFour {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    // Handle tab visibility changes to manage audio context suspension
+    this.handleVisibilityChange = async () => {
+      if (document.hidden) {
+        // Tab is hidden, pause non-essential operations
+        if (this.state.isPlaying && !this.state.isRecording) {
+          this.debugLog('general', '[TAPEFOUR] Tab hidden, pausing playback');
+          this.pause();
+        }
+      } else {
+        // Tab is visible again, resume audio context if needed
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          this.debugLog('general', '[TAPEFOUR] Tab visible, resuming audio context');
+          try {
+            await this.audioContext.resume();
+            this.debugLog('general', '[TAPEFOUR] Audio context resumed successfully');
+          } catch (error) {
+            this.debugLog('error', '[TAPEFOUR] Failed to resume audio context:', error);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('keydown', this.keyboardHandler);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
     
     // Playhead scrubbing functionality
     this.setupPlayheadScrubbing();
@@ -745,6 +883,69 @@ export default class TapeFour {
     // Mark event listeners as initialized
     this.eventListenersInitialized = true;
     this.debugLog('general', '[TAPEFOUR] ✅ Event listeners setup complete');
+  }
+
+  private checkMemoryUsage() {
+    // Check if performance.memory is available (Chrome only)
+    if ('memory' in performance) {
+      const memInfo = (performance as any).memory;
+      const usedMB = Math.round(memInfo.usedJSHeapSize / 1024 / 1024);
+      const limitMB = Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024);
+      const usage = (memInfo.usedJSHeapSize / memInfo.jsHeapSizeLimit) * 100;
+      
+      this.debugLog('general', `[MEMORY] Heap usage: ${usedMB}MB / ${limitMB}MB (${usage.toFixed(1)}%)`);
+      
+      // If memory usage is high, suggest clearing unused tracks
+      if (usage > 80) {
+        this.debugLog('general', '[MEMORY] ⚠️ High memory usage detected. Consider clearing unused tracks.');
+        
+        // Clean up any unused undo history beyond the limit
+        this.tracks.forEach(track => {
+          if (track.undoHistory.length > TapeFour.MAX_UNDO_HISTORY) {
+            const excess = track.undoHistory.length - TapeFour.MAX_UNDO_HISTORY;
+            track.undoHistory.splice(0, excess);
+            this.debugLog('general', `[MEMORY] Cleaned up ${excess} excess undo buffers for track ${track.id}`);
+          }
+        });
+      }
+    }
+  }
+
+  private cleanupTrackBuffers(track: Track) {
+    // Clean up main audio buffers
+    if (track.audioBuffer) {
+      // AudioBuffers are automatically garbage collected when no longer referenced
+      // But we should ensure all references are cleared
+      track.audioBuffer = null;
+    }
+    
+    if (track.originalBuffer) {
+      track.originalBuffer = null;
+    }
+    
+    if (track.originalBufferForSpeed) {
+      track.originalBufferForSpeed = null;
+    }
+    
+    // Clean up undo history buffers
+    if (track.undoHistory && track.undoHistory.length > 0) {
+      this.debugLog('general', `[CLEANUP] Clearing ${track.undoHistory.length} undo buffers for track ${track.id}`);
+      track.undoHistory = [];
+    }
+    
+    // Disconnect and clean up any active source nodes
+    if (track.sourceNode) {
+      try {
+        track.sourceNode.stop();
+        track.sourceNode.disconnect();
+      } catch (e) {
+        // Source might already be stopped
+      }
+      track.sourceNode = null;
+    }
+    
+    // Clear waveform cache for this track
+    this.clearWaveform(track.id);
   }
 
   private setupPlayheadScrubbing() {
@@ -1103,6 +1304,10 @@ export default class TapeFour {
       // Arm this track
       track.isArmed = true;
       if (el) el.checked = true;
+      
+      // Pre-warm audio resources when arming a track
+      this.debugLog('general', `[TAPEFOUR] 🔥 Pre-warming audio resources for track ${trackId}`);
+      this.prewarmAudioResources();
     }
     
     // Save armed track state to localStorage
@@ -1122,6 +1327,31 @@ export default class TapeFour {
     } else if (!hasArmedTracks && this.volumeMeterActive) {
       this.stopVolumeMeter();
       this.stopInputMonitoring();
+    }
+  }
+
+  private async prewarmAudioResources() {
+    // Pre-initialize audio context if not already done
+    if (!this.audioContext) {
+      this.debugLog('general', '[PREWARM] 🔥 Initializing audio context');
+      await this.initializeAudio();
+    }
+    
+    // Pre-create MediaStream if not already present
+    if (!this.mediaStream || !this.mediaStream.active) {
+      this.debugLog('general', '[PREWARM] 🔥 Creating MediaStream for faster recording startup');
+      try {
+        await this.ensureInputStream();
+        
+        // Pre-create MediaRecorder but don't start it
+        if (!this.mediaRecorder && this.mediaStream) {
+          this.debugLog('general', '[PREWARM] 🔥 Pre-creating MediaRecorder');
+          this.mediaRecorder = new MediaRecorder(this.mediaStream);
+          this.setupMediaRecorderHandlers();
+        }
+      } catch (err) {
+        this.debugLog('error', '[PREWARM] ⚠️ Failed to pre-warm audio resources:', err);
+      }
     }
   }
 
@@ -2015,6 +2245,13 @@ export default class TapeFour {
     // Stop recording if active
     if (this.state.isRecording) {
       this.debugLog('transport', '🛑 Stopping active recording');
+      
+      // Clear recording duration timer
+      if (this.recordingDurationTimer) {
+        clearTimeout(this.recordingDurationTimer);
+        this.recordingDurationTimer = null;
+      }
+      
       // Force the MediaRecorder to stop and process the recording
       if (this.mediaRecorder?.state === 'recording') {
         this.debugLog('transport', '[TAPEFOUR] 🎬 Forcing MediaRecorder to stop and process recording');
@@ -2147,9 +2384,8 @@ export default class TapeFour {
     
     // Clear all track audio buffers and reset states
     this.tracks.forEach((track) => {
-      track.audioBuffer = null;
-      track.originalBuffer = null;
-      track.originalBufferForSpeed = null;
+      // Properly clean up audio buffers
+      this.cleanupTrackBuffers(track);
       track.isReversed = false;
       track.isHalfSpeed = false;
       track.recordStartTime = 0;
@@ -2338,34 +2574,42 @@ export default class TapeFour {
       this.debugLog('transport', `[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
     }
 
+    // Critical operations first
     await this.initializeAudio();
     await this.setupRecording();
-    await this.unmuteInput();
-
+    
     // Clear any previous recording data
     this.recordingBuffer = [];
-    this.debugLog('transport', '[TAPEFOUR] 🗑️ Recording buffer cleared');
-
     this.state.isRecording = true;
     
-    // Update record button styling based on mode
-    const recordBtn = document.getElementById('record-btn');
-    if (recordBtn) {
-      recordBtn.classList.add('recording');
-      if (this.state.recordMode === 'punchIn') {
-        recordBtn.classList.add('punch-in');
-        recordBtn.title = 'Punch-In Recording - Only armed tracks will be overdubbed';
-      } else {
-        recordBtn.classList.remove('punch-in');
-        recordBtn.title = 'Recording - Armed tracks will be replaced from beginning';
+    // Start recording immediately after critical setup
+    this.mediaRecorder!.start();
+    this.debugLog('transport', '[TAPEFOUR] 🔴 MediaRecorder started');
+    
+    // Unmute input after starting recording
+    await this.unmuteInput();
+    
+    // Defer UI updates to next tick
+    requestAnimationFrame(() => {
+      // Update record button styling based on mode
+      const recordBtn = document.getElementById('record-btn');
+      if (recordBtn) {
+        recordBtn.classList.add('recording');
+        if (this.state.recordMode === 'punchIn') {
+          recordBtn.classList.add('punch-in');
+          recordBtn.title = 'Punch-In Recording - Only armed tracks will be overdubbed';
+        } else {
+          recordBtn.classList.remove('punch-in');
+          recordBtn.title = 'Recording - Armed tracks will be replaced from beginning';
+        }
       }
-    }
-    
-    // Update bounce button state
-    this.updateBounceButtonState();
-    
-    // Update playhead cursor to show scrubbing is disabled
-    this.updatePlayheadCursor();
+      
+      // Update bounce button state
+      this.updateBounceButtonState();
+      
+      // Update playhead cursor to show scrubbing is disabled
+      this.updatePlayheadCursor();
+    });
 
     this.debugLog('transport', '[TAPEFOUR] 🎵 Starting monitoring playback during recording...');
     this.debugLog('transport', '[TAPEFOUR] 🎧 Other tracks will play at reduced volume to minimize bleed');
@@ -2398,43 +2642,89 @@ export default class TapeFour {
     }
     this.startPlayheadTimer();
     document.getElementById('play-btn')?.classList.add('playing');
-
-    this.mediaRecorder!.start();
     
-    // Handle waveform capture based on recording mode
-    if (this.state.recordMode === 'fresh') {
-      // Fresh recording: clear the current track's waveform
-      this.clearWaveform(armedTrack.id);
-    } else {
-      // Punch-in: fade existing waveform and prepare for overlay
-      this.preparePunchInWaveform(armedTrack.id);
-    }
-    this.startWaveformCapture();
+    // Set up recording duration limit
+    this.recordingDurationTimer = window.setTimeout(() => {
+      this.debugLog('general', '[TAPEFOUR] ⏰ Maximum recording duration reached, stopping recording');
+      this.stop();
+    }, TapeFour.MAX_RECORDING_DURATION_MS);
+    
+    // Defer waveform setup to avoid blocking recording start
+    setTimeout(() => {
+      // Handle waveform capture based on recording mode
+      if (this.state.recordMode === 'fresh') {
+        // Fresh recording: clear the current track's waveform data
+        // but don't clear the canvas yet - we'll draw real-time
+        if (this.waveformRenderer) {
+          this.trackWaveforms.set(armedTrack.id, []);
+          console.log(`[WAVEFORM] 🗑️ Cleared waveform data for track ${armedTrack.id} (fresh recording)`);
+        }
+      } else {
+        // Punch-in: fade existing waveform and prepare for overlay
+        this.preparePunchInWaveform(armedTrack.id);
+      }
+      console.log('[WAVEFORM] ⏱️ Scheduling waveform capture start in 50ms...');
+      this.startWaveformCapture();
+    }, 50);
     
     this.debugLog('transport', `[TAPEFOUR] ✅ ${this.state.recordMode === 'punchIn' ? 'Punch-in' : 'Fresh'} recording started`);
   }
 
   private async setupRecording() {
     try {
+      const startTime = performance.now();
+      
+      // Check if we can reuse existing MediaStream
+      const canReuseStream = this.mediaStream && 
+        this.mediaStream.active && 
+        this.mediaStream.getAudioTracks().length > 0 &&
+        this.mediaStream.getAudioTracks()[0].readyState === 'live';
+        
+      if (canReuseStream) {
+        this.debugLog('input', '[TAPEFOUR] ✅ Reusing existing MediaStream for recording');
+        
+        // If we have a MediaRecorder, check if we can reuse it
+        if (this.mediaRecorder && this.mediaRecorder.state === 'inactive') {
+          this.debugLog('input', '[TAPEFOUR] ♻️ Reusing existing MediaRecorder');
+          // Clear any existing recorded data
+          this.recordingBuffer = [];
+        } else {
+          // Create new MediaRecorder with existing stream
+          this.debugLog('input', '[TAPEFOUR] 🎤 Creating new MediaRecorder with existing stream');
+          if (this.mediaStream) {
+            this.mediaRecorder = new MediaRecorder(this.mediaStream);
+            this.setupMediaRecorderHandlers();
+          } else {
+            throw new Error('MediaStream is not available');
+          }
+        }
+        
+        const setupTime = performance.now() - startTime;
+        this.debugLog('input', `[TAPEFOUR] ⚡ Recording setup completed in ${setupTime.toFixed(2)}ms (reused stream)`);
+        return;
+      }
+      
+      // If we can't reuse, we need to create a new stream
+      this.debugLog('input', '[TAPEFOUR] 🔄 Creating new MediaStream for recording');
+      
       // Check if volume meter and monitoring were active before stopping the stream
       const wasVolumeMeterActive = this.volumeMeterActive;
       const wasMonitoringActive = this.state.isMonitoring;
       
-      // Stop volume meter first if it was active
-      if (wasVolumeMeterActive) {
-        this.debugLog('input', '[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
-        this.stopVolumeMeter();
-      }
-      
-      // Stop input monitoring if it was active
-      if (wasMonitoringActive) {
-        this.debugLog('input', '[TAPEFOUR] 🔇 Stopping input monitoring before recreating media stream');
-        this.stopInputMonitoring();
-      }
-      
-      // Always stop and clean up existing media stream before creating a new one
-      // This ensures we use the currently selected device for recording
+      // Only stop these if we're actually changing the stream
       if (this.mediaStream) {
+        // Stop volume meter first if it was active
+        if (wasVolumeMeterActive) {
+          this.debugLog('input', '[TAPEFOUR] 🔇 Stopping volume meter before recreating media stream');
+          this.stopVolumeMeter();
+        }
+        
+        // Stop input monitoring if it was active
+        if (wasMonitoringActive) {
+          this.debugLog('input', '[TAPEFOUR] 🔇 Stopping input monitoring before recreating media stream');
+          this.stopInputMonitoring();
+        }
+        
         this.debugLog('input', '[TAPEFOUR] 🛑 Stopping existing media stream before creating new one');
         this.mediaStream.getTracks().forEach(track => track.stop());
         this.mediaStream = null;
@@ -2471,17 +2761,7 @@ export default class TapeFour {
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       this.mediaRecorder = new MediaRecorder(this.mediaStream);
-
-      this.mediaRecorder.ondataavailable = (ev) => {
-        if (ev.data.size > 0) {
-          this.debugLog('input', `[TAPEFOUR] 📊 MediaRecorder data chunk: ${ev.data.size} bytes`);
-          this.recordingBuffer.push(ev.data);
-        }
-      };
-      this.mediaRecorder.onstop = () => {
-        this.debugLog('input', `[TAPEFOUR] 🛑 MediaRecorder stopped, buffer has ${this.recordingBuffer.length} chunks`);
-        this.processRecording();
-      };
+      this.setupMediaRecorderHandlers();
       
       this.debugLog('input', `[TAPEFOUR] 🎤 MediaRecorder created, input tracks: ${this.mediaStream.getAudioTracks().length}`);
       this.mediaStream.getAudioTracks().forEach((track, i) => {
@@ -2513,10 +2793,39 @@ export default class TapeFour {
       // Setup waveform analyser for recording
       this.setupWaveformAnalyser();
       
+      const setupTime = performance.now() - startTime;
+      this.debugLog('input', `[TAPEFOUR] ⚡ Recording setup completed in ${setupTime.toFixed(2)}ms (new stream)`);
+      
     } catch (err) {
       this.debugError('input', 'Error setting up recording', err);
               this.showError('Could not access microphone. Please check permissions and settings.');
     }
+  }
+
+  private setupMediaRecorderHandlers() {
+    if (!this.mediaRecorder) return;
+    
+    this.mediaRecorder.ondataavailable = (ev) => {
+      if (ev.data.size > 0) {
+        // Calculate current buffer size
+        const currentBufferSize = this.recordingBuffer.reduce((total, blob) => total + blob.size, 0);
+        
+        // Check if adding this chunk would exceed the limit
+        if (currentBufferSize + ev.data.size > TapeFour.MAX_RECORDING_BUFFER_SIZE) {
+          this.debugLog('error', `[TAPEFOUR] ⚠️ Recording buffer size limit reached (${TapeFour.MAX_RECORDING_BUFFER_SIZE / 1024 / 1024}MB), stopping recording`);
+          this.stop();
+          return;
+        }
+        
+        this.debugLog('input', `[TAPEFOUR] 📊 MediaRecorder data chunk: ${ev.data.size} bytes`);
+        this.recordingBuffer.push(ev.data);
+      }
+    };
+    
+    this.mediaRecorder.onstop = () => {
+      this.debugLog('input', `[TAPEFOUR] 🛑 MediaRecorder stopped, buffer has ${this.recordingBuffer.length} chunks`);
+      this.processRecording();
+    };
   }
 
   private stopRecording() {
@@ -2570,8 +2879,11 @@ export default class TapeFour {
         this.recordingBuffer = [];
       }
       
-      // Redraw waveforms to remove punch-in overlay and restore normal opacity
-      this.redrawAllTrackWaveforms();
+      // Force a full redraw after recording stops to show the complete waveform
+      if (this.waveformRenderer) {
+        this.waveformRenderer.clear();
+        this.redrawAllTrackWaveforms();
+      }
     }, 100); // Small delay to allow MediaRecorder onstop to fire first
     
     this.debugLog('transport', `[TAPEFOUR] ✅ ${this.state.recordMode} recording stopped`);
@@ -2598,6 +2910,9 @@ export default class TapeFour {
           this.debugLog('general', `[TAPEFOUR] ✅ Fresh recording assigned to track ${armedTrack.id} starting at ${armedTrack.recordStartTime}ms`);
           this.debugLog('general', `[TAPEFOUR] 📊 Track ${armedTrack.id} now has ${newAudioBuffer.length} samples (${newAudioBuffer.duration.toFixed(2)}s)`);
           
+          // Generate waveform for the new recording
+          this.generateTrackWaveform(newAudioBuffer, armedTrack.id);
+          
           // Auto-set loop after first recording
           if (!this.state.hasCompletedFirstRecording) {
             this.setupInitialLoop(newAudioBuffer.duration);
@@ -2607,6 +2922,13 @@ export default class TapeFour {
           // Punch-in recording: save current state for undo, then merge
           if (armedTrack.audioBuffer) {
             armedTrack.undoHistory.push(armedTrack.audioBuffer);
+            
+            // Enforce undo history limit
+            if (armedTrack.undoHistory.length > TapeFour.MAX_UNDO_HISTORY) {
+              armedTrack.undoHistory.shift(); // Remove oldest
+              this.debugLog('general', `[UNDO] History limit reached, removed oldest entry`);
+            }
+            
             this.debugLog('general', `[UNDO] Stored buffer for track ${armedTrack.id}. History size: ${armedTrack.undoHistory.length}`);
           }
           const mergedBuffer = this.mergeBuffersForPunchIn(armedTrack.audioBuffer, newAudioBuffer, this.state.punchInStartPosition);
@@ -2614,6 +2936,9 @@ export default class TapeFour {
           // For punch-in, recordStartTime remains unchanged as it keeps the original track's timeline position
           this.debugLog('punchIn', `[PUNCH-IN] ✅ Punch-in recording merged into track ${armedTrack.id} (original start time: ${armedTrack.recordStartTime}ms)`);
           this.debugLog('punchIn', `[PUNCH-IN] 📊 Track ${armedTrack.id} now has ${mergedBuffer.length} samples (${mergedBuffer.duration.toFixed(2)}s)`);
+          
+          // Generate waveform for the merged buffer
+          this.generateTrackWaveform(mergedBuffer, armedTrack.id);
         }
       } else {
         this.debugWarn('general', '[TAPEFOUR] ⚠️ No armed track found to assign recording to');
@@ -2728,11 +3053,21 @@ export default class TapeFour {
 
   private startPlayheadTimer() {
     this.playStartTime = Date.now() - this.state.playheadPosition;
-    this.playheadTimer = window.setInterval(() => {
-      // Exit immediately if not playing - this fixes loop not stopping
+    this.lastPlayheadUpdate = 0;
+    
+    const updatePlayhead = (timestamp: number) => {
+      // Exit immediately if not playing
       if (!this.state.isPlaying) {
+        this.playheadAnimationId = null;
         return;
       }
+      
+      // Throttle updates to ~30fps for performance
+      if (timestamp - this.lastPlayheadUpdate < 33) {
+        this.playheadAnimationId = requestAnimationFrame(updatePlayhead);
+        return;
+      }
+      this.lastPlayheadUpdate = timestamp;
       
       // Don't update playhead position while user is dragging
       if (!this.isDraggingPlayhead) {
@@ -2753,15 +3088,28 @@ export default class TapeFour {
         }
         
         this.updatePlayheadUI();
-        if (this.state.playheadPosition >= this.state.maxRecordingTime) this.stop();
+        if (this.state.playheadPosition >= this.state.maxRecordingTime) {
+          this.stop();
+          return;
+        }
       }
-    }, 50);
+      
+      this.playheadAnimationId = requestAnimationFrame(updatePlayhead);
+    };
+    
+    this.playheadAnimationId = requestAnimationFrame(updatePlayhead);
     this.startTapeReelSpinning();
   }
 
   private stopPlayheadTimer() {
     if (this.playheadTimer) window.clearInterval(this.playheadTimer);
     this.playheadTimer = null;
+    
+    if (this.playheadAnimationId) {
+      cancelAnimationFrame(this.playheadAnimationId);
+      this.playheadAnimationId = null;
+    }
+    
     this.stopTapeReelSpinning();
   }
 
@@ -3574,8 +3922,19 @@ export default class TapeFour {
   }
 
   private generateMasterWaveform(audioBuffer: AudioBuffer) {
+    try {
+      this.debugLog('waveform', `[WAVEFORM] 🎯 Starting master waveform generation - buffer duration: ${audioBuffer.duration}s, samples: ${audioBuffer.length}`);
+    
     const samples = audioBuffer.getChannelData(0); // Use left channel for waveform
-    const waveformData: Array<{position: number, peak: number}> = [];
+    const waveformData: WaveformPoint[] = [];
+    
+    // Calculate canvas dimensions
+    const playheadElement = document.getElementById('playhead');
+    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
+    const canvasInternalWidth = this.waveformCanvas?.width || 800;
+    const scaleFactor = canvasInternalWidth / displayedWidth;
+    
+    this.debugLog('waveform', `[WAVEFORM] 📏 Canvas dimensions - displayed: ${displayedWidth}px, internal: ${canvasInternalWidth}px, scale: ${scaleFactor}`);
     
     // Sample every N samples to create manageable waveform data
     const duration = audioBuffer.duration;
@@ -3590,18 +3949,53 @@ export default class TapeFour {
         peak = Math.max(peak, Math.abs(samples[j]));
       }
       
-      const position = (i / this.waveformBufferSize) * duration * 1000; // Convert to ms
-      waveformData.push({ position, peak });
+      // Calculate position based on the full buffer duration
+      const timeInBuffer = (i / this.waveformBufferSize) * duration * 1000; // ms
+      const progress = timeInBuffer / this.state.maxRecordingTime;
+      const playheadPosition = Math.min(progress * displayedWidth, displayedWidth);
+      const canvasX = playheadPosition * scaleFactor;
+      
+      waveformData.push({ position: canvasX, peak });
     }
     
     this.masterWaveform = waveformData;
+    this.debugLog('waveform', `[WAVEFORM] ✅ Master waveform generated with ${waveformData.length} points`);
+    
+    // Log sample of waveform data for debugging
+    if (waveformData.length > 0) {
+      this.debugLog('waveform', `[WAVEFORM] 📊 Sample data - First: {pos: ${waveformData[0].position.toFixed(2)}, peak: ${waveformData[0].peak.toFixed(3)}}, Last: {pos: ${waveformData[waveformData.length - 1].position.toFixed(2)}, peak: ${waveformData[waveformData.length - 1].peak.toFixed(3)}}`);
+    }
+    
+    // Trigger redraw after generating waveform
+    this.redrawAllTrackWaveforms();
+    } catch (error) {
+      this.debugError('waveform', '[WAVEFORM] ❌ Error generating master waveform', error);
+    }
   }
 
   private generateTrackWaveform(audioBuffer: AudioBuffer, trackId: number) {
-    const samples = audioBuffer.getChannelData(0); // Use left channel for waveform
-    const waveformData: Array<{position: number, peak: number}> = [];
+    try {
+      this.debugLog('waveform', `[WAVEFORM] 🎯 Starting track ${trackId} waveform generation - buffer duration: ${audioBuffer.duration}s, samples: ${audioBuffer.length}`);
     
-    // Sample every N samples to create manageable waveform data
+    const samples = audioBuffer.getChannelData(0); // Use left channel for waveform
+    const waveformData: WaveformPoint[] = [];
+    
+    // Get the track to know its start time
+    const track = this.tracks.find(t => t.id === trackId);
+    if (!track) {
+      this.debugLog('waveform', `[WAVEFORM] ❌ Track ${trackId} not found, aborting waveform generation`);
+      return;
+    }
+    
+    this.debugLog('waveform', `[WAVEFORM] 🕒 Track ${trackId} start time: ${track.recordStartTime}ms`);
+    
+    // Calculate canvas scale factor
+    const playheadElement = document.getElementById('playhead');
+    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
+    const canvasInternalWidth = this.waveformCanvas?.width || 800;
+    const scaleFactor = canvasInternalWidth / displayedWidth;
+    
+    // Sample the audio buffer
     const duration = audioBuffer.duration;
     const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
     
@@ -3614,64 +4008,71 @@ export default class TapeFour {
         peak = Math.max(peak, Math.abs(samples[j]));
       }
       
-      const position = (i / this.waveformBufferSize) * duration * 1000; // Convert to ms
-      waveformData.push({ position, peak });
+      // Calculate position in timeline (ms)
+      const timeInBuffer = (i / this.waveformBufferSize) * duration * 1000; // Time within the buffer
+      const absoluteTime = track.recordStartTime + timeInBuffer; // Absolute timeline position
+      
+      // Convert to canvas position
+      const progress = absoluteTime / this.state.maxRecordingTime;
+      const playheadPosition = Math.min(progress * displayedWidth, displayedWidth);
+      const canvasX = playheadPosition * scaleFactor;
+      
+      waveformData.push({ position: canvasX, peak });
     }
     
     // Store waveform data for the specified track
     this.trackWaveforms.set(trackId, waveformData);
     this.debugLog('waveform', `[WAVEFORM] 🎨 Generated waveform for track ${trackId} with ${waveformData.length} peaks`);
-  }
-
-  private generateMasterWaveformFromTracks(rendered: AudioBuffer, originalTracks: any[]) {
-    // Collect ALL waveform points from original tracks to preserve exact positioning
-    const allOriginalPoints: Array<{position: number, peak: number}> = [];
     
-    originalTracks.forEach(track => {
-      const waveformData = this.trackWaveforms.get(track.id);
-      if (waveformData && waveformData.length > 0) {
-        allOriginalPoints.push(...waveformData);
-      }
-    });
-    
-    // If no existing waveforms found, fall back to time-based generation
-    if (allOriginalPoints.length === 0) {
-      this.generateMasterWaveform(rendered);
-      return;
+    // Log sample of waveform data for debugging
+    if (waveformData.length > 0) {
+      this.debugLog('waveform', `[WAVEFORM] 📊 Track ${trackId} sample - First: {pos: ${waveformData[0].position.toFixed(2)}, peak: ${waveformData[0].peak.toFixed(3)}}, Last: {pos: ${waveformData[waveformData.length - 1].position.toFixed(2)}, peak: ${waveformData[waveformData.length - 1].peak.toFixed(3)}}`);
     }
     
-    // Sort by position to maintain timeline order
-    allOriginalPoints.sort((a, b) => a.position - b.position);
+    // Log canvas dimensions for debugging
+    this.debugLog('waveform', `[WAVEFORM] 📏 Canvas check - displayed: ${displayedWidth}px, internal: ${canvasInternalWidth}px`);
     
-    // Get canvas dimensions for position mapping
-    const canvasInternalWidth = this.waveformCanvas?.width || 800;
+    // Trigger redraw after generating waveform
+    this.redrawAllTrackWaveforms();
+    } catch (error) {
+      this.debugError('waveform', `[WAVEFORM] ❌ Error generating track ${trackId} waveform`, error);
+    }
+  }
+
+  private generateMasterWaveformFromTracks(rendered: AudioBuffer, _originalTracks: any[]) {
+    // Simply generate a fresh waveform from the rendered master buffer
     const samples = rendered.getChannelData(0);
-    const samplesPerPixel = samples.length / canvasInternalWidth;
+    const waveformData: WaveformPoint[] = [];
     
-    const waveformData: Array<{position: number, peak: number}> = [];
+    // Calculate canvas dimensions
+    const playheadElement = document.getElementById('playhead');
+    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
+    const canvasInternalWidth = this.waveformCanvas?.width || 800;
+    const scaleFactor = canvasInternalWidth / displayedWidth;
     
-    // For each original canvas position, calculate the corresponding peak in the bounced audio
-    allOriginalPoints.forEach(originalPoint => {
-      const canvasX = originalPoint.position; // This is already in canvas coordinates (0-800)
-      const sampleIndex = Math.floor(canvasX * samplesPerPixel);
-      
-      // Sample a small window around this position to get the peak
-      const windowSize = Math.max(1, Math.floor(samplesPerPixel)); // At least 1 sample
-      const startSample = Math.max(0, sampleIndex - Math.floor(windowSize / 2));
-      const endSample = Math.min(samples.length, startSample + windowSize);
+    // Sample the rendered buffer
+    const samplesPerPixel = Math.floor(samples.length / this.waveformBufferSize);
+    
+    for (let i = 0; i < this.waveformBufferSize; i++) {
+      const start = i * samplesPerPixel;
+      const end = Math.min(start + samplesPerPixel, samples.length);
       
       let peak = 0;
-      for (let i = startSample; i < endSample; i++) {
-        peak = Math.max(peak, Math.abs(samples[i]));
+      for (let j = start; j < end; j++) {
+        peak = Math.max(peak, Math.abs(samples[j]));
       }
       
-      if (peak > 0.01) { // Only add significant peaks
-        waveformData.push({ position: canvasX, peak });
-      }
-    });
+      // Calculate position based on the full buffer duration
+      const timeInBuffer = (i / this.waveformBufferSize) * rendered.duration * 1000; // ms
+      const progress = timeInBuffer / this.state.maxRecordingTime;
+      const playheadPosition = Math.min(progress * displayedWidth, displayedWidth);
+      const canvasX = playheadPosition * scaleFactor;
+      
+      waveformData.push({ position: canvasX, peak });
+    }
     
     this.masterWaveform = waveformData;
-    this.debugLog('waveform', `[WAVEFORM] 🏆 Generated master waveform with ${waveformData.length} peaks at original canvas positions`);
+    this.debugLog('waveform', `[WAVEFORM] 🏆 Generated master waveform with ${waveformData.length} peaks`);
   }
 
   public async export() {
@@ -3760,7 +4161,7 @@ export default class TapeFour {
         this.debugLog('general', `[TAPEFOUR] 📁 Processing Track ${track.id} for zip...`);
         
         const trackBuffer = await this.renderTrackBuffer(track);
-        const wavData = this.audioBufferToWav(trackBuffer);
+        const wavData = await this.audioBufferToWav(trackBuffer);
         const filename = `track_${track.id}_${timestamp}.wav`;
         
         zip.file(filename, wavData);
@@ -3773,7 +4174,7 @@ export default class TapeFour {
         this.showStatus(`📦 Adding Master Mix to zip... (${fileCount + 1}/${totalFiles})`);
         this.debugLog('general', `[TAPEFOUR] 📁 Processing bounced master for zip...`);
         
-        const wavData = this.audioBufferToWav(this.state.masterBuffer);
+        const wavData = await this.audioBufferToWav(this.state.masterBuffer);
         const filename = `master_${timestamp}.wav`;
         zip.file(filename, wavData);
         fileCount++;
@@ -3783,7 +4184,7 @@ export default class TapeFour {
         this.debugLog('general', `[TAPEFOUR] 📁 Processing live master mix for zip...`);
         
         const masterBuffer = await this.renderMasterBuffer(tracksWithAudio);
-        const wavData = this.audioBufferToWav(masterBuffer);
+        const wavData = await this.audioBufferToWav(masterBuffer);
         const filename = `master_${timestamp}.wav`;
         zip.file(filename, wavData);
         fileCount++;
@@ -3817,10 +4218,10 @@ export default class TapeFour {
 
 
 
-  private downloadWav(buf: AudioBuffer, trackName: string = 'mix') {
+  private async downloadWav(buf: AudioBuffer, trackName: string = 'mix') {
     try {
       this.debugLog('general', `[TAPEFOUR] 🔄 Converting ${trackName} to WAV...`);
-      const wav = this.audioBufferToWav(buf);
+      const wav = await this.audioBufferToWav(buf);
       const blob = new Blob([wav], { type: 'audio/wav' });
       const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '_');
       const filename = `TS_tapefour_${trackName}_${timestamp}.wav`;
@@ -3934,7 +4335,30 @@ export default class TapeFour {
     return await offline.startRendering();
   }
 
-  private audioBufferToWav(buffer: AudioBuffer) {
+  private async audioBufferToWav(buffer: AudioBuffer): Promise<ArrayBuffer> {
+    const channels: Float32Array[] = [];
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      channels.push(buffer.getChannelData(i));
+    }
+    
+    // Try to use worker for large files
+    if (this.audioWorker && buffer.length > 44100 * 10) { // Use worker for files > 10 seconds
+      try {
+        this.debugLog('processing', '[WAV] Using worker for WAV encoding');
+        return await this.processInWorker('wavEncode', {
+          audioData: channels,
+          sampleRate: buffer.sampleRate
+        });
+      } catch (error) {
+        this.debugWarn('processing', '[WAV] Worker failed, falling back to main thread:', error);
+      }
+    }
+    
+    // Fallback to main thread processing
+    return this.audioBufferToWavSync(buffer);
+  }
+  
+  private audioBufferToWavSync(buffer: AudioBuffer): ArrayBuffer {
     const length = buffer.length;
     const numChannels = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
@@ -4448,132 +4872,107 @@ export default class TapeFour {
     }
   }
 
-  private drawLoopRegion() {
-    if (!this.waveformContext || !this.waveformCanvas) return;
-    
-    const canvas = this.waveformCanvas;
-    const ctx = this.waveformContext;
-    const height = canvas.height;
-    const canvasInternalWidth = canvas.width;
-    
-    // Convert loop times to canvas positions
-    const maxTimeSeconds = this.state.maxRecordingTime / 1000;
-    const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
-    const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
-    const loopWidth = loopEndX - loopStartX;
-    
-    // Draw semi-transparent loop region
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.15)'; // Green with low opacity
-    ctx.fillRect(loopStartX, 0, loopWidth, height);
-    
-    // Draw loop region borders
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)'; // More opaque green for borders
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]); // Dashed line
-    ctx.strokeRect(loopStartX, 0, loopWidth, height);
-    ctx.setLineDash([]); // Reset line dash
-    
-    // Draw draggable handles
-    this.drawLoopHandle(loopStartX, 'start');
-    this.drawLoopHandle(loopEndX, 'end');
-    
-    // Time labels removed - cleaner visual appearance
-  }
-
-  private drawLoopHandle(x: number, type: 'start' | 'end') {
-    if (!this.waveformContext || !this.waveformCanvas) return;
-    
-    const ctx = this.waveformContext;
-    const height = this.waveformCanvas.height;
-    const handleWidth = 8;
-    const handleHeight = height;
-    
-    // Determine if this handle is being dragged
-    const isDragging = (type === 'start' && this.state.isDraggingLoopStart) || 
-                      (type === 'end' && this.state.isDraggingLoopEnd);
-    
-    // Handle colors
-    const baseColor = type === 'start' ? 'rgba(34, 197, 94, 0.8)' : 'rgba(34, 197, 94, 0.8)';
-    const activeColor = type === 'start' ? 'rgba(34, 197, 94, 1)' : 'rgba(34, 197, 94, 1)';
-    
-    // Draw handle background
-    ctx.fillStyle = isDragging ? activeColor : baseColor;
-    ctx.fillRect(x - handleWidth / 2, 0, handleWidth, handleHeight);
-    
-    // Draw handle border
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x - handleWidth / 2, 0, handleWidth, handleHeight);
-    
-    // Draw grip lines for visual feedback
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.lineWidth = 1;
-    for (let i = 1; i <= 3; i++) {
-      const lineY = (height / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(x - 2, lineY);
-      ctx.lineTo(x + 2, lineY);
-      ctx.stroke();
-    }
-  }
-
 
 
   /* ---------- Waveform Strip Methods ---------- */
 
   private clearWaveform(trackId?: number) {
-    if (!this.waveformContext || !this.waveformCanvas) return;
+    if (!this.waveformRenderer || !this.waveformCanvas) return;
     
     if (trackId) {
       // Clear only the specified track's waveform data
       this.trackWaveforms.set(trackId, []);
       console.log(`[WAVEFORM] 🗑️ Cleared waveform data for track ${trackId}`);
+      // Don't trigger redraw when clearing a specific track during recording
     } else {
       // Clear all track waveforms (used for full reset)
       this.trackWaveforms.clear();
+      this.masterWaveform = [];
       console.log('[WAVEFORM] 🗑️ Cleared all track waveform data');
+      // Only redraw when clearing all (full reset)
+      this.redrawAllTrackWaveforms();
     }
-    
-    // Always clear the canvas and redraw remaining waveforms
-    this.waveformContext.clearRect(0, 0, this.waveformCanvas.width, this.waveformCanvas.height);
-    this.redrawAllTrackWaveforms();
   }
 
   private preparePunchInWaveform(trackId: number) {
-    if (!this.waveformContext || !this.waveformCanvas) return;
+    if (!this.waveformRenderer || !this.waveformCanvas) return;
     
     console.log(`[PUNCH-IN] 🎨 Preparing punch-in waveform for track ${trackId}`);
     
-    // Mark this track as in punch-in mode for visual rendering
-    // We'll render existing waveform at reduced opacity and overlay new recording
-    this.redrawAllTrackWaveforms();
-    
+    // During punch-in, we want to show existing waveform at reduced opacity
+    // Don't redraw here - let the real-time drawing handle it
     console.log('[PUNCH-IN] ✅ Punch-in waveform prepared - existing waveform will be faded during recording');
   }
 
   private setupWaveformAnalyser() {
-    if (!this.audioContext || !this.inputSourceNode) return;
+    console.log('[WAVEFORM] 🔧 Setting up waveform analyser...');
     
-    this.waveformAnalyserNode = this.audioContext.createAnalyser();
-    this.waveformAnalyserNode.fftSize = 512; // Smaller FFT for better performance
-    this.waveformAnalyserNode.smoothingTimeConstant = 0.3;
+    if (!this.audioContext) {
+      console.warn('[WAVEFORM] ⚠️ No audio context available');
+      return;
+    }
     
-    // Connect input to waveform analyser
-    this.inputSourceNode.connect(this.waveformAnalyserNode);
+    if (!this.inputSourceNode) {
+      console.warn('[WAVEFORM] ⚠️ No input source node available - attempting to create from media stream');
+      
+      // Try to create the input source node if we have a media stream
+      if (this.mediaStream) {
+        try {
+          this.inputSourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+          console.log('[WAVEFORM] ✅ Created input source node for waveform analyser');
+        } catch (error) {
+          console.error('[WAVEFORM] ❌ Failed to create input source node:', error);
+          return;
+        }
+      } else {
+        console.error('[WAVEFORM] ❌ No media stream available to create input source node');
+        return;
+      }
+    }
     
-    console.log('[WAVEFORM] 🌊 Waveform analyser setup complete');
+    try {
+      this.waveformAnalyserNode = this.audioContext.createAnalyser();
+      this.waveformAnalyserNode.fftSize = 512; // Smaller FFT for better performance
+      this.waveformAnalyserNode.smoothingTimeConstant = 0.3;
+      
+      // Connect input to waveform analyser
+      this.inputSourceNode.connect(this.waveformAnalyserNode);
+      
+      console.log('[WAVEFORM] 🌊 Waveform analyser setup complete');
+      console.log('[WAVEFORM] 📊 Analyser details:', {
+        fftSize: this.waveformAnalyserNode.fftSize,
+        frequencyBinCount: this.waveformAnalyserNode.frequencyBinCount,
+        smoothingTimeConstant: this.waveformAnalyserNode.smoothingTimeConstant
+      });
+    } catch (error) {
+      console.error('[WAVEFORM] ❌ Failed to setup waveform analyser:', error);
+    }
   }
 
   private startWaveformCapture() {
-    if (!this.waveformAnalyserNode) return;
+    console.log('[WAVEFORM] 🎬 startWaveformCapture called');
     
-    console.log('[WAVEFORM] 🎬 Starting waveform capture...');
+    if (!this.waveformAnalyserNode) {
+      console.warn('[WAVEFORM] ⚠️ No waveform analyser node - cannot start capture');
+      return;
+    }
+    
+    console.log('[WAVEFORM] ✅ Starting waveform capture...');
     
     const dataArray = new Uint8Array(this.waveformAnalyserNode.frequencyBinCount);
+    console.log('[WAVEFORM] 📊 Data array size:', dataArray.length);
     
     const captureWaveform = () => {
       if (!this.state.isRecording || !this.waveformAnalyserNode) {
+        console.log('[WAVEFORM] ⏹️ Stopping capture - recording:', this.state.isRecording, 'analyser:', !!this.waveformAnalyserNode);
         this.waveformRenderingId = null;
+        return;
+      }
+      
+      // Find armed track early to ensure we have one
+      const armedTrack = this.tracks.find(t => t.isArmed);
+      if (!armedTrack) {
+        console.warn('[WAVEFORM] ⚠️ No armed track found during capture');
         return;
       }
       
@@ -4598,11 +4997,17 @@ export default class TapeFour {
   }
 
   private drawWaveformPeak(peak: number) {
-    if (!this.waveformContext || !this.waveformCanvas) return;
+    if (!this.waveformRenderer || !this.waveformCanvas) {
+      console.warn('[WAVEFORM] ⚠️ drawWaveformPeak - no renderer or canvas');
+      return;
+    }
     
     // Find the currently armed track
     const armedTrack = this.tracks.find(t => t.isArmed);
-    if (!armedTrack) return;
+    if (!armedTrack) {
+      console.warn('[WAVEFORM] ⚠️ drawWaveformPeak - no armed track found');
+      return;
+    }
     
     const canvas = this.waveformCanvas;
     
@@ -4631,20 +5036,108 @@ export default class TapeFour {
       peak: peak
     });
     
-    // Redraw all track waveforms to show the new peak
-    this.redrawAllTrackWaveforms();
+    // Debug: Log peak drawing
+    const peakCount = this.trackWaveforms.get(armedTrack.id)!.length;
+    if (peakCount === 1) {
+      console.log('[WAVEFORM] 🎯 First peak captured!');
+    }
+    if (peakCount % 10 === 0) {
+      console.log(`[WAVEFORM] 📊 Drawing peak #${peakCount} at x=${canvasX.toFixed(1)}, peak=${peak.toFixed(3)}`);
+    }
+    
+    // Request a redraw to include this new peak
+    // This will draw all peaks including the new one
+    this.redrawAllTrackWaveformsImmediate();
   }
   
+  // Commented out for now - not used with incremental rendering
+  // private drawLoopHandles() {
+  //   if (!this.waveformContext || !this.waveformCanvas || !this.state.isLooping) return;
+  //   
+  //   const ctx = this.waveformContext;
+  //   const canvas = this.waveformCanvas;
+  //   const height = canvas.height;
+  //   const canvasInternalWidth = canvas.width;
+  //   const maxTimeSeconds = this.state.maxRecordingTime / 1000;
+  //   
+  //   // Calculate loop handle positions
+  //   const loopStartX = (this.state.loopStart / maxTimeSeconds) * canvasInternalWidth;
+  //   const loopEndX = (this.state.loopEnd / maxTimeSeconds) * canvasInternalWidth;
+  //   
+  //   // Draw loop region overlay
+  //   ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  //   ctx.fillRect(loopStartX, 0, loopEndX - loopStartX, height);
+  //   
+  //   // Draw loop markers
+  //   ctx.strokeStyle = '#FFD700';
+  //   ctx.lineWidth = 2;
+  //   
+  //   // Start marker
+  //   ctx.beginPath();
+  //   ctx.moveTo(loopStartX, 0);
+  //   ctx.lineTo(loopStartX, height);
+  //   ctx.stroke();
+  //   
+  //   // End marker
+  //   ctx.beginPath();
+  //   ctx.moveTo(loopEndX, 0);
+  //   ctx.lineTo(loopEndX, height);
+  //   ctx.stroke();
+  //   
+  //   // Draw handles
+  //   const handleSize = 10;
+  //   ctx.fillStyle = '#FFD700';
+  //   
+  //   // Start handle
+  //   ctx.fillRect(loopStartX - handleSize/2, 0, handleSize, handleSize * 2);
+  //   ctx.fillRect(loopStartX - handleSize/2, height - handleSize * 2, handleSize, handleSize * 2);
+  //   
+  //   // End handle
+  //   ctx.fillRect(loopEndX - handleSize/2, 0, handleSize, handleSize * 2);
+  //   ctx.fillRect(loopEndX - handleSize/2, height - handleSize * 2, handleSize, handleSize * 2);
+  // }
+  
+  // Throttled wrapper for waveform redrawing
+  private requestWaveformRedraw() {
+    if (this.waveformRedrawPending) return;
+    
+    this.waveformRedrawPending = true;
+    
+    // Cancel any existing timer
+    if (this.waveformRedrawTimer) {
+      cancelAnimationFrame(this.waveformRedrawTimer);
+    }
+    
+    // Schedule redraw on next animation frame
+    this.waveformRedrawTimer = requestAnimationFrame(() => {
+      this.waveformRedrawPending = false;
+      this.waveformRedrawTimer = null;
+      this.redrawAllTrackWaveformsImmediate();
+    });
+  }
+
   private redrawAllTrackWaveforms() {
-    if (!this.waveformContext || !this.waveformCanvas) return;
-    
-    const canvas = this.waveformCanvas;
-    const ctx = this.waveformContext;
-    const height = canvas.height;
-    const canvasInternalWidth = canvas.width;
-    
-    // Clear the canvas
-    ctx.clearRect(0, 0, canvasInternalWidth, height);
+    // Use throttled version by default
+    this.requestWaveformRedraw();
+  }
+
+  private redrawAllTrackWaveformsImmediate() {
+    try {
+      if (!this.waveformRenderer || !this.waveformCanvas) {
+        this.debugLog('waveform', '[WAVEFORM] ⚠️ Cannot redraw - renderer or canvas not initialized');
+        return;
+      }
+      
+      if (this.waveformCanvas.width === 0 || this.waveformCanvas.height === 0) {
+        this.debugWarn('waveform', '[WAVEFORM] ⚠️ Canvas has zero dimensions, cannot draw');
+        return;
+      }
+      
+      this.debugLog('waveform', '[WAVEFORM] 🔄 Starting waveform redraw...');
+      
+      // Always clear both canvases for clean redraw
+      this.waveformRenderer.clear();
+      this.waveformRenderer.clearOffscreen();
     
     let totalTracksDrawn = 0;
     const armedTrack = this.tracks.find(t => t.isArmed);
@@ -4652,19 +5145,8 @@ export default class TapeFour {
     
     // Draw master waveform first (in background) if it exists
     if (this.masterWaveform.length > 0) {
-      ctx.fillStyle = this.trackColors.master;
-      ctx.strokeStyle = this.trackColors.master;
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3; // Lower opacity so it stays in background
-      
-      const peakWidth = 2; // Slightly thinner for master
-      for (const { position, peak } of this.masterWaveform) {
-        const peakHeight = peak * (height * 0.9); // Slightly taller to be visible
-        if (position < canvasInternalWidth && position >= 0) {
-          ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
-        }
-      }
-      console.log(`[WAVEFORM] 🏆 Drew master waveform with ${this.masterWaveform.length} peaks`);
+      this.waveformRenderer.drawTrackWaveform(this.masterWaveform, 'master', { opacity: 0.3 });
+      this.debugLog('waveform', `[WAVEFORM] 🏆 Drew master waveform with ${this.masterWaveform.length} peaks`);
     }
     
     // Draw waveforms for all tracks with data (in order: 1, 2, 3, 4)
@@ -4672,116 +5154,77 @@ export default class TapeFour {
       const waveformData = this.trackWaveforms.get(trackId);
       if (!waveformData || waveformData.length === 0) continue;
       
-      // Check if this track is reversed
+      // Check if this track is reversed or half-speed
       const track = this.tracks[trackId - 1];
       const isReversed = track?.isReversed || false;
-      
-      // Set color for this track
-      const color = this.trackColors[trackId as keyof typeof this.trackColors] || '#D18C33';
-      ctx.fillStyle = color;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      const isHalfSpeed = track?.isHalfSpeed || false;
       
       // Determine opacity based on punch-in recording state
-      if (isPunchInRecording && armedTrack && trackId === armedTrack.id) {
-        // Armed track during punch-in: fade existing waveform to 40% opacity
-        ctx.globalAlpha = 0.4;
-      } else {
-        // Normal opacity for other tracks or non-punch-in recording
-        ctx.globalAlpha = 0.85;
-      }
+      const isPunchIn = isPunchInRecording && armedTrack && trackId === armedTrack.id;
+      const opacity = isPunchIn ? 0.4 : 0.85;
       
-      // Draw all peaks for this track
-      const peakWidth = 3;
-      
-      if (isReversed) {
-        // For reversed tracks, find the min and max positions and flip within that range
-        const positions = waveformData.map(d => d.position);
-        const minPos = Math.min(...positions);
-        const maxPos = Math.max(...positions);
-        const rangeWidth = maxPos - minPos;
-        
-        for (const { position, peak } of waveformData) {
-          // Flip position within its own recorded range
-          const relativePosition = position - minPos; // Position relative to start of recording
-          const flippedRelativePosition = rangeWidth - relativePosition; // Flip within the range
-          const drawPosition = minPos + flippedRelativePosition; // Map back to canvas
-          const peakHeight = peak * (height * 0.8);
-          
-          if (drawPosition < canvasInternalWidth && drawPosition >= 0) {
-            ctx.fillRect(drawPosition, height - peakHeight, peakWidth, peakHeight);
-          }
-        }
-      } else {
-        // Normal (non-reversed) drawing
-        for (const { position, peak } of waveformData) {
-          const peakHeight = peak * (height * 0.8);
-          
-          if (position < canvasInternalWidth && position >= 0) {
-            ctx.fillRect(position, height - peakHeight, peakWidth, peakHeight);
-          }
-        }
-      }
+      // Draw the track waveform with appropriate transforms
+      this.waveformRenderer.drawTrackWaveform(waveformData, trackId, {
+        isReversed,
+        isHalfSpeed,
+        isPunchIn,
+        opacity
+      });
       
       totalTracksDrawn++;
     }
     
-    // Draw punch-in overlay if actively recording in punch-in mode
-    if (isPunchInRecording && armedTrack) {
-      this.drawPunchInOverlay(armedTrack.id);
+    // Draw recording peaks to offscreen canvas if recording
+    if (this.state.isRecording && armedTrack && this.waveformRenderer) {
+      const recordingPeaks = this.trackWaveforms.get(armedTrack.id);
+      if (recordingPeaks && recordingPeaks.length > 0) {
+        // Log only first few times to avoid spam
+        if (recordingPeaks.length <= 5 || recordingPeaks.length % 50 === 0) {
+          console.log(`[WAVEFORM] 🎤 Drawing ${recordingPeaks.length} recording peaks for track ${armedTrack.id}`);
+        }
+        // Draw recording peaks to offscreen canvas with appropriate styling
+        const isPunchIn = this.state.recordMode === 'punchIn';
+        this.waveformRenderer.drawTrackWaveform(recordingPeaks, armedTrack.id, {
+          isPunchIn,
+          opacity: isPunchIn ? 0.4 : 1.0
+        });
+      } else if (this.state.isRecording) {
+        console.log('[WAVEFORM] ⚠️ Recording but no peaks to draw yet');
+      }
     }
     
-    // Reset alpha
-    ctx.globalAlpha = 1;
+    // Commit the offscreen drawing to the main canvas
+    this.debugLog('waveform', '[WAVEFORM] 📤 Committing offscreen canvas to main canvas');
+    this.waveformRenderer.commit();
+    
+    // Draw punch-in overlay if actively recording in punch-in mode
+    if (isPunchInRecording && this.state.punchInStartPosition !== undefined) {
+      this.waveformRenderer.drawPunchInRegion(
+        this.state.punchInStartPosition,
+        this.state.playheadPosition,
+        this.state.maxRecordingTime
+      );
+    }
     
     // Draw loop region if looping is active
     if (this.state.isLooping) {
-      this.drawLoopRegion();
+      this.waveformRenderer.drawLoopRegion(
+        this.state.loopStart * 1000, // Convert to ms
+        this.state.loopEnd * 1000,   // Convert to ms
+        this.state.maxRecordingTime
+      );
     }
     
     if (totalTracksDrawn > 0 || this.masterWaveform.length > 0) {
       this.debugLog('waveform', `[WAVEFORM] 🎨 Redrawn waveforms for ${totalTracksDrawn} tracks + master`);
+    } else {
+      this.debugLog('waveform', '[WAVEFORM] ⚠️ No waveform data to draw');
+    }
+    } catch (error) {
+      this.debugError('waveform', '[WAVEFORM] ❌ Error during waveform redraw', error);
     }
   }
 
-  private drawPunchInOverlay(trackId: number) {
-    if (!this.waveformContext || !this.waveformCanvas) return;
-    
-    const canvas = this.waveformCanvas;
-    const ctx = this.waveformContext;
-    const height = canvas.height;
-    
-    // Calculate punch-in region
-    const progress = this.state.playheadPosition / this.state.maxRecordingTime;
-    const punchInProgress = this.state.punchInStartPosition / this.state.maxRecordingTime;
-    
-    // Get the displayed width and scale to canvas
-    const playheadElement = document.getElementById('playhead');
-    const displayedWidth = playheadElement ? playheadElement.clientWidth : 120;
-    const scaleFactor = canvas.width / displayedWidth;
-    
-    const punchInStartX = punchInProgress * displayedWidth * scaleFactor;
-    const currentX = progress * displayedWidth * scaleFactor;
-    const overlayWidth = currentX - punchInStartX;
-    
-    if (overlayWidth > 0) {
-      // Set punch-in overlay color (semi-transparent orange)
-      const trackColor = this.trackColors[trackId as keyof typeof this.trackColors] || '#D18C33';
-      ctx.fillStyle = `${trackColor}80`; // Add 50% transparency (80 in hex)
-      ctx.globalAlpha = 0.7;
-      
-      // Draw overlay rectangle from punch-in start to current position
-      ctx.fillRect(punchInStartX, 0, overlayWidth, height);
-      
-      // Draw a subtle border to highlight the punch-in region
-      ctx.strokeStyle = trackColor;
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.9;
-      ctx.strokeRect(punchInStartX, 0, overlayWidth, height);
-      
-      console.log(`[PUNCH-IN] 🎨 Drew punch-in overlay: ${punchInStartX.toFixed(1)}px to ${currentX.toFixed(1)}px (width: ${overlayWidth.toFixed(1)}px)`);
-    }
-  }
 
   private stopWaveformCapture() {
     if (this.waveformRenderingId) {
@@ -4850,5 +5293,187 @@ export default class TapeFour {
 
     // Always update the button state after an attempt
     this.updateUndoButtonState();
+  }
+
+  // Cleanup method to properly dispose of resources
+  cleanup() {
+    this.debugLog('general', '[TAPEFOUR] 🧹 Starting cleanup...');
+    
+    // Stop any ongoing playback/recording
+    if (this.state.isPlaying || this.state.isRecording) {
+      this.stop();
+    }
+    
+    // Clear all timers
+    if (this.playheadTimer !== null) {
+      clearInterval(this.playheadTimer);
+      this.playheadTimer = null;
+    }
+    
+    if (this.playheadAnimationId !== null) {
+      cancelAnimationFrame(this.playheadAnimationId);
+      this.playheadAnimationId = null;
+    }
+    
+    if (this.volumeMeterAnimationId !== null) {
+      cancelAnimationFrame(this.volumeMeterAnimationId);
+      this.volumeMeterAnimationId = null;
+    }
+    
+    if (this.waveformRenderingId !== null) {
+      cancelAnimationFrame(this.waveformRenderingId);
+      this.waveformRenderingId = null;
+    }
+    
+    if (this.volumeMeterInitTimeout !== null) {
+      clearTimeout(this.volumeMeterInitTimeout);
+      this.volumeMeterInitTimeout = null;
+    }
+    
+    if (this.recordingDurationTimer !== null) {
+      clearTimeout(this.recordingDurationTimer);
+      this.recordingDurationTimer = null;
+    }
+    
+    if (this.memoryCheckInterval !== null) {
+      clearInterval(this.memoryCheckInterval);
+      this.memoryCheckInterval = null;
+    }
+    
+    if (this.uiInitTimeout !== null) {
+      clearTimeout(this.uiInitTimeout);
+      this.uiInitTimeout = null;
+    }
+    
+    // Disconnect all audio nodes
+    this.tracks.forEach(track => {
+      if (track.sourceNode) {
+        try {
+          track.sourceNode.stop();
+          track.sourceNode.disconnect();
+        } catch (e) {
+          // Ignore errors if already stopped
+        }
+        track.sourceNode = null;
+      }
+      
+      if (track.gainNode) {
+        track.gainNode.disconnect();
+        track.gainNode = null;
+      }
+      
+      if (track.panNode) {
+        track.panNode.disconnect();
+        track.panNode = null;
+      }
+      
+      // Properly clean up all audio buffers for this track
+      this.cleanupTrackBuffers(track);
+    });
+    
+    // Disconnect master audio nodes
+    if (this.masterGainNode) {
+      this.masterGainNode.disconnect();
+      this.masterGainNode = null;
+    }
+    
+    if (this.monitoringGainNode) {
+      this.monitoringGainNode.disconnect();
+      this.monitoringGainNode = null;
+    }
+    
+    if (this.inputMonitoringGainNode) {
+      this.inputMonitoringGainNode.disconnect();
+      this.inputMonitoringGainNode = null;
+    }
+    
+    if (this.inputSourceNode) {
+      this.inputSourceNode.disconnect();
+      this.inputSourceNode = null;
+    }
+    
+    if (this.analyserNode) {
+      this.analyserNode.disconnect();
+      this.analyserNode = null;
+    }
+    
+    if (this.waveformAnalyserNode) {
+      this.waveformAnalyserNode.disconnect();
+      this.waveformAnalyserNode = null;
+    }
+    
+    // Stop media recorder
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    this.mediaRecorder = null;
+    
+    // Stop media stream tracks
+    if (this.mediaStream) {
+      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
+    }
+    
+    // Close audio context
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    // Remove all event listeners
+    this.eventListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.eventListeners = [];
+    
+    // Remove keyboard handler
+    if (this.keyboardHandler) {
+      document.removeEventListener('keydown', this.keyboardHandler);
+      this.keyboardHandler = null;
+    }
+    
+    if (this.handleVisibilityChange) {
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      this.handleVisibilityChange = null;
+    }
+    
+    // Clear recording buffer
+    this.recordingBuffer = [];
+    
+    // Clear waveform data caches
+    this.trackWaveforms.clear();
+    this.masterWaveform = [];
+    
+    // Clear waveform optimization resources
+    if (this.waveformRedrawTimer) {
+      cancelAnimationFrame(this.waveformRedrawTimer);
+      this.waveformRedrawTimer = null;
+    }
+    this.waveformRedrawPending = false;
+    this.waveformCache.clear();
+    
+    // Clear offscreen canvas
+    this.waveformOffscreenCanvas = null;
+    
+    // Reset state
+    this.state.masterBuffer = null;
+    
+    // Mark event listeners as not initialized
+    this.eventListenersInitialized = false;
+    
+    // Terminate worker
+    if (this.audioWorker) {
+      this.audioWorker.terminate();
+      this.audioWorker = null;
+    }
+    this.workerPromises.clear();
+    
+    // Finally, close and nullify audio context to ensure all resources are released
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    this.debugLog('general', '[TAPEFOUR] ✅ Cleanup complete');
   }
 }

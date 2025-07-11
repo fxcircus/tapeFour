@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import type { FC } from "react";
 
 interface MetronomeProps {
@@ -173,10 +173,10 @@ class MetronomeEngine {
 
 const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronomePlaying, setMetronomePlaying, countInEnabled, setCountInEnabled }) => {
   // State
-  const [muteSound, setMuteSound] = useState(false);
+  const [muteSound] = useState(false);
   const [bpm, setBpm] = useState(initialBpm);
   const [currentBeat, setCurrentBeat] = useState(0);
-  const beats = [0, 1, 2, 3]; // 4/4 time signature
+  // const beats = [0, 1, 2, 3]; // 4/4 time signature
   const [volume, setVolume] = useState(() => {
     const saved = localStorage.getItem('tapefour-metronome-volume');
     return saved !== null ? Number(saved) : 75;
@@ -358,9 +358,9 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
     setMetronomePlaying(!metronomePlaying);
   };
   
-  const toggleMute = () => {
-    setMuteSound(!muteSound);
-  };
+  // const toggleMute = () => {
+  //   setMuteSound(!muteSound);
+  // };
 
   useEffect(() => {
     if (editingBpm && bpmInputRef.current) {
