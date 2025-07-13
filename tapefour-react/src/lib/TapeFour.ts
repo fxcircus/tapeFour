@@ -127,6 +127,7 @@ export default class TapeFour {
     isPlaying: false,
     isRecording: false,
     isPaused: false,
+    isStoppingRecording: false, // Prevent double-triggering of stop
     playheadPosition: 0,
     selectedInputDeviceId: null as string | null,
     selectedOutputDeviceId: null as string | null,
@@ -141,7 +142,8 @@ export default class TapeFour {
     multiTrackExport: true,
     // Punch-in recording state
     recordMode: 'fresh' as 'fresh' | 'punchIn',
-    punchInStartPosition: 0, // Position where punch-in recording started (in ms)
+    punchInStartPosition: 0,
+    wasQuantizedStart: false, // Track if recording started on a quantized boundary // Position where punch-in recording started (in ms)
     // Bounce to master
     masterBuffer: null as AudioBuffer | null,
     duration: 0, // Total duration in milliseconds
@@ -152,6 +154,9 @@ export default class TapeFour {
     isDraggingLoopStart: false, // Whether user is dragging loop start handle
     isDraggingLoopEnd: false, // Whether user is dragging loop end handle
     hasCompletedFirstRecording: false, // Track if we've completed the first recording pass
+    quantizedLooping: false, // Whether to snap loop points to bar boundaries
+    loopBars: 4, // Number of bars for quantized loop length
+    recordingLatencyCompensation: 0, // milliseconds to adjust recording position
   };
 
   private tracks: Track[] = [
@@ -2044,6 +2049,12 @@ export default class TapeFour {
 
     this.debugLog('transport', '🎵 Starting fresh playback');
     
+    // Reset playhead to beginning when starting from stopped state
+    if (!this.state.isPlaying) {
+      this.state.playheadPosition = 0;
+      this.debugLog('transport', '🔄 Reset playhead to beginning');
+    }
+    
     // Disable monitoring mode for full volume playback
     this.disableMonitoringMode();
     
@@ -2347,6 +2358,77 @@ export default class TapeFour {
     this.bpmCallback = callback;
   }
 
+  public setQuantizedLooping(enabled: boolean) {
+    this.state.quantizedLooping = enabled;
+    this.debugLog('general', `[LOOP] Quantized looping ${enabled ? 'enabled' : 'disabled'}`);
+    
+    if (enabled) {
+      // If enabling quantized looping and we have a loop set, snap it to bars
+      if (this.state.isLooping && this.state.hasCompletedFirstRecording) {
+        const quantizedStart = this.quantizeTimeToBar(this.state.loopStart);
+        const quantizedEnd = this.quantizeTimeToBar(this.state.loopEnd);
+        
+        // Ensure minimum 1 bar length
+        const barDuration = this.calculateBarDuration();
+        if (quantizedEnd - quantizedStart < barDuration) {
+          this.state.loopEnd = quantizedStart + barDuration;
+        } else {
+          this.state.loopStart = quantizedStart;
+          this.state.loopEnd = quantizedEnd;
+        }
+        
+        this.debugLog('general', `[LOOP] Snapped loop to bars: ${this.state.loopStart.toFixed(2)}s → ${this.state.loopEnd.toFixed(2)}s`);
+        this.redrawAllTrackWaveforms();
+      } else if (!this.state.hasCompletedFirstRecording && !this.state.isRecording) {
+        // Show loop preview for first recording
+        this.updateLoopPreview();
+      }
+    } else if (!this.state.hasCompletedFirstRecording) {
+      // If disabling quantized looping before first recording, clear the preview
+      this.state.isLooping = false;
+      this.state.loopStart = 0;
+      this.state.loopEnd = 0;
+      this.updateLoopButtonState();
+      this.redrawAllTrackWaveforms();
+    }
+  }
+
+  public getQuantizedLooping(): boolean {
+    return this.state.quantizedLooping;
+  }
+  
+  public setLoopBars(bars: number) {
+    this.state.loopBars = bars;
+    this.debugLog('general', `[LOOP] Loop length set to ${bars} bars`);
+    
+    // If quantized looping is active and we're not recording, update loop preview
+    if (this.state.quantizedLooping && !this.state.isRecording && !this.state.hasCompletedFirstRecording) {
+      this.updateLoopPreview();
+    }
+  }
+  
+  public setRecordingLatencyCompensation(ms: number) {
+    this.state.recordingLatencyCompensation = ms;
+    this.debugLog('general', `[LATENCY] Recording compensation set to ${ms}ms`);
+  }
+
+  public getRecordingLatencyCompensation(): number {
+    return this.state.recordingLatencyCompensation;
+  }
+  
+  private updateLoopPreview() {
+    const barDuration = this.calculateBarDuration();
+    const loopDuration = barDuration * this.state.loopBars;
+    
+    this.state.loopStart = 0;
+    this.state.loopEnd = loopDuration;
+    this.state.isLooping = true;
+    
+    this.debugLog('general', `[LOOP] Preview loop set for ${this.state.loopBars} bars: 0s → ${loopDuration.toFixed(2)}s`);
+    this.updateLoopButtonState();
+    this.redrawAllTrackWaveforms();
+  }
+
   public setLoopRegion(startSeconds: number, endSeconds: number) {
     this.state.loopStart = Math.max(0, startSeconds);
     this.state.loopEnd = Math.max(this.state.loopStart + 0.1, endSeconds);
@@ -2506,6 +2588,49 @@ export default class TapeFour {
     
     if (this.state.isRecording) return this.stopRecording();
 
+    // Check if quantized looping is enabled and we're overdubbing
+    if (this.state.quantizedLooping && this.state.isLooping && this.state.isPlaying && this.state.hasCompletedFirstRecording) {
+      // Calculate time until loop restart
+      const currentTimeInLoop = (this.state.playheadPosition / 1000) - this.state.loopStart;
+      const loopDuration = this.state.loopEnd - this.state.loopStart;
+      const timeUntilLoopRestart = loopDuration - currentTimeInLoop;
+      
+      this.debugLog('transport', `[TAPEFOUR] 🎵 Quantized overdub - waiting ${timeUntilLoopRestart.toFixed(2)}s until loop restart`);
+      
+      // Show visual feedback that recording will start at loop restart
+      const recordBtn = document.getElementById('record-btn');
+      if (recordBtn) {
+        recordBtn.classList.add('pending');
+        recordBtn.title = `Recording will start in ${timeUntilLoopRestart.toFixed(1)}s`;
+      }
+      
+      // Schedule recording to start at loop restart
+      setTimeout(() => {
+        this.debugLog('transport', '[TAPEFOUR] 🎵 Quantized recording starting now at loop boundary');
+        if (recordBtn) {
+          recordBtn.classList.remove('pending');
+        }
+        this.state.wasQuantizedStart = true; // Mark this as a quantized start
+        this.startActualRecording();
+      }, timeUntilLoopRestart * 1000);
+      
+      return;
+    }
+
+    // Set up the loop before recording starts if quantized looping is enabled
+    if (!this.state.hasCompletedFirstRecording && this.state.quantizedLooping) {
+      const barDuration = this.calculateBarDuration();
+      const loopDuration = barDuration * this.state.loopBars;
+      
+      this.state.loopStart = 0;
+      this.state.loopEnd = loopDuration;
+      this.state.isLooping = true;
+      
+      this.debugLog('transport', `[LOOP] Pre-set loop for ${this.state.loopBars} bars: 0s → ${loopDuration.toFixed(2)}s`);
+      this.updateLoopButtonState();
+      this.redrawAllTrackWaveforms(); // Show loop markers
+    }
+    
     // Check if count-in is enabled
     const shouldCountIn = this.countInCallback ? this.countInCallback() : false;
     
@@ -2567,12 +2692,26 @@ export default class TapeFour {
       this.state.punchInStartPosition = 0;
       // For fresh recordings, clear the undo history and set the start time
       if (armedTrack) {
-        armedTrack.recordStartTime = this.state.playheadPosition;
+        // Set the recording start time with latency compensation
+        if (this.state.wasQuantizedStart && this.state.quantizedLooping && this.state.isLooping) {
+          // For quantized starts, align exactly to the bar boundary
+          const currentTimeSec = this.state.playheadPosition / 1000;
+          const barTimeSec = this.quantizeTimeToBar(currentTimeSec);
+          armedTrack.recordStartTime = (barTimeSec * 1000) + this.state.recordingLatencyCompensation;
+          this.debugLog('transport', `[TAPEFOUR] 🎵 Quantized recording aligned to bar with ${this.state.recordingLatencyCompensation}ms compensation: ${armedTrack.recordStartTime}ms`);
+        } else {
+          // For non-quantized starts, use the current playhead position
+          armedTrack.recordStartTime = this.state.playheadPosition + this.state.recordingLatencyCompensation;
+          this.debugLog('transport', `[TAPEFOUR] 🎵 Recording starting with ${this.state.recordingLatencyCompensation}ms compensation at: ${armedTrack.recordStartTime}ms`);
+        }
         armedTrack.undoHistory = [];
         this.debugLog('general', `[UNDO] Cleared undo history for track ${armedTrack.id}`);
       }
       this.debugLog('transport', `[TAPEFOUR] 🎵 Fresh recording starting at timeline position ${this.state.playheadPosition}ms`);
     }
+    
+    // Reset the quantized start flag
+    this.state.wasQuantizedStart = false;
 
     // Critical operations first
     await this.initializeAudio();
@@ -2649,6 +2788,18 @@ export default class TapeFour {
       this.stop();
     }, TapeFour.MAX_RECORDING_DURATION_MS);
     
+    // For quantized recording, schedule automatic stop at loop end
+    if (this.state.quantizedLooping && this.state.isLooping && !this.state.hasCompletedFirstRecording) {
+      const recordingDuration = this.state.loopEnd * 1000; // Convert to ms
+      
+      this.debugLog('transport', `[TAPEFOUR] 🎵 Scheduling auto-stop at loop end in ${(recordingDuration / 1000).toFixed(2)}s`);
+      
+      setTimeout(() => {
+        this.debugLog('transport', '[TAPEFOUR] 🎵 Auto-stopping at loop end');
+        this.stopRecording();
+      }, recordingDuration);
+    }
+    
     // Defer waveform setup to avoid blocking recording start
     setTimeout(() => {
       // Handle waveform capture based on recording mode
@@ -2698,6 +2849,9 @@ export default class TapeFour {
             throw new Error('MediaStream is not available');
           }
         }
+        
+        // Always ensure waveform analyser is set up when reusing stream
+        this.setupWaveformAnalyser();
         
         const setupTime = performance.now() - startTime;
         this.debugLog('input', `[TAPEFOUR] ⚡ Recording setup completed in ${setupTime.toFixed(2)}ms (reused stream)`);
@@ -2829,16 +2983,63 @@ export default class TapeFour {
   }
 
   private stopRecording() {
-    this.debugLog('transport', `[TAPEFOUR] 🛑 Stopping ${this.state.recordMode} recording`);
+    this.debugLog('transport', `[TAPEFOUR] 🛑 Stop recording requested (${this.state.recordMode} mode)`);
     if (!this.state.isRecording) return;
     
+    // Prevent double-triggering
+    if (this.state.isStoppingRecording) {
+      this.debugLog('transport', '[TAPEFOUR] ⚠️ Already stopping recording, ignoring duplicate request');
+      return;
+    }
+    
+    // Check if quantized looping is enabled and we should wait until bar end
+    if (this.state.quantizedLooping && this.state.isLooping) {
+      const currentTime = this.state.playheadPosition / 1000; // Convert to seconds
+      const nextBarTime = this.quantizeTimeToNextBar(currentTime);
+      const timeUntilNextBar = nextBarTime - currentTime;
+      
+      // If we're very close to the bar boundary (within 50ms), stop immediately
+      if (timeUntilNextBar < 0.05) {
+        this.debugLog('transport', '[TAPEFOUR] 🎵 Already at bar boundary, stopping immediately');
+        this.actuallyStopRecording();
+        return;
+      }
+      
+      // Mark that we're in the process of stopping
+      this.state.isStoppingRecording = true;
+      
+      this.debugLog('transport', `[TAPEFOUR] 🎵 Quantized stop - waiting ${timeUntilNextBar.toFixed(2)}s until bar end`);
+      
+      // Show visual feedback that recording will stop at bar end
+      const recordBtn = document.getElementById('record-btn');
+      if (recordBtn) {
+        recordBtn.classList.add('stopping');
+        recordBtn.title = `Stopping in ${timeUntilNextBar.toFixed(1)}s`;
+      }
+      
+      // Schedule recording to stop at bar end
+      setTimeout(() => {
+        this.actuallyStopRecording();
+      }, timeUntilNextBar * 1000);
+      
+      return;
+    }
+    
+    // No quantization, stop immediately
+    this.actuallyStopRecording();
+  }
+
+  private actuallyStopRecording() {
+    this.debugLog('transport', '[TAPEFOUR] 🛑 Actually stopping recording now');
+    
     this.state.isRecording = false;
+    this.state.isStoppingRecording = false; // Reset the flag
     if (this.mediaRecorder?.state === 'recording') this.mediaRecorder.stop();
     
     // Clean up record button styling
     const recordBtn = document.getElementById('record-btn');
     if (recordBtn) {
-      recordBtn.classList.remove('recording', 'punch-in');
+      recordBtn.classList.remove('recording', 'punch-in', 'stopping');
       recordBtn.title = 'Record';
     }
     
@@ -4757,14 +4958,45 @@ export default class TapeFour {
     requestAnimationFrame(animate);
   }
 
+  /* ---------- Quantization Helper Methods ---------- */
+
+  private calculateBarDuration(): number {
+    const bpm = this.bpmCallback ? this.bpmCallback() : 120;
+    const beatsPerBar = 4; // Assuming 4/4 time
+    const secondsPerBeat = 60 / bpm;
+    return beatsPerBar * secondsPerBeat;
+  }
+
+  private quantizeTimeToBar(timeInSeconds: number): number {
+    const barDuration = this.calculateBarDuration();
+    const bars = Math.round(timeInSeconds / barDuration);
+    return bars * barDuration;
+  }
+
+  private quantizeTimeToNextBar(timeInSeconds: number): number {
+    const barDuration = this.calculateBarDuration();
+    const bars = Math.ceil(timeInSeconds / barDuration);
+    return bars * barDuration;
+  }
+
+  private getBarNumber(timeInSeconds: number): number {
+    const barDuration = this.calculateBarDuration();
+    return Math.floor(timeInSeconds / barDuration) + 1; // 1-based bar numbers
+  }
+
   /* ---------- Loop Functionality Methods ---------- */
 
   private setupInitialLoop(recordingDuration: number) {
-    this.state.loopStart = 0;
-    this.state.loopEnd = recordingDuration;
-    this.state.isLooping = true;
-    
-    this.debugLog('general', `[LOOP] 🔄 Auto-set loop: 0s → ${recordingDuration.toFixed(2)}s`);
+    if (this.state.quantizedLooping) {
+      // Keep the pre-set loop length, don't change it
+      this.debugLog('general', `[LOOP] Keeping pre-set quantized loop: ${this.state.loopStart}s → ${this.state.loopEnd.toFixed(2)}s`);
+    } else {
+      // Original behavior for non-quantized
+      this.state.loopStart = 0;
+      this.state.loopEnd = recordingDuration;
+      this.state.isLooping = true;
+      this.debugLog('general', `[LOOP] 🔄 Auto-set loop: 0s → ${this.state.loopEnd.toFixed(2)}s`);
+    }
     
     // Update loop button visual state
     this.updateLoopButtonState();
@@ -4798,18 +5030,44 @@ export default class TapeFour {
   }
 
   private setLoopStart(timeInSeconds: number) {
+    let newStart = timeInSeconds;
+    
+    if (this.state.quantizedLooping) {
+      // Snap to nearest bar
+      newStart = this.quantizeTimeToBar(timeInSeconds);
+      
+      // Ensure minimum 1 bar loop length
+      const barDuration = this.calculateBarDuration();
+      if (this.state.loopEnd - newStart < barDuration) {
+        newStart = this.state.loopEnd - barDuration;
+      }
+    }
+    
     // Ensure start is not after end
-    this.state.loopStart = Math.max(0, Math.min(timeInSeconds, this.state.loopEnd - 0.1));
-    this.debugLog('general', `[LOOP] 🎯 Loop start set to ${this.state.loopStart.toFixed(2)}s`);
+    this.state.loopStart = Math.max(0, Math.min(newStart, this.state.loopEnd - 0.1));
+    this.debugLog('general', `[LOOP] 🎯 Loop start set to ${this.state.loopStart.toFixed(2)}s${this.state.quantizedLooping ? ' (quantized)' : ''}`);
     this.updateTransportDisplay();
     this.redrawAllTrackWaveforms();
   }
 
   private setLoopEnd(timeInSeconds: number) {
-    // Ensure end is not before start
+    let newEnd = timeInSeconds;
     const maxDuration = this.state.maxRecordingTime / 1000; // Convert ms to seconds
-    this.state.loopEnd = Math.min(maxDuration, Math.max(timeInSeconds, this.state.loopStart + 0.1));
-    this.debugLog('general', `[LOOP] 🎯 Loop end set to ${this.state.loopEnd.toFixed(2)}s`);
+    
+    if (this.state.quantizedLooping) {
+      // Snap to nearest bar
+      newEnd = this.quantizeTimeToBar(timeInSeconds);
+      
+      // Ensure minimum 1 bar loop length
+      const barDuration = this.calculateBarDuration();
+      if (newEnd - this.state.loopStart < barDuration) {
+        newEnd = this.state.loopStart + barDuration;
+      }
+    }
+    
+    // Ensure end is not before start and within max duration
+    this.state.loopEnd = Math.min(maxDuration, Math.max(newEnd, this.state.loopStart + 0.1));
+    this.debugLog('general', `[LOOP] 🎯 Loop end set to ${this.state.loopEnd.toFixed(2)}s${this.state.quantizedLooping ? ' (quantized)' : ''}`);
     this.updateTransportDisplay();
     this.redrawAllTrackWaveforms();
   }

@@ -8,6 +8,10 @@ interface MetronomeProps {
   setMetronomePlaying: (playing: boolean) => void;
   countInEnabled: boolean;
   setCountInEnabled: (enabled: boolean) => void;
+  quantizedLooping?: boolean;
+  onQuantizedLoopingChange?: (enabled: boolean) => void;
+  loopBars?: number;
+  onLoopBarsChange?: (bars: number) => void;
 }
 
 // Metronome Engine Class - Keep all the audio functionality
@@ -171,7 +175,18 @@ class MetronomeEngine {
   }
 }
 
-const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronomePlaying, setMetronomePlaying, countInEnabled, setCountInEnabled }) => {
+const Metronome: FC<MetronomeProps> = ({ 
+  bpm: initialBpm, 
+  onBpmChange, 
+  metronomePlaying, 
+  setMetronomePlaying, 
+  countInEnabled, 
+  setCountInEnabled,
+  quantizedLooping = false,
+  onQuantizedLoopingChange,
+  loopBars: initialLoopBars = 4,
+  onLoopBarsChange
+}) => {
   // State
   const [muteSound] = useState(false);
   const [bpm, setBpm] = useState(initialBpm);
@@ -186,6 +201,7 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
   const [editingBpm, setEditingBpm] = useState(false);
   const [bpmInput, setBpmInput] = useState(bpm.toString());
   const bpmInputRef = useRef<HTMLInputElement>(null);
+  const [selectedBars, setSelectedBars] = useState(initialLoopBars);
   
   // Refs
   const metronomeRef = useRef<MetronomeEngine | null>(null);
@@ -224,6 +240,11 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
       }
     }
   }, [initialBpm]);
+  
+  // Handle external loop bars changes
+  useEffect(() => {
+    setSelectedBars(initialLoopBars);
+  }, [initialLoopBars]);
   
   // Update BPM in metronome engine
   useEffect(() => {
@@ -473,6 +494,25 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
                 )}
               </svg>
             </button>
+            
+            <button
+              className={`quantized-looping-toggle-btn${quantizedLooping ? ' enabled' : ''}`}
+              onClick={() => onQuantizedLoopingChange && onQuantizedLoopingChange(!quantizedLooping)}
+              aria-pressed={quantizedLooping}
+              title={quantizedLooping ? 'Quantized Loop: On' : 'Quantized Loop: Off'}
+              style={{ marginRight: 12, minWidth: 0, width: 36, height: 36, padding: 0, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                {/* Grid icon for quantization */}
+                <rect x="4" y="4" width="14" height="14" />
+                <line x1="4" y1="11" x2="18" y2="11" />
+                <line x1="11" y1="4" x2="11" y2="18" />
+                {!quantizedLooping && (
+                  <line x1="4" y1="18" x2="18" y2="4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+                )}
+              </svg>
+            </button>
+            
             <div 
               className="beats-row"
               onClick={toggleMetronome}
@@ -515,6 +555,24 @@ const Metronome: FC<MetronomeProps> = ({ bpm: initialBpm, onBpmChange, metronome
               />
             </div>
           </div>
+          {quantizedLooping && (
+            <div className="loop-length-selector">
+              <span className="loop-length-label">Bars:</span>
+              {[1, 2, 3, 4, 8].map(bars => (
+                <button
+                  key={bars}
+                  className={`loop-length-btn${selectedBars === bars ? ' active' : ''}`}
+                  onClick={() => {
+                    setSelectedBars(bars);
+                    onLoopBarsChange?.(bars);
+                  }}
+                  title={`${bars} bar${bars > 1 ? 's' : ''} loop`}
+                >
+                  {bars}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

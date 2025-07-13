@@ -1773,7 +1773,7 @@ body {
   display: block;
   overflow: hidden;
   transition: max-height 0.3s ease, opacity 0.3s ease;
-  max-height: 400px;
+  max-height: 600px;
   opacity: 1;
   margin-top: 12px;
 }
@@ -1812,7 +1812,7 @@ body {
   display: block;
   overflow: hidden;
   transition: max-height 0.3s ease, opacity 0.3s ease;
-  max-height: 400px;
+  max-height: 600px;
   opacity: 1;
   margin-top: 12px;
 }
@@ -4495,6 +4495,203 @@ body {
     font-size: 11px;
     padding: 3px 7px;
     min-width: 44px;
+  }
+}
+
+.quantized-looping-toggle-btn {
+  background: var(--color-control-surface);
+  border: 2px solid var(--color-text-primary);
+  color: var(--color-text-primary);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: 'Space Mono', monospace;
+  font-weight: 500;
+  padding: 4px 10px;
+  margin: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  outline: none;
+  min-width: 60px;
+  text-align: center;
+  user-select: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quantized-looping-toggle-btn.enabled {
+  background: var(--color-chassis);
+  color: var(--color-text-primary);
+  border-color: var(--color-chassis);
+}
+.quantized-looping-toggle-btn:active {
+  background: color-mix(in srgb, var(--color-play) 80%, #fff 20%);
+}
+.quantized-looping-toggle-btn:not(.enabled) {
+  opacity: 0.7;
+}
+
+@media screen and (max-width: 600px) {
+  .quantized-looping-toggle-btn {
+    font-size: 11px;
+    padding: 3px 7px;
+    min-width: 44px;
+  }
+}
+/* Loop length selector */
+.loop-length-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: var(--color-control-surface);
+  border-radius: 6px;
+  justify-content: center;
+}
+
+.loop-length-label {
+  font-size: 12px;
+  color: var(--color-text-primary);
+  opacity: 0.8;
+  margin-right: 4px;
+}
+
+.loop-length-btn {
+  background: transparent;
+  border: 1px solid var(--color-text-primary);
+  color: var(--color-text-primary);
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.6;
+  min-width: 24px;
+}
+
+.loop-length-btn:hover {
+  opacity: 0.8;
+  background: var(--overlay-hover);
+}
+
+.loop-length-btn.active {
+  background: var(--color-text-primary);
+  color: var(--color-control-surface);
+  opacity: 1;
+  font-weight: 500;
+}
+
+/* Latency compensation styles */
+.latency-compensation-section {
+  margin-top: 16px;
+}
+
+.settings-description {
+  font-size: 11px;
+  color: var(--color-text-primary);
+  opacity: 0.7;
+  margin: 4px 0 8px 0;
+  line-height: 1.4;
+}
+
+.latency-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.latency-slider {
+  width: 100%;
+  height: 24px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+.latency-slider::-webkit-slider-track {
+  width: 100%;
+  height: 4px;
+  background: var(--color-divider);
+  border-radius: 2px;
+}
+
+.latency-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--color-text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.latency-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: var(--color-divider);
+  border-radius: 2px;
+}
+
+.latency-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--color-text-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.latency-value-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.latency-value {
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: center;
+  padding: 4px 8px;
+  background: var(--color-control-surface);
+  border-radius: 4px;
+  border: 1px solid var(--color-divider);
+}
+
+.reset-latency-btn {
+  font-size: 11px;
+  padding: 4px 12px;
+  background: var(--color-control-surface);
+  border: 1px solid var(--color-text-primary);
+  color: var(--color-text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.reset-latency-btn:hover {
+  opacity: 1;
+}
+
+/* Record button pending state for quantized recording */
+#record-btn.pending {
+  animation: pulse-pending 1s ease-in-out infinite;
+}
+
+@keyframes pulse-pending {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
   }
 }
 

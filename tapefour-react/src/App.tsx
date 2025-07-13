@@ -14,10 +14,46 @@ function App() {
     const stored = localStorage.getItem('tapefour-should-count-in');
     return stored === null ? true : stored === 'true';
   })
+  const [quantizedLooping, setQuantizedLoopingState] = useState(() => {
+    const stored = localStorage.getItem('tapefour-quantized-looping');
+    return stored === 'true';
+  })
+  const [loopBars, setLoopBarsState] = useState(() => {
+    const stored = localStorage.getItem('tapefour-loop-bars');
+    return stored ? Number(stored) : 4;
+  })
+  const [latencyCompensation, setLatencyCompensationState] = useState(() => {
+    const stored = localStorage.getItem('tapefour-latency-compensation');
+    return stored ? Number(stored) : 0;
+  })
 
   const setCountInEnabled = useCallback((enabled: boolean) => {
     setCountInEnabledState(enabled);
     localStorage.setItem('tapefour-should-count-in', enabled ? 'true' : 'false');
+  }, [])
+
+  const setQuantizedLooping = useCallback((enabled: boolean) => {
+    setQuantizedLoopingState(enabled);
+    localStorage.setItem('tapefour-quantized-looping', enabled ? 'true' : 'false');
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setQuantizedLooping(enabled);
+    }
+  }, [])
+  
+  const setLoopBars = useCallback((bars: number) => {
+    setLoopBarsState(bars);
+    localStorage.setItem('tapefour-loop-bars', bars.toString());
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setLoopBars(bars);
+    }
+  }, [])
+  
+  const setLatencyCompensation = useCallback((ms: number) => {
+    setLatencyCompensationState(ms);
+    localStorage.setItem('tapefour-latency-compensation', ms.toString());
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setRecordingLatencyCompensation(ms);
+    }
   }, [])
 
   // Initialize TapeFour only once
@@ -58,6 +94,24 @@ function App() {
       });
     }
   }, [bpm])
+
+  useEffect(() => {
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setQuantizedLooping(quantizedLooping);
+    }
+  }, [quantizedLooping])
+  
+  useEffect(() => {
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setLoopBars(loopBars);
+    }
+  }, [loopBars])
+  
+  useEffect(() => {
+    if (tapeFourRef.current) {
+      tapeFourRef.current.setRecordingLatencyCompensation(latencyCompensation);
+    }
+  }, [latencyCompensation])
 
   // Load saved theme from localStorage on component mount
   useEffect(() => {
@@ -105,6 +159,10 @@ function App() {
             setMetronomePlaying={setMetronomePlaying}
             countInEnabled={countInEnabled}
             setCountInEnabled={setCountInEnabled}
+            quantizedLooping={quantizedLooping}
+            onQuantizedLoopingChange={setQuantizedLooping}
+            loopBars={loopBars}
+            onLoopBarsChange={setLoopBars}
           />
           <div className="playhead" id="playhead">
             <canvas className="waveform-canvas" id="waveform-canvas" width="800" height="30"></canvas>
@@ -329,21 +387,49 @@ function App() {
                   </button>
                 </div>
                 <div className="divider"></div>
-              <div className="audio-processing-section">
-                <h5 className="processing-subtitle">Audio Processing Options</h5>
-                <div className="checkbox-group">
-                  <label className="checkbox-label">
-                    <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
-                    Feedback Cancellation
-                  </label>
-                  <label className="checkbox-label">
-                    <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
-                    Noise gate
-                  </label>
+                <div className="audio-processing-section">
+                  <h5 className="processing-subtitle">Audio Processing Options</h5>
+                  <div className="checkbox-group">
+                    <label className="checkbox-label">
+                      <input type="checkbox" id="echo-cancellation-checkbox" className="settings-checkbox" />
+                      Feedback Cancellation
+                    </label>
+                    <label className="checkbox-label">
+                      <input type="checkbox" id="noise-suppression-checkbox" className="settings-checkbox" />
+                      Noise gate
+                    </label>
+                  </div>
                 </div>
                 <div className="divider"></div>
-                
-              </div>
+                <div className="latency-compensation-section">
+                  <h5 className="processing-subtitle">Recording Latency Compensation</h5>
+                  <p className="settings-description">
+                    Adjust if recordings don't align with the metronome.
+                    Negative = earlier, Positive = later
+                  </p>
+                  <div className="latency-control">
+                    <input 
+                      type="range" 
+                      className="latency-slider"
+                      min={-200} 
+                      max={200} 
+                      step={10}
+                      value={latencyCompensation}
+                      onChange={(e) => setLatencyCompensation(Number(e.target.value))}
+                    />
+                    <div className="latency-value-display">
+                      <span className="latency-value">{latencyCompensation}ms</span>
+                      {latencyCompensation !== 0 && (
+                        <button 
+                          className="reset-latency-btn"
+                          onClick={() => setLatencyCompensation(0)}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
             </div>
           </div>
           
